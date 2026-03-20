@@ -3,6 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/Navbar";
+import { AuthProvider } from "@/components/AuthProvider";
+import { Player } from "@/components/Player";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -30,14 +33,20 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="ru" className="scroll-smooth">
-      <body className={cn(inter.className, "bg-black text-white antialiased")}>
-        <Navbar />
-        {children}
+    <html lang="ru" suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen bg-black text-white antialiased`} suppressHydrationWarning>
+        <AuthProvider>
+          <Navbar />
+          <main className="pt-24 pb-32">
+            {children}
+          </main>
+          <Player />
+          <Toaster position="top-center" richColors theme="dark" />
+        </AuthProvider>
       </body>
     </html>
   );

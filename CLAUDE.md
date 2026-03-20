@@ -26,14 +26,14 @@ The core value proposition is **100% Legal Compliance** (exempt from RAO/VOIS fe
     -   **Service Workers:** Cache audio blobs for offline playback (critical for unstable internet).
 -   **State Management:** Zustand (lightweight) + React Query (server state).
 
-### Backend & Infrastructure (Yandex Cloud)
--   **Hosting:** Yandex Cloud Compute Cloud (Container Registry + Serverless Containers) or Yandex Cloud Functions.
--   **Database:** Yandex Managed PostgreSQL (Compliant with 152-FZ).
-    -   *ORM:* Prisma or Drizzle ORM (Type-safe).
--   **Storage:** Yandex Object Storage (S3-compatible) for Music Files & Certificates.
-    -   *Policy:* Private buckets, signed URLs for audio streaming.
--   **Auth:** Custom JWT Auth (stored in HTTPOnly cookies) or Yandex ID (for B2B ease).
--   **Payments:** YooKassa SDK (supports Mir, SBP, Visa/MC Russia).
+### Backend & Infrastructure
+-   **Production (152-FZ):** Yandex Cloud (PostgreSQL, Object Storage).
+-   **Testing/Prototype:** Supabase (PostgreSQL, Storage, Auth) — *Temporary for concept validation.*
+-   **Hosting:** Yandex Cloud (Serverless) or Vercel (for testing only).
+-   **Database:** PostgreSQL (via Prisma).
+-   **Storage:** S3-compatible (Yandex Object Storage or Supabase Storage).
+-   **Auth:** Supabase Auth (Testing) or Yandex ID (Production).
+-   **Payments:** YooKassa SDK.
 
 ### AI & Future Features
 -   **LLM:** YandexGPT (via Yandex Cloud AI) for playlist generation (ensures data stays in Russia).

@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -27,9 +26,11 @@ model User {
   email         String    @unique
   passwordHash  String
   role          Role      @default(BUSINESS_OWNER)
-  businesses    Business[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  businesses      Business[]
+  termsAccepted   Boolean   @default(false)
+  termsAcceptedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@map("users")
 }
@@ -42,6 +43,14 @@ model Business {
   kpp                String?
   legalName          String
   address            String
+  phone              String?
+  contactPerson      String?
+  businessType       String?            // ip, ooo, self
+  businessCategory   String?            // cafe, retail, etc.
+  bankName           String?
+  bik                String?
+  settlementAccount  String?
+  corrAccount        String?
   subscriptionStatus SubscriptionStatus @default(INACTIVE)
   locations          Location[]
   playlists          Playlist[]
@@ -109,10 +118,15 @@ model License {
   id         String   @id @default(uuid())
   businessId String
   business   Business @relation(fields: [businessId], references: [id])
-  issuedAt   DateTime @default(now())
-  expiresAt  DateTime
-  pdfUrl     String
-  createdAt  DateTime @default(now())
+  licenseNumber String @unique
+  signingName  String
+  issuedAt     DateTime @default(now())
+  expiresAt    DateTime
+  validFrom    DateTime
+  validTo      DateTime
+  totalCost    Float    @default(0)
+  pdfUrl       String
+  createdAt    DateTime @default(now())
 
   @@map("licenses")
 }
