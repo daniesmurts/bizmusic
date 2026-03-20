@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  BUSINESS_OWNER
+  STAFF
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  ACTIVE
+  EXPIRED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  role          Role      @default(BUSINESS_OWNER)
+  businesses    Business[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Business {
+  id                 String             @id @default(uuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id])
+  inn                String             @unique
+  kpp                String?
+  legalName          String
+  address            String
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  locations          Location[]
+  playlists          Playlist[]
+  licenses           License[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@map("businesses")
+}
+
+model Location {
+  id         String    @id @default(uuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id])
+  name       String
+  address    String
+  deviceId   String?   @unique
+  playLogs   PlayLog[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("locations")
+}
+
+model Track {
+  id         String    @id @default(uuid())
+  title      String
+  artist     String
+  fileUrl    String
+  duration   Int       // in seconds
+  bpm        Int?
+  moodTags   String[]  // Prisma supports arrays in Postgres
+  isExplicit Boolean   @default(false)
+  playLogs   PlayLog[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("tracks")
+}
+
+model Playlist {
+  id             String    @id @default(uuid())
+  businessId     String?   // Global playlists if null
+  business       Business? @relation(fields: [businessId], references: [id])
+  name           String
+  scheduleConfig Json?     // { "monday": [{ "start": "09:00", "playlist_id": 1 }] }
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("playlists")
+}
+
+model PlayLog {
+  id         String   @id @default(uuid())
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+  trackId    String
+  track      Track    @relation(fields: [trackId], references: [id])
+  playedAt   DateTime @default(now())
+
+  @@map("play_logs")
+}
+
+model License {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  issuedAt   DateTime @default(now())
+  expiresAt  DateTime
+  pdfUrl     String
+  createdAt  DateTime @default(now())
+
+  @@map("licenses")
+}
