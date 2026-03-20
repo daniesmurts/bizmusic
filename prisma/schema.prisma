@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -55,6 +56,7 @@ model Business {
   locations          Location[]
   playlists          Playlist[]
   licenses           License[]
+  playLogs           PlayLog[]
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -82,11 +84,13 @@ model Track {
   fileUrl    String
   duration   Int       // in seconds
   bpm        Int?
+  genre      String?   @default("Unknown")
   moodTags   String[]  // Prisma supports arrays in Postgres
   isExplicit Boolean   @default(false)
-  playLogs   PlayLog[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  playLogs    PlayLog[]
+  playlists   PlaylistTrack[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@map("tracks")
 }
@@ -96,17 +100,35 @@ model Playlist {
   businessId     String?   // Global playlists if null
   business       Business? @relation(fields: [businessId], references: [id])
   name           String
-  scheduleConfig Json?     // { "monday": [{ "start": "09:00", "playlist_id": 1 }] }
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  tracks         PlaylistTrack[]
+  scheduleConfig Json?           // { "monday": [{ "start": "09:00", "playlist_id": 1 }] }
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@map("playlists")
 }
 
+model PlaylistTrack {
+  id         String   @id @default(uuid())
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  trackId    String
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([playlistId, trackId])
+  @@index([playlistId, position])
+  @@map("playlist_tracks")
+}
+
 model PlayLog {
   id         String   @id @default(uuid())
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id])
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id])
   trackId    String
   track      Track    @relation(fields: [trackId], references: [id])
   playedAt   DateTime @default(now())

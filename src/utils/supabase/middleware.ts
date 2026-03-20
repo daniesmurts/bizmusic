@@ -56,6 +56,28 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // RBAC for /admin: strict check
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+
+    // Fetch user role from database
+    const { data: userData, error: roleError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (roleError || userData?.role !== 'ADMIN') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Protected routes: redirect to login if not authenticated
   if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
     const url = request.nextUrl.clone()

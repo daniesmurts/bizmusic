@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Player } from "@/components/Player";
 import { Toaster } from "sonner";
+import { Providers } from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -39,14 +40,16 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-black text-white antialiased`} suppressHydrationWarning>
-        <AuthProvider>
-          <Navbar />
-          <main className="pt-24 pb-32">
-            {children}
-          </main>
-          <Player />
-          <Toaster position="top-center" richColors theme="dark" />
-        </AuthProvider>
+        <Providers>
+          <AuthProvider>
+            <Navbar />
+            <main className="pt-24 pb-32">
+              {children}
+            </main>
+            <Player />
+            <Toaster position="top-center" richColors theme="dark" />
+          </AuthProvider>
+        </Providers>
       </body>
     </html>
   );

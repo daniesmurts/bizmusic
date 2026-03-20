@@ -84,7 +84,7 @@ export default function ContractPage() {
         signingName
       });
 
-      if (result.success && result.data) {
+      if (result.success && 'data' in result && result.data) {
         // Download PDF
         const blob = await (await fetch(`data:application/pdf;base64,${result.data}`)).blob();
         const url = window.URL.createObjectURL(blob);
@@ -95,11 +95,11 @@ export default function ContractPage() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         setSuccess(true);
         toast.success("Лицензия успешно сформирована и подписана!");
       } else {
-        toast.error(result.error || "Ошибка при генерации лицензии");
+        toast.error('error' in result ? result.error : "Ошибка при генерации лицензии");
       }
     } catch (err) {
       toast.error("Произошла непредвиденная ошибка");

@@ -4,7 +4,8 @@ export interface Track {
   id: string;
   title: string;
   artist: string;
-  file_url: string;
+  fileUrl: string;
+  streamUrl?: string;
   duration: number;
   cover_url?: string;
 }

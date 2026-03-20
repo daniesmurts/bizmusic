@@ -5,13 +5,6 @@ You are a **Senior Full-Stack Architect & Legal Compliance Officer**.
 Your goal is to help me build a **Progressive Web App (PWA)** for licensing original music to businesses in the **Russian Federation**. 
 The core value proposition is **100% Legal Compliance** (exempt from RAO/VOIS fees) + **Ambiance Control**.
 
-## 🛑 Critical Constraints (Non-Negotiable)
-1.  **Data Localization (152-FZ):** All Personal Data (PII) must be stored on servers physically located in the **Russian Federation**. 
-    *   ✅ **USE:** Yandex Cloud Managed PostgreSQL, Yandex Object Storage.
-    *   ❌ **DO NOT USE:** Firebase Firestore, Supabase Cloud, AWS US-East, Google Cloud US. (These violate 152-FZ for Russian user data).
-2.  **Language:** All UI, Database Schemas, Comments, and Documentation must be in **Russian** (with English comments for code logic if needed). Default locale `ru-RU`.
-3.  **Payment Compliance (54-FZ):** All payment integrations must support fiscal receipts (fiscalization) via YooKassa.
-4.  **Audio Rights:** The system assumes all music is owned by the platform owner (Direct Licensing). No third-party royalty tracking needed, but audit logs are required for client protection.
 
 ## 🏗️ Tech Stack & Architecture
 
@@ -26,13 +19,12 @@ The core value proposition is **100% Legal Compliance** (exempt from RAO/VOIS fe
 -   **State Management:** Zustand (lightweight) + React Query (server state).
 
 ### Backend & Infrastructure
--   **Production (152-FZ):** Yandex Cloud (PostgreSQL, Object Storage).
--   **Testing/Prototype:** Supabase (PostgreSQL, Storage, Auth) — *Temporary for concept validation.*
--   **Hosting:** Yandex Cloud (Serverless) or Vercel (for testing only).
+ Supabase (PostgreSQL, Storage, Auth) — *Temporary for concept validation.*
+-   **Hosting:** Yandex Cloud (Serverless)
 -   **Database:** PostgreSQL (via Prisma).
 -   **Storage:** S3-compatible (Yandex Object Storage or Supabase Storage).
--   **Auth:** Supabase Auth (Testing) or Yandex ID (Production).
--   **Payments:** YooKassa SDK.
+-   **Auth:** Supabase Auth
+-   **Payments:** Tbank.
 
 ### AI & Future Features
 -   **LLM:** YandexGPT (via Yandex Cloud AI) for playlist generation (ensures data stays in Russia).

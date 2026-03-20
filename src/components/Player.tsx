@@ -17,6 +17,8 @@ import {
   Music
 } from "lucide-react";
 import Image from "next/image";
+import { logPlayAction } from "@/lib/actions/play-logs";
+import { toast } from "sonner";
 
 export const Player = () => {
   const { 
@@ -40,7 +42,23 @@ export const Player = () => {
     if (!audioRef.current) return;
     
     if (isPlaying) {
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().then(() => {
+        // Log the play event when playback actually starts
+        if (currentTrack) {
+          logPlayAction(currentTrack.id).then(() => {
+            // Dispatch event to refresh UI
+            window.dispatchEvent(new CustomEvent('track-played', { detail: { trackId: currentTrack.id } }));
+          }).catch(err => {
+            console.error("Failed to log play:", err);
+          });
+        }
+      }).catch((err) => {
+        console.error("Playback failed:", err);
+        // Sometimes browsers block autoplay
+        if (err.name === 'NotAllowedError') {
+          toast.error("Нажмите Play для начала воспроизведения");
+        }
+      });
     } else {
       audioRef.current.pause();
     }
@@ -96,7 +114,7 @@ export const Player = () => {
       <div className="max-w-7xl mx-auto glass-dark border border-white/10 rounded-3xl p-4 flex items-center justify-between shadow-2xl shadow-neon/10 gap-8">
         <audio 
           ref={audioRef}
-          src={currentTrack.file_url}
+          src={currentTrack.streamUrl || currentTrack.fileUrl}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={nextTrack}

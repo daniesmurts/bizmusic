@@ -6,7 +6,7 @@ import { Music, Menu, User } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
 export const Navbar = () => {
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
@@ -23,6 +23,9 @@ export const Navbar = () => {
 
         {/* Links - Desktop */}
         <div className="hidden md:flex items-center gap-8 text-sm font-black uppercase tracking-widest">
+          {role === 'ADMIN' && (
+            <Link href="/admin/content" className="text-neon hover:text-white transition-colors">Админ</Link>
+          )}
           <Link href="/playlists" className="text-neutral-400 hover:text-neon transition-colors">Плейлисты</Link>
           <Link href="/compliance" className="text-neutral-400 hover:text-neon transition-colors">Право</Link>
           <Link href="/pricing" className="text-neutral-400 hover:text-neon transition-colors">Тарифы</Link>
