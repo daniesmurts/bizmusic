@@ -4,7 +4,7 @@ export default function DataProcessingPage() {
       <h1>СОГЛАСИЕ НА ОБРАБОТКУ ПЕРСОНАЛЬНЫХ ДАННЫХ</h1>
       <div className="flex justify-between items-center text-sm text-neutral-500 mb-12">
         <span>г. Казань, Республика Татарстан, РФ</span>
-        <span>«___» _________ 2026 г.</span>
+        <span>«20» марта 2026 г.</span>
       </div>
 
       <p className="leading-relaxed">
@@ -78,7 +78,7 @@ export default function DataProcessingPage() {
 
       <section className="mt-20 pt-12 border-t border-white/10 italic text-neutral-500 text-sm">
         <p>Подпись субъекта персональных данных: _____________________ / _____________________ /</p>
-        <p>Дата: «___» _________ 2026 г.</p>
+        <p>Дата: «20» марта 2026 г.</p>
       </section>
     </>
   );

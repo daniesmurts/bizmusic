@@ -5,7 +5,7 @@ export default function PublicOfferPage() {
       <p className="font-bold opacity-80">на заключение лицензионного договора о предоставлении права использования музыкальных произведений</p>
       <div className="flex justify-between items-center text-sm text-neutral-500 mb-12">
         <span>г. Казань, Республика Татарстан, РФ</span>
-        <span>Редакция от: «___» _________ 2026 г.</span>
+        <span>Редакция от: «20» марта 2026 г.</span>
       </div>
 
       <section>
