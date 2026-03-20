@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Geist } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+import { Navbar } from "@/components/Navbar";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -35,8 +34,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={cn("font-sans", geist.variable)}>
-      <body className={inter.className}>{children}</body>
+    <html lang="ru" className="scroll-smooth">
+      <body className={cn(inter.className, "bg-black text-white antialiased")}>
+        <Navbar />
+        {children}
+      </body>
     </html>
   );
 }

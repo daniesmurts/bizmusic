@@ -73,6 +73,7 @@ The core value proposition is **100% Legal Compliance** (exempt from RAO/VOIS fe
     -   Phones: `+7 (XXX) XXX-XX-XX`.
 -   **Accessibility:** WCAG 2.1 AA compliant (contrast, keyboard nav).
 -   **Mobile First:** Most staff will use tablets/phones to control music.
+- **design reference** - https://preview.themeforest.net/item/hipsound-music-streaming-podcast-elementor-template-kit/full_screen_preview/34543967
 
 ## 🚀 Development Workflow (Vibe Coding)
 1.  **Modular:** Create small, reusable components (e.g., `<AudioPlayer />`, `<ComplianceBadge />`).
