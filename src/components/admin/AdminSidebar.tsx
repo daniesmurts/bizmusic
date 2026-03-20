@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Music, 
-  Users, 
-  CreditCard, 
-  ShieldCheck, 
+import {
+  LayoutDashboard,
+  Music,
+  Users,
+  CreditCard,
+  ShieldCheck,
   Settings,
   ChevronRight,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  BookOpen,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ import { useRouter } from "next/navigation";
 const adminNavItems = [
   { name: "Обзор", href: "/admin", icon: LayoutDashboard },
   { name: "Медиатека", href: "/admin/content", icon: Music },
+  { name: "Блог", href: "/admin/blog", icon: BookOpen },
   { name: "Клиенты", href: "/admin/clients", icon: Users },
   { name: "Комплаенс", href: "/admin/logs", icon: ShieldCheck },
   { name: "Финансы", href: "/admin/billing", icon: CreditCard },

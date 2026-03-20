@@ -61,85 +61,90 @@ export default function Home() {
           </p>
 
           <div className="flex flex-wrap gap-4 pt-4">
-            <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-10 py-8 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
-              Начать бесплатно
-            </Button>
-            <Button variant="outline" className="border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-full px-10 py-8 text-lg font-black uppercase tracking-widest">
-              Все тарифы
-            </Button>
+            <Link href="/register">
+              <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-10 py-8 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+                Начать бесплатно
+              </Button>
+            </Link>
+            <Link href="/pricing">
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-full px-10 py-8 text-lg font-black uppercase tracking-widest">
+                Все тарифы
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Featured Playlists */}
+      {/* Featured Products */}
       <section className="px-12 space-y-12">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <h2 className="text-5xl font-black uppercase tracking-tighter">Настроение <span className="text-neon">Retail</span></h2>
-            <p className="text-neutral-500 font-bold uppercase tracking-widest text-sm">Курируемые коллекции для вашего бизнеса</p>
+            <h2 className="text-5xl font-black uppercase tracking-tighter">Наши <span className="text-neon">Продукты</span></h2>
+            <p className="text-neutral-500 font-bold uppercase tracking-widest text-sm">Комплексные решения для вашего бизнеса</p>
           </div>
-          <Button variant="ghost" className="text-neon font-black uppercase tracking-widest group">
-            Смотреть все <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
-          </Button>
+          <Link href="/products">
+            <Button variant="ghost" className="text-neon font-black uppercase tracking-widest group">
+              Смотреть все <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
+            </Button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
-            { 
-              title: "Morning Jazz Cafe", 
-              artist: "Easy Listening", 
-              img: "/images/mood-1.png"
+            {
+              title: "Музыка для бизнеса",
+              description: "Для кафе, ритейл, офисов",
+              img: "/images/mood-1.png",
+              link: "/pricing"
             },
-            { 
-              title: "Night Lounge Bar", 
-              artist: "Deep Beats", 
-              img: "/images/mood-2.png"
+            {
+              title: "Контент для блогеров",
+              description: "Для YouTube, VK, Telegram",
+              img: "/images/mood-2.png",
+              link: "/pricing"
             },
-            { 
-              title: "Smart Retail Flux", 
-              artist: "Modern Pop", 
-              img: "/images/hero.png"
+            {
+              title: "White Label",
+              description: "Для агентств и студий",
+              img: "/images/hero.png",
+              link: "/pricing"
             }
           ].map((item, i) => (
-            <div 
-              key={i} 
-              className="group relative h-[450px] rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-neon/20 transition-all duration-500"
-            >
-              <Image 
-                src={item.img} 
-                alt={item.title} 
-                fill 
-                className="object-cover brightness-75 group-hover:scale-110 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-              
-              <div className="absolute top-6 right-6 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
-                <Button size="icon" className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-neon hover:text-black transition-colors">
-                  <Heart className="w-5 h-5" />
-                </Button>
-                <Button size="icon" className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-white/20">
-                  <ExternalLink className="w-5 h-5 text-white" />
-                </Button>
-              </div>
+            <Link key={i} href={item.link}>
+              <div
+                className="group relative h-[450px] rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-neon/20 transition-all duration-500"
+              >
+                <Image
+                  src={item.img}
+                  alt={item.title}
+                  fill
+                  className="object-cover brightness-75 group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
-              <div className="absolute inset-x-8 bottom-8">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-3xl font-black uppercase leading-none text-white">{item.title}</h3>
-                    <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs">{item.artist}</p>
-                  </div>
-                  <Button 
-                    className="w-full bg-white/10 hover:bg-neon hover:text-black hover:scale-[1.02] backdrop-blur-2xl border border-white/10 transition-all py-7 rounded-2xl flex items-center justify-center gap-3 font-black uppercase text-sm tracking-widest"
-                    onClick={() => handlePlayDemo(item.title, item.artist)}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                      <Play className="w-4 h-4 fill-current ml-0.5" />
-                    </div>
-                    Слушать демо
+                <div className="absolute top-6 right-6 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                  <Button size="icon" className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-neon hover:text-black transition-colors">
+                    <Heart className="w-5 h-5" />
+                  </Button>
+                  <Button size="icon" className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-white/20">
+                    <ExternalLink className="w-5 h-5 text-white" />
                   </Button>
                 </div>
+
+                <div className="absolute inset-x-8 bottom-8">
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-3xl font-black uppercase leading-none text-white">{item.title}</h3>
+                      <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs">{item.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-neon font-black uppercase tracking-widest text-sm">
+                      <span>Подробнее</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>

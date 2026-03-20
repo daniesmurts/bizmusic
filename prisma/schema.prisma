@@ -27,11 +27,12 @@ model User {
   email         String    @unique
   passwordHash  String
   role          Role      @default(BUSINESS_OWNER)
-  businesses      Business[]
-  termsAccepted   Boolean   @default(false)
+  businesses    Business[]
+  blogPosts     BlogPost[]
+  termsAccepted Boolean   @default(false)
   termsAcceptedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@map("users")
 }
@@ -151,4 +152,48 @@ model License {
   createdAt    DateTime @default(now())
 
   @@map("licenses")
+}
+
+model BlogPost {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  excerpt     String
+  content     String   @db.Text
+  categoryId  String
+  category    BlogCategory @relation(fields: [categoryId], references: [id])
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  imageUrl    String
+  published   Boolean  @default(false)
+  featured    Boolean  @default(false)
+  views       Int      @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tags        BlogPostTag[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([published])
+  @@map("blog_posts")
+}
+
+model BlogCategory {
+  id    String @id @default(uuid())
+  name  String @unique
+  posts BlogPost[]
+
+  @@map("blog_categories")
+}
+
+model BlogPostTag {
+  id        String @id @default(uuid())
+  postId    String
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tagName   String
+
+  @@index([postId])
+  @@index([tagName])
+  @@map("blog_post_tags")
 }

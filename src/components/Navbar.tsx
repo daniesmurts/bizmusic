@@ -26,8 +26,9 @@ export const Navbar = () => {
           {role === 'ADMIN' && (
             <Link href="/admin/content" className="text-neon hover:text-white transition-colors">Админ</Link>
           )}
-          <Link href="/playlists" className="text-neutral-400 hover:text-neon transition-colors">Плейлисты</Link>
-          <Link href="/compliance" className="text-neutral-400 hover:text-neon transition-colors">Право</Link>
+          <Link href="/products" className="text-neutral-400 hover:text-neon transition-colors">Продукты</Link>
+          <Link href="/blog" className="text-neutral-400 hover:text-neon transition-colors">Блог</Link>
+          <Link href="/about" className="text-neutral-400 hover:text-neon transition-colors">О нас</Link>
           <Link href="/pricing" className="text-neutral-400 hover:text-neon transition-colors">Тарифы</Link>
         </div>
 
