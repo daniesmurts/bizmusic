@@ -43,11 +43,38 @@ interface BlogPost {
   image: string;
   imageUrl?: string;
   featured: boolean;
-  tags: any[];
+  tags: string[];
+}
+
+interface RawBlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  imageUrl?: string;
+  image?: string;
+  author: {
+    id?: string;
+    email: string;
+    name?: string;
+    avatar?: string;
+    role?: string;
+  } | null;
+  publishedAt?: string | null;
+  readTime?: number;
+  views?: number;
+  comments?: number;
+  category: {
+    id?: string;
+    name: string;
+  } | null;
+  featured: boolean;
+  tags: string[];
 }
 
 interface BlogClientProps {
-  initialPosts: BlogPost[];
+  initialPosts: RawBlogPost[];
   initialCategories: { name: string; count: number }[];
 }
 
@@ -194,7 +221,7 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
                       <div className="flex items-center gap-2 text-neutral-500">
                         <Calendar className="w-4 h-4" />
                         <span className="text-xs font-bold uppercase tracking-widest">
-                          {formatDate(post.publishedAt)}
+                          {formatDate(post.publishedAt ?? null)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-neutral-500">
@@ -207,7 +234,7 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
                     <div className="flex items-center gap-2 text-neutral-500">
                       <Eye className="w-4 h-4" />
                       <span className="text-xs font-bold">
-                        {post.views.toLocaleString("ru-RU")}
+                        {(post.views ?? 0).toLocaleString("ru-RU")}
                       </span>
                     </div>
                   </div>

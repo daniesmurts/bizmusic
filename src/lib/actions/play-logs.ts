@@ -43,11 +43,12 @@ export async function logPlayAction(trackId: string, businessId?: string, locati
       success: true,
       data: playLog,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to log play";
     console.error("Play logging error:", error);
     return {
       success: false,
-      error: error.message || "Failed to log play",
+      error: message,
     };
   }
 }
@@ -83,7 +84,7 @@ export async function getPlayLogsAction(limit: number = 50) {
     });
 
     return { success: true, data: logs as unknown as AdminPlayLog[] };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching play logs:", error);
     return { success: false, error: "Не удалось загрузить логи воспроизведения" };
   }

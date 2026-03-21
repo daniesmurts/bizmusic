@@ -31,11 +31,12 @@ export async function getUserProfileAction() {
         business: business || null,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch profile";
     console.error("Get user profile error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch profile",
+      error: message,
     };
   }
 }
@@ -66,11 +67,12 @@ export async function updateUserEmailAction(newEmail: string) {
       success: true,
       message: "Email updated. Please check your new email for confirmation.",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update email";
     console.error("Update email error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update email",
+      error: message,
     };
   }
 }
@@ -99,19 +101,35 @@ export async function updateUserPasswordAction(currentPassword: string, newPassw
       success: true,
       message: "Password updated successfully",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update password";
     console.error("Update password error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update password",
+      error: message,
     };
   }
+}
+
+export interface BusinessProfileInput {
+  inn?: string;
+  legalName?: string;
+  address?: string;
+  kpp?: string | null;
+  phone?: string | null;
+  contactPerson?: string | null;
+  businessType?: string | null;
+  businessCategory?: string | null;
+  bankName?: string | null;
+  bik?: string | null;
+  settlementAccount?: string | null;
+  corrAccount?: string | null;
 }
 
 /**
  * Update business profile
  */
-export async function updateBusinessProfileAction(data: any) {
+export async function updateBusinessProfileAction(data: BusinessProfileInput) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -126,7 +144,7 @@ export async function updateBusinessProfileAction(data: any) {
       .maybeSingle(); // Correctly handle 0 or 1
     
     // Basic fields
-    const businessData: any = {
+    const businessData: Record<string, string | null> = {
       userId: user.id,
       inn: data.inn || "",
       legalName: data.legalName || "",
@@ -178,11 +196,12 @@ export async function updateBusinessProfileAction(data: any) {
       message: "Business profile updated successfully",
       data: updatedBusiness,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update business profile";
     console.error("Update business profile error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update business profile",
+      error: message,
     };
   }
 }
@@ -217,11 +236,12 @@ export async function getPaymentMethodsAction() {
       success: true,
       data: payments || [],
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch payment history";
     console.error("Get payment history error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch payment history",
+      error: message,
     };
   }
 }
@@ -246,11 +266,12 @@ export async function getSubscriptionInfoAction() {
       success: true,
       data: business || null,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch subscription info";
     console.error("Get subscription info error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch subscription info",
+      error: message,
     };
   }
 }

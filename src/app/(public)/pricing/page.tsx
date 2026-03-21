@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   Check,
   X,
@@ -26,7 +27,7 @@ interface PricingTier {
   name: string;
   slug: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   monthlyPrice: number;
   yearlyPrice: number;
   yearlyDiscount: number;

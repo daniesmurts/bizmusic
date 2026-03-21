@@ -85,9 +85,10 @@ export async function generateLicenseAction(businessId: string) {
     revalidatePath("/admin/logs");
 
     return { success: true, data: license };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to generate license";
     console.error("License generation error:", error);
-    return { success: false, error: error.message || "Failed to generate license" };
+    return { success: false, error: message };
   }
 }
 
@@ -106,7 +107,7 @@ export async function getLicensesAction() {
     });
 
     return { success: true, data: licenses };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching licenses:", error);
     return { success: false, error: "Не удалось загрузить список лицензий" };
   }
@@ -188,7 +189,7 @@ export async function submitContractAction(formData: ContractFormData) {
     }
 
     // Upsert business record using the real user ID
-    const business = await (prisma.business as any).upsert({
+    const business = await prisma.business.upsert({
       where: { inn: formData.inn },
       update: {
         legalName: formData.legalName,

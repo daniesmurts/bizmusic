@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const business = await (prisma.business as any).findFirst({
+    const business = await prisma.business.findFirst({
       where: { userId: user.id },
       select: { 
         id: true, 

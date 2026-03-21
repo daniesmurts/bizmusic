@@ -10,6 +10,7 @@ export interface AdminTrack {
   genre?: string | null;
   moodTags: string[];
   isExplicit: boolean;
+  energyLevel?: number | null;
   createdAt?: Date;
   updatedAt?: Date;
   streamUrl?: string;

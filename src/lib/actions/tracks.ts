@@ -10,6 +10,7 @@ import {
   deleteFile,
 } from "@/lib/supabase-storage";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 
 export interface TrackInput {
   title: string;
@@ -33,10 +34,7 @@ export async function generateUploadUrlAction(
 ) {
   try {
     const uniqueFileName = generateUniqueFileName(fileName);
-    const { uploadUrl, publicUrl } = await getUploadSignedUrl(
-      uniqueFileName,
-      contentType
-    );
+    const { uploadUrl, publicUrl } = await getUploadSignedUrl(uniqueFileName);
 
     return {
       success: true,
@@ -44,11 +42,12 @@ export async function generateUploadUrlAction(
       fileName: uniqueFileName,
       publicUrl,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to generate upload URL";
     console.error("Upload URL generation error:", error);
     return {
       success: false,
-      error: error.message || "Failed to generate upload URL",
+      error: message,
     };
   }
 }
@@ -78,11 +77,12 @@ export async function createTrackAction(data: TrackInput) {
       success: true,
       data: track,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to create track";
     console.error("Track creation error:", error);
     return {
       success: false,
-      error: error.message || "Failed to create track",
+      error: message,
     };
   }
 }
@@ -95,7 +95,7 @@ export async function updateTrackAction(
   data: Partial<TrackInput>
 ) {
   try {
-    const updateData: any = {};
+    const updateData: Prisma.TrackUpdateInput = {};
 
     if (data.title !== undefined) updateData.title = data.title;
     if (data.artist !== undefined) updateData.artist = data.artist;
@@ -118,11 +118,12 @@ export async function updateTrackAction(
       success: true,
       data: track,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update track";
     console.error("Track update error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update track",
+      error: message,
     };
   }
 }
@@ -165,11 +166,12 @@ export async function deleteTrackAction(trackId: string) {
     return {
       success: true,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to delete track";
     console.error("Track deletion error:", error);
     return {
       success: false,
-      error: error.message || "Failed to delete track",
+      error: message,
     };
   }
 }
@@ -184,7 +186,7 @@ export async function getTracksAction(filters?: {
   offset?: number;
 }) {
   try {
-    const where: any = {};
+    const where: Prisma.TrackWhereInput = {};
 
     if (filters?.search) {
       where.OR = [
@@ -212,7 +214,7 @@ export async function getTracksAction(filters?: {
     });
 
     const tracksWithUrls = await Promise.all(
-      tracks.map(async (track: any) => {
+      tracks.map(async (track) => {
         // Extract the storage object filename from the full URL
         const fileName = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
         const streamUrl = await getDownloadSignedUrl(
@@ -231,11 +233,12 @@ export async function getTracksAction(filters?: {
       success: true,
       data: tracksWithUrls,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch tracks";
     console.error("Get tracks error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch tracks",
+      error: message,
     };
   }
 }
@@ -276,11 +279,12 @@ export async function getTrackByIdAction(trackId: string) {
         streamUrl,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch track";
     console.error("Get track error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch track",
+      error: message,
     };
   }
 }
@@ -327,11 +331,12 @@ export async function batchUpdateTagsAction(
     return {
       success: true,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update tags";
     console.error("Batch update error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update tags",
+      error: message,
     };
   }
 }
@@ -346,7 +351,7 @@ export async function getAllMoodTagsAction() {
     });
 
     const allTags = new Set<string>();
-    tracks.forEach((track: any) => {
+    tracks.forEach((track) => {
       track.moodTags.forEach((tag: string) => allTags.add(tag));
     });
 
@@ -354,11 +359,12 @@ export async function getAllMoodTagsAction() {
       success: true,
       data: Array.from(allTags).sort(),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch tags";
     console.error("Get tags error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch tags",
+      error: message,
     };
   }
 }

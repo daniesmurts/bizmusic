@@ -293,7 +293,7 @@ export const TrackTable = ({
                             key={level}
                             className={cn(
                               "w-2 h-6 rounded-sm transition-colors",
-                              level <= (track as any).energyLevel || 5
+                              level <= (track.energyLevel ?? 5)
                                 ? "bg-neon"
                                 : "bg-white/10"
                             )}
