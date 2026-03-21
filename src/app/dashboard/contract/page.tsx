@@ -401,7 +401,7 @@ export default function ContractPage() {
                 <div className="space-y-1">
                   <h4 className="text-xl font-black uppercase tracking-tight text-white truncate">{legalName || "Ваша Лицензия"}</h4>
                   <p className="text-neutral-500 text-[10px] font-black uppercase tracking-widest">
-                    Договор подписан: {existingLicense?.issuedAt ? new Date(existingLicense.issuedAt).toLocaleDateString("ru-RU") : new Date().toLocaleDateString("ru-RU")}
+                    Договор подписан: {existingLicense?.issuedAt ? new Date(existingLicense.issuedAt as string).toLocaleDateString("ru-RU") : new Date().toLocaleDateString("ru-RU")}
                   </p>
                 </div>
                 {existingLicense?.pdfUrl ? (
