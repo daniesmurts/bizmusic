@@ -87,7 +87,7 @@ export default function BlogPostPage() {
             limit: 3,
           });
 
-          if (relatedResult.success) {
+          if (relatedResult.success && relatedResult.data) {
             setRelatedPosts(
               relatedResult.data
                 .filter((p: any) => p.id !== post.id)

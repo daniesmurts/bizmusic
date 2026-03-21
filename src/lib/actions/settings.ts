@@ -1,64 +1,24 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-
-// Helper to get Supabase client with user context
-async function getSupabaseClient() {
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-  
-  // Get user from auth cookie
-  const authToken = cookieStore.get("sb-auth-token")?.value;
-  if (authToken) {
-    const { data: { user } } = await supabase.auth.getUser(authToken);
-    if (user) {
-      return { supabase, user };
-    }
-  }
-  
-  throw new Error("Not authenticated");
-}
-
-export interface UserProfileUpdate {
-  email?: string;
-  currentPassword?: string;
-  newPassword?: string;
-}
-
-export interface BusinessProfileUpdate {
-  legalName?: string;
-  inn?: string;
-  kpp?: string;
-  address?: string;
-  phone?: string;
-  contactPerson?: string;
-  businessType?: string;
-  businessCategory?: string;
-  bankName?: string;
-  bik?: string;
-  settlementAccount?: string;
-  corrAccount?: string;
-}
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * Get current user's profile data
  */
 export async function getUserProfileAction() {
   try {
-    const { supabase, user } = await getSupabaseClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error("Not authenticated");
     
     // Get business data
     const { data: business } = await supabase
       .from("businesses")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("userId", user.id)
       .single();
     
     return {
@@ -85,7 +45,10 @@ export async function getUserProfileAction() {
  */
 export async function updateUserEmailAction(newEmail: string) {
   try {
-    const { supabase, user } = await getSupabaseClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error("Not authenticated");
     
     if (!newEmail || !newEmail.includes("@")) {
       return { success: false, error: "Invalid email address" };
@@ -117,14 +80,15 @@ export async function updateUserEmailAction(newEmail: string) {
  */
 export async function updateUserPasswordAction(currentPassword: string, newPassword: string) {
   try {
-    const { supabase } = await getSupabaseClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error("Not authenticated");
     
     if (!newPassword || newPassword.length < 8) {
       return { success: false, error: "Password must be at least 8 characters" };
     }
     
-    // Note: Supabase doesn't provide a way to verify current password
-    // We'll just update to new password (user must be logged in)
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
     });
@@ -147,39 +111,42 @@ export async function updateUserPasswordAction(currentPassword: string, newPassw
 /**
  * Update business profile
  */
-export async function updateBusinessProfileAction(data: BusinessProfileUpdate) {
+export async function updateBusinessProfileAction(data: any) {
   try {
-    const { supabase, user } = await getSupabaseClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error("Not authenticated");
     
     // Get existing business
     const { data: existingBusiness } = await supabase
       .from("businesses")
       .select("id")
-      .eq("user_id", user.id)
-      .single();
+      .eq("userId", user.id)
+      .maybeSingle(); // Correctly handle 0 or 1
+    
+    // Basic fields
+    const businessData: any = {
+      userId: user.id,
+      inn: data.inn || "",
+      legalName: data.legalName || "",
+      address: data.address || "",
+      kpp: data.kpp || null,
+      phone: data.phone || null,
+      contactPerson: data.contactPerson || null,
+      businessType: data.businessType || null,
+      businessCategory: data.businessCategory || null,
+      bankName: data.bankName || null,
+      bik: data.bik || null,
+      settlementAccount: data.settlementAccount || null,
+      corrAccount: data.corrAccount || null,
+    };
     
     if (!existingBusiness) {
       // Create new business profile
-      const insertData: any = {
-        user_id: user.id,
-        inn: data.inn || "",
-        legal_name: data.legalName || "",
-        address: data.address || "",
-      };
-      
-      if (data.kpp) insertData.kpp = data.kpp;
-      if (data.phone) insertData.phone = data.phone;
-      if (data.contactPerson) insertData.contact_person = data.contactPerson;
-      if (data.businessType) insertData.business_type = data.businessType;
-      if (data.businessCategory) insertData.business_category = data.businessCategory;
-      if (data.bankName) insertData.bank_name = data.bankName;
-      if (data.bik) insertData.bik = data.bik;
-      if (data.settlementAccount) insertData.settlement_account = data.settlementAccount;
-      if (data.corrAccount) insertData.corr_account = data.corrAccount;
-      
       const { data: newBusiness, error } = await supabase
         .from("businesses")
-        .insert(insertData)
+        .insert(businessData)
         .select()
         .single();
       
@@ -195,23 +162,9 @@ export async function updateBusinessProfileAction(data: BusinessProfileUpdate) {
     }
     
     // Update existing business
-    const updateData: any = {};
-    if (data.inn !== undefined) updateData.inn = data.inn;
-    if (data.legalName !== undefined) updateData.legal_name = data.legalName;
-    if (data.kpp !== undefined) updateData.kpp = data.kpp;
-    if (data.address !== undefined) updateData.address = data.address;
-    if (data.phone !== undefined) updateData.phone = data.phone;
-    if (data.contactPerson !== undefined) updateData.contact_person = data.contactPerson;
-    if (data.businessType !== undefined) updateData.business_type = data.businessType;
-    if (data.businessCategory !== undefined) updateData.business_category = data.businessCategory;
-    if (data.bankName !== undefined) updateData.bank_name = data.bankName;
-    if (data.bik !== undefined) updateData.bik = data.bik;
-    if (data.settlementAccount !== undefined) updateData.settlement_account = data.settlementAccount;
-    if (data.corrAccount !== undefined) updateData.corr_account = data.corrAccount;
-    
     const { data: updatedBusiness, error } = await supabase
       .from("businesses")
-      .update(updateData)
+      .update(businessData)
       .eq("id", existingBusiness.id)
       .select()
       .single();
@@ -235,17 +188,29 @@ export async function updateBusinessProfileAction(data: BusinessProfileUpdate) {
 }
 
 /**
- * Get user's payment methods
+ * Get user's payment history
  */
 export async function getPaymentMethodsAction() {
   try {
-    const { supabase, user } = await getSupabaseClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error("Not authenticated");
+
+    // First find businessId
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("userId", user.id)
+      .single();
+
+    if (!business) return { success: true, data: [] };
     
     const { data: payments } = await supabase
       .from("payments")
       .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
+      .eq("businessId", business.id)
+      .order("createdAt", { ascending: false })
       .limit(10);
     
     return {
@@ -253,10 +218,10 @@ export async function getPaymentMethodsAction() {
       data: payments || [],
     };
   } catch (error: any) {
-    console.error("Get payment methods error:", error);
+    console.error("Get payment history error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch payment methods",
+      error: error.message || "Failed to fetch payment history",
     };
   }
 }
@@ -266,13 +231,16 @@ export async function getPaymentMethodsAction() {
  */
 export async function getSubscriptionInfoAction() {
   try {
-    const { supabase, user } = await getSupabaseClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error("Not authenticated");
     
     const { data: business } = await supabase
       .from("businesses")
-      .select("subscription_status, subscription_expires_at, current_plan_slug, trial_ends_at, rebill_id")
-      .eq("user_id", user.id)
-      .single();
+      .select("subscriptionStatus, subscriptionExpiresAt, currentPlanSlug, trialEndsAt, rebillId")
+      .eq("userId", user.id)
+      .maybeSingle();
     
     return {
       success: true,

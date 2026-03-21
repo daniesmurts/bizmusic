@@ -84,18 +84,18 @@ export default function SettingsPage() {
         setEmail(profileResult.data.user.email || "");
         if (profileResult.data.business) {
           setBusinessData({
-            legalName: profileResult.data.business.legal_name || "",
+            legalName: profileResult.data.business.legalName || "",
             inn: profileResult.data.business.inn || "",
             kpp: profileResult.data.business.kpp || "",
             address: profileResult.data.business.address || "",
             phone: profileResult.data.business.phone || "",
-            contactPerson: profileResult.data.business.contact_person || "",
-            businessType: profileResult.data.business.business_type || "",
-            businessCategory: profileResult.data.business.business_category || "",
-            bankName: profileResult.data.business.bank_name || "",
+            contactPerson: profileResult.data.business.contactPerson || "",
+            businessType: profileResult.data.business.businessType || "",
+            businessCategory: profileResult.data.business.businessCategory || "",
+            bankName: profileResult.data.business.bankName || "",
             bik: profileResult.data.business.bik || "",
-            settlementAccount: profileResult.data.business.settlement_account || "",
-            corrAccount: profileResult.data.business.corr_account || "",
+            settlementAccount: profileResult.data.business.settlementAccount || "",
+            corrAccount: profileResult.data.business.corrAccount || "",
           });
         }
       }
@@ -507,12 +507,12 @@ export default function SettingsPage() {
                   </p>
                   <Badge
                     className={
-                      subscription.subscription_status === "ACTIVE"
+                      subscription.subscriptionStatus === "ACTIVE"
                         ? "bg-neon/10 border-neon/20 text-neon px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest"
                         : "bg-orange-500/10 border-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest"
                     }
                   >
-                    {subscription.subscription_status === "ACTIVE" ? "Активна" : subscription.subscription_status || "Неактивна"}
+                    {subscription.subscriptionStatus === "ACTIVE" ? "Активна" : subscription.subscriptionStatus || "Неактивна"}
                   </Badge>
                 </div>
 
@@ -521,7 +521,7 @@ export default function SettingsPage() {
                     План
                   </p>
                   <p className="text-white font-black text-lg uppercase">
-                    {subscription.current_plan_slug || "Не выбран"}
+                    {subscription.currentPlanSlug || "Не выбран"}
                   </p>
                 </div>
 
@@ -530,8 +530,8 @@ export default function SettingsPage() {
                     Действует до
                   </p>
                   <p className="text-white font-bold text-lg">
-                    {subscription.subscription_expires_at
-                      ? new Date(subscription.subscription_expires_at).toLocaleDateString("ru-RU")
+                    {subscription.subscriptionExpiresAt
+                      ? new Date(subscription.subscriptionExpiresAt).toLocaleDateString("ru-RU")
                       : "—"}
                   </p>
                 </div>
@@ -579,7 +579,7 @@ export default function SettingsPage() {
                           {payment.description || "Платеж"}
                         </p>
                         <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">
-                          {new Date(payment.created_at).toLocaleDateString("ru-RU")}
+                          {new Date(payment.createdAt).toLocaleDateString("ru-RU")}
                         </p>
                       </div>
                     </div>
