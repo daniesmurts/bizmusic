@@ -4,42 +4,45 @@ import BlogClient from "./BlogClient";
 export const dynamic = "force-dynamic";
 
 export default async function BlogPage() {
-  console.log("SERVER: Fetching blog data...");
-  const [postsResult, categoriesResult] = await Promise.all([
-    getBlogPostsAction({ published: true }),
-    getBlogCategoriesAction(),
-  ]);
+  let initialPosts: any[] = [];
+  let fetchedCategories: any[] = [];
 
-  if (postsResult.success) {
-    console.log(`SERVER: Found ${postsResult.data?.length || 0} posts`);
-  } else {
-    console.error("SERVER: Failed to fetch posts:", postsResult.error);
+  try {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Blog fetch timeout - 10s")), 10000);
+    });
+
+    const postsResult = await Promise.race([
+      getBlogPostsAction({ published: true }),
+      timeoutPromise
+    ]) as any;
+
+    console.log("Blog posts result:", postsResult);
+
+    if (postsResult?.success && postsResult?.data) {
+      console.log("Found posts:", postsResult.data.length);
+      console.log("First post imageUrl:", postsResult.data[0]?.imageUrl);
+      initialPosts = postsResult.data;
+    } else {
+      console.log("No posts data or not successful", postsResult);
+    }
+
+    const categoriesResult = await getBlogCategoriesAction();
+    console.log("Categories result:", categoriesResult);
+
+    if (categoriesResult?.success && categoriesResult?.data) {
+      console.log("Found categories:", categoriesResult.data.length);
+      fetchedCategories = categoriesResult.data.map((cat: any) => ({
+        name: cat.name || "Категория",
+        count: cat._count?.posts || 0,
+      }));
+    }
+  } catch (err: any) {
+    console.error("Blog page error:", err?.message || err);
   }
 
-  const rawPosts = postsResult.success && Array.isArray(postsResult.data) ? postsResult.data : [];
-  const initialPosts = rawPosts.map((post: any) => ({
-    ...post,
-    image: post.imageUrl || "/images/placeholder.png",
-    author: {
-      name: post.author?.email?.split('@')[0] || "Автор",
-      avatar: "/images/author-1.png",
-      role: post.category?.name || "Блог",
-      email: post.author?.email || "",
-    },
-    readTime: Math.max(3, Math.ceil((post.content || "").split(' ').length / 200)),
-    views: post.views || 0,
-    comments: 0,
-    publishedAt: post.publishedAt ? (post.publishedAt instanceof Date ? post.publishedAt.toISOString() : post.publishedAt) : null,
-    category: {
-      name: post.category?.name || "Блог"
-    }
-  }));
-
-  const rawCategories = categoriesResult.success && Array.isArray(categoriesResult.data) ? categoriesResult.data : [];
-  const fetchedCategories = rawCategories.map((cat: any) => ({
-    name: cat.name || "Категория",
-    count: cat._count?.posts || 0,
-  }));
+  console.log("Final posts count:", initialPosts.length);
+  console.log("Final categories count:", fetchedCategories.length);
 
   const initialCategories = [
     { name: "Все", count: initialPosts.length },

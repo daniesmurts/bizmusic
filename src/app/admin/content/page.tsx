@@ -366,7 +366,13 @@ export default function AdminContentPage() {
                 Общая длительность
               </p>
               <p className="text-4xl font-black text-purple-400">
-                {Math.round(tracks.reduce((sum, t) => sum + t.duration, 0) / 3600)}ч
+                {(() => {
+                  const totalSeconds = tracks.reduce((sum, t) => sum + t.duration, 0);
+                  const coreHours = Math.floor(totalSeconds / 3600);
+                  const coreMins = Math.round((totalSeconds % 3600) / 60);
+                  if (coreHours > 0) return `${coreHours}ч ${coreMins}м`;
+                  return `${coreMins}м`;
+                })()}
               </p>
             </div>
           </div>

@@ -68,6 +68,7 @@ export async function createTrackAction(data: TrackInput) {
         moodTags: data.moodTags,
         genre: data.genre || "Unknown",
         isExplicit: data.isExplicit || false,
+        energyLevel: data.energyLevel,
       },
     });
 

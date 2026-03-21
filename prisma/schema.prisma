@@ -6,8 +6,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  directUrl         = env("DATABASE_DIRECT_URL")
+  relationMode      = "prisma"
 }
 
 enum Role {
@@ -88,6 +90,7 @@ model Track {
   genre      String?   @default("Unknown")
   moodTags   String[]  // Prisma supports arrays in Postgres
   isExplicit Boolean   @default(false)
+  energyLevel Int?
   playLogs    PlayLog[]
   playlists   PlaylistTrack[]
   createdAt   DateTime        @default(now())

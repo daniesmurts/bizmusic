@@ -1,7 +1,13 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+
+// Initialize Supabase client for server actions
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export interface BlogPostInput {
   title: string;
@@ -17,7 +23,7 @@ export interface BlogPostInput {
 }
 
 /**
- * Get all blog posts with optional filtering
+ * Get all blog posts with filtering
  */
 export async function getBlogPostsAction(filters?: {
   search?: string;
@@ -27,56 +33,34 @@ export async function getBlogPostsAction(filters?: {
   offset?: number;
 }) {
   try {
-    const where: any = {};
+    let query = supabase
+      .from("blog_posts")
+      .select('id, title, slug, excerpt, content, "imageUrl", published, featured, views, "publishedAt", "createdAt", "updatedAt", "categoryId", "authorId", category:blog_categories(id, name), author:users(id, email), tags:blog_post_tags(tagName)')
+      .order("createdAt", { ascending: false });
 
-    if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search, mode: "insensitive" } },
-        { excerpt: { contains: filters.search, mode: "insensitive" } },
-      ];
+    if (filters?.published !== undefined) {
+      query = query.eq("published", filters.published);
     }
 
     if (filters?.categoryId) {
-      where.categoryId = filters.categoryId;
+      query = query.eq("categoryId", filters.categoryId);
     }
 
-    if (filters?.published !== undefined) {
-      where.published = filters.published;
+    if (filters?.search) {
+      query = query.or(`title.ilike.%${filters.search}%,excerpt.ilike.%${filters.search}%`);
     }
 
-    const posts = await prisma.blogPost.findMany({
-      where,
-      include: {
-        category: true,
-        author: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
-        tags: {
-          select: {
-            tagName: true,
-          },
-        },
-        _count: {
-          select: {
-            tags: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: filters?.limit || 100,
-      skip: filters?.offset || 0,
-    });
-    console.log("Get blog posts success, count:", posts.length);
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
 
     return {
       success: true,
-      data: posts.map((post) => ({
-        ...post,
-        tags: post.tags.map((t) => t.tagName),
-      })),
+      data: data || [],
     };
   } catch (error: any) {
     console.error("Get blog posts error:", error);
@@ -88,86 +72,39 @@ export async function getBlogPostsAction(filters?: {
 }
 
 /**
- * Get a single blog post by ID
- */
-export async function getBlogPostByIdAction(postId: string) {
-  try {
-    const post = await prisma.blogPost.findUnique({
-      where: { id: postId },
-      include: {
-        category: true,
-        author: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
-        tags: {
-          select: {
-            tagName: true,
-          },
-        },
-      },
-    });
-
-    if (!post) {
-      return {
-        success: false,
-        error: "Post not found",
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        ...post,
-        tags: post.tags.map((t) => t.tagName),
-      },
-    };
-  } catch (error: any) {
-    console.error("Get blog post error:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to fetch blog post",
-    };
-  }
-}
-
-/**
  * Get a single blog post by slug
  */
 export async function getBlogPostBySlugAction(slug: string) {
   try {
-    const post = await prisma.blogPost.findUnique({
-      where: { slug },
-      include: {
-        category: true,
-        author: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
-        tags: {
-          select: {
-            tagName: true,
-          },
-        },
-      },
-    });
+    const { data: post, error } = await supabase
+      .from("blog_posts")
+      .select(`
+        *,
+        category:blog_categories (
+          id,
+          name
+        ),
+        author:users (
+          id,
+          email
+        ),
+        tags:blog_post_tags (
+          tagName
+        )
+      `)
+      .eq("slug", slug)
+      .single();
 
-    if (!post) {
-      return {
-        success: false,
-        error: "Post not found",
-      };
-    }
+    if (error) throw error;
+    if (!post) return { success: false, error: "Post not found" };
 
     return {
       success: true,
       data: {
         ...post,
-        tags: post.tags.map((t) => t.tagName),
+        category: post.category,
+        author: post.author,
+        tags: post.tags?.map((t: any) => t.tagName) || [],
       },
     };
   } catch (error: any) {
@@ -180,12 +117,104 @@ export async function getBlogPostBySlugAction(slug: string) {
 }
 
 /**
+ * Get a single blog post by ID
+ */
+export async function getBlogPostByIdAction(postId: string) {
+  try {
+    const { data: post, error } = await supabase
+      .from("blog_posts")
+      .select(`
+        *,
+        category:blog_categories (
+          id,
+          name
+        ),
+        author:users (
+          id,
+          email
+        ),
+        tags:blog_post_tags (
+          tagName
+        )
+      `)
+      .eq("id", postId)
+      .single();
+
+    if (error) throw error;
+    if (!post) return { success: false, error: "Post not found" };
+
+    return {
+      success: true,
+      data: {
+        ...post,
+        category: post.category,
+        author: post.author,
+        tags: post.tags?.map((t: any) => t.tagName) || [],
+      },
+    };
+  } catch (error: any) {
+    console.error("Get blog post error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to fetch blog post",
+    };
+  }
+}
+
+/**
+ * Get all blog categories
+ */
+export async function getBlogCategoriesAction() {
+  try {
+    const { data: categories, error } = await supabase
+      .from("blog_categories")
+      .select(`*`)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Supabase categories error:", error);
+      throw error;
+    }
+
+    // Get post counts separately
+    const categoriesWithCount = await Promise.all(
+      (categories || []).map(async (cat: any) => {
+        const { count } = await supabase
+          .from("blog_posts")
+          .select("*", { count: "exact", head: true })
+          .eq("categoryId", cat.id);
+
+        return {
+          id: cat.id,
+          name: cat.name,
+          _count: {
+            posts: count || 0,
+          },
+        };
+      })
+    );
+
+    return {
+      success: true,
+      data: categoriesWithCount,
+    };
+  } catch (error: any) {
+    console.error("Get categories error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to fetch categories",
+    };
+  }
+}
+
+/**
  * Create a new blog post
  */
 export async function createBlogPostAction(data: BlogPostInput) {
   try {
-    const post = await prisma.blogPost.create({
-      data: {
+    const { data: post, error } = await supabase
+      .from("blog_posts")
+      .insert({
         title: data.title,
         slug: data.slug,
         excerpt: data.excerpt,
@@ -195,25 +224,31 @@ export async function createBlogPostAction(data: BlogPostInput) {
         imageUrl: data.imageUrl,
         published: data.published || false,
         featured: data.featured || false,
-        publishedAt: data.published ? new Date() : null,
-        tags: data.tags?.length
-          ? {
-              create: data.tags.map((tagName) => ({ tagName })),
-            }
-          : undefined,
-      },
-      include: {
-        category: true,
-        tags: true,
-      },
-    });
+        publishedAt: data.published ? new Date().toISOString() : null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Add tags if provided
+    if (data.tags && data.tags.length > 0) {
+      const tagsToInsert = data.tags.map((tagName) => ({
+        postId: post.id,
+        tagName: tagName,
+      }));
+      await supabase.from("blog_post_tags").insert(tagsToInsert);
+    }
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");
 
     return {
       success: true,
-      data: post,
+      data: {
+        ...post,
+        tags: data.tags || [],
+      },
     };
   } catch (error: any) {
     console.error("Create blog post error:", error);
@@ -233,7 +268,6 @@ export async function updateBlogPostAction(
 ) {
   try {
     const updateData: any = {};
-
     if (data.title !== undefined) updateData.title = data.title;
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
@@ -242,29 +276,30 @@ export async function updateBlogPostAction(
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
     if (data.published !== undefined) {
       updateData.published = data.published;
-      if (data.published) {
-        updateData.publishedAt = new Date();
-      }
+      if (data.published) updateData.publishedAt = new Date().toISOString();
     }
     if (data.featured !== undefined) updateData.featured = data.featured;
 
-    // Handle tags
-    if (data.tags) {
-      // Delete existing tags
-      updateData.tags = {
-        deleteMany: {},
-        create: data.tags.map((tagName: string) => ({ tagName })),
-      };
-    }
+    const { data: post, error } = await supabase
+      .from("blog_posts")
+      .update(updateData)
+      .eq("id", postId)
+      .select()
+      .single();
 
-    const post = await prisma.blogPost.update({
-      where: { id: postId },
-      data: updateData,
-      include: {
-        category: true,
-        tags: true,
-      },
-    });
+    if (error) throw error;
+
+    // Update tags if provided
+    if (data.tags) {
+      await supabase.from("blog_post_tags").delete().eq("postId", postId);
+      if (data.tags.length > 0) {
+        const tagsToInsert = data.tags.map((tagName) => ({
+          postId: postId,
+          tagName: tagName,
+        }));
+        await supabase.from("blog_post_tags").insert(tagsToInsert);
+      }
+    }
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");
@@ -287,130 +322,25 @@ export async function updateBlogPostAction(
  */
 export async function deleteBlogPostAction(postId: string) {
   try {
-    await prisma.blogPost.delete({
-      where: { id: postId },
-    });
+    // Delete tags first (cascade should handle this, but being explicit)
+    await supabase.from("blog_post_tags").delete().eq("postId", postId);
+    
+    const { error } = await supabase
+      .from("blog_posts")
+      .delete()
+      .eq("id", postId);
+
+    if (error) throw error;
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");
 
-    return {
-      success: true,
-    };
+    return { success: true };
   } catch (error: any) {
     console.error("Delete blog post error:", error);
     return {
       success: false,
       error: error.message || "Failed to delete blog post",
-    };
-  }
-}
-
-/**
- * Get all blog categories
- */
-export async function getBlogCategoriesAction() {
-  try {
-    const categories = await prisma.blogCategory.findMany({
-      include: {
-        _count: {
-          select: {
-            posts: true,
-          },
-        },
-      },
-      orderBy: { name: "asc" },
-    });
-
-    return {
-      success: true,
-      data: categories,
-    };
-  } catch (error: any) {
-    console.error("Get categories error:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to fetch categories",
-    };
-  }
-}
-
-/**
- * Create a new blog category
- */
-export async function createBlogCategoryAction(name: string) {
-  try {
-    const category = await prisma.blogCategory.create({
-      data: { name },
-    });
-
-    revalidatePath("/admin/blog");
-
-    return {
-      success: true,
-      data: category,
-    };
-  } catch (error: any) {
-    console.error("Create category error:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to create category",
-    };
-  }
-}
-
-/**
- * Delete a blog category
- */
-export async function deleteBlogCategoryAction(categoryId: string) {
-  try {
-    await prisma.blogCategory.delete({
-      where: { id: categoryId },
-    });
-
-    revalidatePath("/admin/blog");
-
-    return {
-      success: true,
-    };
-  } catch (error: any) {
-    console.error("Delete category error:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to delete category",
-    };
-  }
-}
-
-/**
- * Get unique tags from all posts
- */
-export async function getAllBlogTagsAction() {
-  try {
-    const tags = await prisma.blogPostTag.groupBy({
-      by: ["tagName"],
-      _count: {
-        tagName: true,
-      },
-      orderBy: {
-        _count: {
-          tagName: "desc",
-        },
-      },
-    });
-
-    return {
-      success: true,
-      data: tags.map((t) => ({
-        name: t.tagName,
-        count: t._count.tagName,
-      })),
-    };
-  } catch (error: any) {
-    console.error("Get tags error:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to fetch tags",
     };
   }
 }

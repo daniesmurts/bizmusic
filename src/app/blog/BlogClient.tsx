@@ -53,7 +53,20 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
   const [searchQuery, setSearchQuery] = useState("");
   const [agreed, setAgreed] = useState(false);
 
-  const filteredPosts = initialPosts.filter((post) => {
+  // Map imageUrl to image and add author info
+  const postsWithImage = initialPosts.map(post => ({
+    ...post,
+    image: post.imageUrl || "/images/placeholder.png",
+    author: {
+      name: post.author?.email?.split('@')[0] || "Автор",
+      avatar: "/images/author-1.png",
+      role: post.category?.name || "Блог",
+      email: post.author?.email || "",
+    },
+    readTime: Math.max(3, Math.ceil((post.content || "").split(' ').length / 200)),
+  }));
+
+  const filteredPosts = postsWithImage.filter((post) => {
     const matchesCategory =
       selectedCategory === "Все" || post.category?.name === selectedCategory;
     const matchesSearch =
@@ -138,7 +151,7 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
             {featuredPosts.map((post) => (
               <Link
                 key={post.id}
-                href={`/blog/${post.id}`}
+                href={`/blog/${post.slug}`}
                 className="group relative rounded-[3rem] overflow-hidden border border-white/5 bg-white/[0.02] hover:border-neon/30 transition-all duration-500"
               >
                 <div className="relative h-72 overflow-hidden">
@@ -220,7 +233,7 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
             {regularPosts.map((post) => (
               <Link
                 key={post.id}
-                href={`/blog/${post.id}`}
+                href={`/blog/${post.slug}`}
                 className="group rounded-[2rem] overflow-hidden border border-white/5 bg-white/[0.02] hover:border-neon/30 transition-all duration-500"
               >
                 <div className="relative h-48 overflow-hidden">
