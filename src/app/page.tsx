@@ -196,27 +196,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="px-12 py-12 border-t border-white/5">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-black tracking-tighter uppercase leading-none">
-                Бизнес<span className="text-neon">Музыка</span>
-              </span>
-            </div>
-            <p className="text-neutral-500 text-sm font-bold max-w-xs text-center md:text-left uppercase tracking-tighter">
-              © 2026 Бизнес Музыка. 100% легальный контент в РФ.
-            </p>
-          </div>
-          <div className="flex gap-10 text-xs font-black uppercase tracking-widest text-neutral-400">
-            <Link href="#" className="hover:text-neon transition-colors">Оферта</Link>
-            <Link href="#" className="hover:text-neon transition-colors">Политика</Link>
-            <Link href="#" className="hover:text-neon transition-colors">Контакты</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

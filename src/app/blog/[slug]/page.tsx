@@ -2,7 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { BlogContent } from "@/components/BlogContent";
 import {
   ArrowLeft,
   Calendar,
@@ -18,165 +21,97 @@ import {
   Linkedin,
   Copy,
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { getBlogPostBySlugAction, getBlogPostsAction } from "@/lib/actions/blog";
 
-// Sample post data (will be replaced with real data later)
-const samplePost = {
-  id: 1,
-  title: "Как легально использовать музыку в бизнесе: полное руководство 2026",
-  excerpt:
-    "Узнайте, как защитить свой бизнес от претензий РАО и ВОИС. Разбираем законодательство, лицензии и реальные кейсы.",
-  content: `
-## Введение
-
-Музыкальное оформление бизнеса — это не просто вопрос атмосферы, но и юридической ответственности. В этой статье мы разберём все аспекты легального использования музыки в коммерческих целях.
-
-## Что такое публичное исполнение?
-
-Согласно статье 1243 Гражданского кодекса РФ, **публичное исполнение** — это представление произведения непосредственно или с помощью технических средств в месте, открытом для свободного посещения, или в месте, где присутствует значительное число лиц, не принадлежащих к обычному кругу семьи.
-
-### Где требуется лицензия:
-
-- Кафе и рестораны
-- Магазины и торговые центры
-- Офисные помещения
-- Салоны красоты и спа
-- Фитнес-центры
-- Отели и хостелы
-- Транспортные средства (такси, автобусы)
-
-## РАО и ВОИС: кто они и зачем платить?
-
-**РАО** (Российское авторское общество) и **ВОИС** (Всероссийская организация интеллектуальной собственности) — это организации по коллективному управлению правами.
-
-### Проблемы с РАО/ВОИС:
-
-1. **Высокие тарифы** — выплаты могут достигать десятков тысяч рублей в месяц
-2. **Сложность отчётности** — необходимо предоставлять подробные отчёты об использовании
-3. **Штрафы** — за нарушение авторских прав предусмотрены штрафы до 5 млн рублей
-
-## Альтернатива: прямая лицензия
-
-Прямая лицензия от правообладателя позволяет:
-
-✅ **Легально использовать музыку** без выплат в РАО/ВОИС
-✅ **Фиксированная стоимость** — никаких неожиданных платежей
-✅ **Простая отчётность** — минимальные требования к документации
-✅ **Защита от претензий** — вы получаете все необходимые документы
-
-## Как получить лицензию?
-
-### Шаг 1: Выберите тариф
-
-Определитесь с форматом использования музыки:
-- Только стриминг в помещении
-- Скачивание треков
-- Использование в видео и соцсетях
-
-### Шаг 2: Зарегистрируйтесь
-
-Создайте аккаунт в сервисе «БизнесМузыка» и укажите реквизиты вашего бизнеса.
-
-### Шаг 3: Оплатите подписку
-
-Выберите удобный способ оплаты: банковская карта, СБП или безнал для юрлиц.
-
-### Шаг 4: Получите документы
-
-После оплаты вы получите:
-- Лицензионный сертификат
-- Акт выполненных работ (УПД)
-- Доступ к музыкальной библиотеке
-
-## Что будет при проверке?
-
-При проверке контролирующие органы могут запросить:
-
-1. **Лицензионный договор** — подтверждение права на использование музыки
-2. **Документы об оплате** — чеки, акты, платёжные поручения
-3. **Плей-листы** — список воспроизводимых произведений
-
-### Штрафы за нарушение:
-
-- Граждане: 1 500 — 2 000 ₽
-- Должностные лица: 10 000 — 20 000 ₽
-- Юридические лица: 30 000 — 40 000 ₽
-
-## Кейсы из практики
-
-### Кейс 1: Кофейня в Москве
-
-**Проблема:** Получили претензию от РАО на сумму 150 000 ₽
-
-**Решение:** Перешли на прямую лицензию «БизнесМузыка»
-
-**Результат:** 
-- Претензия урегулирована
-- Ежемесячные выплаты снизились с 15 000 ₽ до 1 490 ₽
-- Полная юридическая защита
-
-### Кейс 2: Сеть фитнес-клубов
-
-**Проблема:** Ежегодные выплаты ВОИС составляли 500 000 ₽
-
-**Решение:** Лицензировали всю сеть через «БизнесМузыка»
-
-**Результат:**
-- Экономия 380 000 ₽ в год
-- Унифицированная музыкальная политика
-- Централизованное управление
-
-## Заключение
-
-Легальное использование музыки — это не только требование закона, но и инвестиция в репутацию вашего бизнеса. Прямая лицензия от правообладателя позволяет сэкономить значительные средства и избежать юридических рисков.
-
----
-
-**Нужна помощь с выбором тарифа?** [Свяжитесь с нами](/contact) для бесплатной консультации.
-`,
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
   author: {
-    name: "Admin",
-    avatar: "/images/author-1.png",
-    role: "Команда БизнесМузыка",
-    bio: "Официальный аккаунт команды БизнесМузыка. Мы делимся новостями, обновлениями и важной информацией о музыкальном лицензировании.",
-  },
-  publishedAt: "2026-03-15",
-  updatedAt: "2026-03-16",
-  readTime: 12,
-  views: 2543,
-  comments: 18,
-  category: "Право",
-  tags: ["Лицензирование", "РАО", "ВОИС", "152-ФЗ", "Бизнес"],
-  image: "/images/mood-1.png",
-};
-
-const relatedPosts = [
-  {
-    id: 2,
-    title: "Влияние музыки на продажи: исследования и практика",
-    excerpt: "Как правильно подобранная музыка увеличивает средний чек...",
-    image: "/images/mood-2.png",
-    readTime: 8,
-  },
-  {
-    id: 3,
-    title: "Топ-10 жанров для кофеен и ресторанов",
-    excerpt: "Подборка лучших музыкальных направлений...",
-    image: "/images/hero.png",
-    readTime: 6,
-  },
-  {
-    id: 4,
-    title: "Что такое синхронизация музыки",
-    excerpt: "Разбираемся в терминологии...",
-    image: "/images/mood-1.png",
-    readTime: 10,
-  },
-];
+    name: string;
+    avatar: string;
+    role: string;
+    email: string;
+    bio: string;
+  };
+  publishedAt: string | null;
+  updatedAt: string | null;
+  readTime: number;
+  views: number;
+  comments: number;
+  category: {
+    name: string;
+  };
+  imageUrl: string;
+  tags: string[];
+  published: boolean;
+  featured: boolean;
+}
 
 export default function BlogPostPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const [postData, setPostData] = useState<BlogPost | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
+
+  useEffect(() => {
+    async function fetchPost() {
+      try {
+        const result = await getBlogPostBySlugAction(slug);
+        if (result.success && result.data) {
+          const post = result.data as any;
+          setPostData({
+            ...post,
+            author: {
+              name: post.author.email.split('@')[0],
+              avatar: "/images/author-1.png",
+              role: post.category.name,
+              email: post.author.email,
+              bio: `Официальный аккаунт команды ${post.category.name}. Мы делимся новостями, обновлениями и важной информацией.`,
+            },
+            readTime: Math.max(3, Math.ceil(post.content.split(' ').length / 200)),
+            comments: 0,
+            image: post.imageUrl,
+          });
+
+          // Fetch related posts from same category
+          const relatedResult = await getBlogPostsAction({
+            categoryId: post.categoryId,
+            published: true,
+            limit: 3,
+          });
+
+          if (relatedResult.success) {
+            setRelatedPosts(
+              relatedResult.data
+                .filter((p: any) => p.id !== post.id)
+                .slice(0, 3)
+                .map((p: any) => ({
+                  ...p,
+                  image: p.imageUrl,
+                  readTime: Math.max(3, Math.ceil(p.content.split(' ').length / 200)),
+                }))
+            );
+          }
+        } else {
+          toast.error("Статья не найдена");
+        }
+      } catch (error) {
+        console.error('Error fetching post:', error);
+        toast.error("Ошибка загрузки статьи");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPost();
+  }, [slug]);
 
   const handleShare = (platform: string) => {
     toast.info(`Поделиться в ${platform}`);
@@ -186,6 +121,38 @@ export default function BlogPostPage() {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Ссылка скопирована");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-full border-4 border-neon/20 border-t-neon animate-spin mx-auto" />
+          <p className="text-neutral-400 font-bold uppercase tracking-widest text-sm">Загрузка статьи...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!postData) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
+            <Tag className="w-10 h-10 text-neutral-600" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">Статья не найдена</h1>
+            <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">Возможно, она была удалена или перемещена</p>
+          </div>
+          <Link href="/blog">
+            <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 h-14 font-black uppercase tracking-widest">
+              К статьям
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20">
@@ -208,34 +175,34 @@ export default function BlogPostPage() {
           {/* Category */}
           <div className="flex items-center gap-4">
             <div className="px-4 py-2 rounded-full bg-neon text-black text-xs font-black uppercase tracking-widest">
-              {samplePost.category}
+              {postData.category.name}
             </div>
             <div className="flex items-center gap-2 text-neutral-500">
               <Calendar className="w-4 h-4" />
               <span className="text-xs font-bold uppercase tracking-widest">
-                {new Date(samplePost.publishedAt).toLocaleDateString("ru-RU", {
+                {postData.publishedAt ? new Date(postData.publishedAt).toLocaleDateString("ru-RU", {
                   day: "numeric",
                   month: "long",
                   year: "numeric",
-                })}
+                }) : "Не опубликовано"}
               </span>
             </div>
             <div className="flex items-center gap-2 text-neutral-500">
               <Clock className="w-4 h-4" />
               <span className="text-xs font-bold uppercase tracking-widest">
-                {samplePost.readTime} мин
+                {postData.readTime} мин
               </span>
             </div>
           </div>
 
           {/* Title */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter leading-[0.9] text-white">
-            {samplePost.title}
+            {postData.title}
           </h1>
 
           {/* Excerpt */}
           <p className="text-xl text-neutral-400 font-medium leading-relaxed">
-            {samplePost.excerpt}
+            {postData.excerpt}
           </p>
 
           {/* Author & Actions */}
@@ -243,18 +210,18 @@ export default function BlogPostPage() {
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-neon/20 border border-neon/20 overflow-hidden">
                 <Image
-                  src={samplePost.author.avatar}
-                  alt={samplePost.author.name}
+                  src={postData.author.avatar}
+                  alt={postData.author.name}
                   fill
                   className="object-cover"
                 />
               </div>
               <div>
                 <p className="text-white font-black uppercase tracking-tight">
-                  {samplePost.author.name}
+                  {postData.author.name}
                 </p>
                 <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">
-                  {samplePost.author.role}
+                  {postData.author.role}
                 </p>
               </div>
             </div>
@@ -284,8 +251,8 @@ export default function BlogPostPage() {
         <div className="max-w-4xl mx-auto">
           <div className="relative h-[400px] md:h-[500px] rounded-[3rem] overflow-hidden">
             <Image
-              src={samplePost.image}
-              alt={samplePost.title}
+              src={postData.imageUrl}
+              alt={postData.title}
               fill
               className="object-cover"
             />
@@ -296,27 +263,13 @@ export default function BlogPostPage() {
       {/* Article Content */}
       <article className="px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="prose prose-invert prose-lg max-w-none">
-            <div
-              className="text-neutral-300 text-lg font-medium leading-relaxed space-y-8"
-              dangerouslySetInnerHTML={{
-                __html: samplePost.content
-                  .replace(/## /g, '<h2 class="text-3xl font-black uppercase tracking-tighter text-white mt-12 mb-6">')
-                  .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>')
-                  .replace(/\n\n/g, '</p><p class="mt-4">')
-                  .replace(/### /g, '<h3 class="text-xl font-black uppercase tracking-tight text-white mt-8 mb-4">')
-                  .replace(/✅ /g, '<span class="text-neon">✓</span> ')
-                  .replace(/^- /gm, '<li class="ml-4">')
-                  .replace(/\n/g, ''),
-              }}
-            />
-          </div>
+          <BlogContent content={postData.content} />
 
           {/* Tags */}
           <div className="pt-12 mt-12 border-t border-white/5">
             <div className="flex items-center gap-3 flex-wrap">
               <Tag className="w-5 h-5 text-neutral-500" />
-              {samplePost.tags.map((tag) => (
+              {postData.tags.map((tag) => (
                 <Link
                   key={tag}
                   href={`/blog?tag=${tag}`}
@@ -371,8 +324,8 @@ export default function BlogPostPage() {
           <div className="flex flex-col md:flex-row items-start gap-6">
             <div className="w-20 h-20 rounded-full bg-neon/20 border border-neon/20 overflow-hidden flex-shrink-0">
               <Image
-                src={samplePost.author.avatar}
-                alt={samplePost.author.name}
+                src={postData.author.avatar}
+                alt={postData.author.name}
                 fill
                 className="object-cover"
               />
@@ -380,14 +333,14 @@ export default function BlogPostPage() {
             <div className="flex-1 space-y-4">
               <div>
                 <h3 className="text-2xl font-black uppercase tracking-tighter text-white">
-                  {samplePost.author.name}
+                  {postData.author.name}
                 </h3>
                 <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">
-                  {samplePost.author.role}
+                  {postData.author.role}
                 </p>
               </div>
               <p className="text-neutral-400 text-sm font-medium leading-relaxed">
-                {samplePost.author.bio}
+                {postData.author.bio}
               </p>
             </div>
           </div>
@@ -402,40 +355,42 @@ export default function BlogPostPage() {
           </h2>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {relatedPosts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/blog/${post.id}`}
-                className="group rounded-[2rem] overflow-hidden border border-white/5 bg-white/[0.02] hover:border-neon/30 transition-all duration-500"
-              >
-                <div className="relative h-40 overflow-hidden">
-                  <Image
-                    src={post.image}
-                    alt={post.title}
-                    fill
-                    className="object-cover brightness-75 group-hover:scale-110 transition-transform duration-700"
-                  />
-                </div>
-                <div className="p-6 space-y-4">
-                  <h3 className="text-lg font-black uppercase tracking-tighter text-white group-hover:text-neon transition-colors line-clamp-2">
-                    {post.title}
-                  </h3>
-                  <div className="flex items-center gap-2 text-neutral-500">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-widest">
-                      {post.readTime} мин
-                    </span>
+            {relatedPosts.length === 0 ? (
+              <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest col-span-3 text-center py-12">
+                Сопутствующие статьи не найдены
+              </p>
+            ) : (
+              relatedPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.slug}`}
+                  className="group rounded-[2rem] overflow-hidden border border-white/5 bg-white/[0.02] hover:border-neon/30 transition-all duration-500"
+                >
+                  <div className="relative h-40 overflow-hidden">
+                    <Image
+                      src={post.image}
+                      alt={post.title}
+                      fill
+                      className="object-cover brightness-75 group-hover:scale-110 transition-transform duration-700"
+                    />
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="p-6 space-y-4">
+                    <h3 className="text-lg font-black uppercase tracking-tighter text-white group-hover:text-neon transition-colors line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-neutral-500">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-widest">
+                        {post.readTime} мин
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>
     </div>
   );
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(" ");
 }

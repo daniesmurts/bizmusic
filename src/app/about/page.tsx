@@ -16,7 +16,9 @@ import {
   MapPin,
   Send,
 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
 const stats = [
@@ -108,6 +110,55 @@ const contactInfo = [
 ];
 
 export default function AboutPage() {
+  const [agreed, setAgreed] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    topic: "",
+    message: ""
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agreed) return;
+
+    setStatus("loading");
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY,
+          ...formData,
+          from_name: "Бизнес Музыка - Контактная форма",
+          subject: `Новое сообщение: ${formData.topic || "Общий запрос"}`,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setStatus("success");
+        setFormData({ name: "", email: "", phone: "", topic: "", message: "" });
+        setAgreed(false);
+      } else {
+        setStatus("error");
+        setErrorMessage(result.message || "Произошла ошибка при отправке.");
+      }
+    } catch (error) {
+      console.error("Web3Forms Error:", error);
+      setStatus("error");
+      setErrorMessage("Северная ошибка. Пожалуйста, попробуйте позже.");
+    }
+  };
+
   return (
     <div className="space-y-24 pb-20">
       {/* Hero Section */}
@@ -343,14 +394,17 @@ export default function AboutPage() {
                 </p>
               </div>
 
-              <form className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="text-white font-black uppercase tracking-widest text-xs mb-2 block">
                       Имя *
                     </label>
-                    <input
+                    <Input
                       type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Иван Иванов"
                       className="w-full bg-white/[0.02] border border-white/10 text-white rounded-2xl h-14 px-6 focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all"
                     />
@@ -359,25 +413,47 @@ export default function AboutPage() {
                     <label className="text-white font-black uppercase tracking-widest text-xs mb-2 block">
                       Email *
                     </label>
-                    <input
+                    <Input
                       type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="ivan@example.com"
                       className="w-full bg-white/[0.02] border border-white/10 text-white rounded-2xl h-14 px-6 focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-white font-black uppercase tracking-widest text-xs mb-2 block">
-                    Тема
-                  </label>
-                  <select className="w-full bg-white/[0.02] border border-white/10 text-white rounded-2xl h-14 px-6 focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all">
-                    <option value="">Выберите тему</option>
-                    <option value="sales">Продажи и тарифы</option>
-                    <option value="support">Техническая поддержка</option>
-                    <option value="partnership">Партнёрство</option>
-                    <option value="other">Другое</option>
-                  </select>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-white font-black uppercase tracking-widest text-xs mb-2 block">
+                      Телефон *
+                    </label>
+                    <Input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="+7 (XXX) XXX-XX-XX"
+                      className="w-full bg-white/[0.02] border border-white/10 text-white rounded-2xl h-14 px-6 focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white font-black uppercase tracking-widest text-xs mb-2 block">
+                      Тема
+                    </label>
+                    <select 
+                      value={formData.topic}
+                      onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                      className="w-full bg-white/[0.02] border border-white/10 text-white rounded-2xl h-14 px-6 focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all outline-none"
+                    >
+                      <option value="" className="bg-neutral-900">Выберите тему</option>
+                      <option value="sales" className="bg-neutral-900">Продажи и тарифы</option>
+                      <option value="support" className="bg-neutral-900">Техническая поддержка</option>
+                      <option value="partnership" className="bg-neutral-900">Партнёрство</option>
+                      <option value="other" className="bg-neutral-900">Другое</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -385,22 +461,66 @@ export default function AboutPage() {
                     Сообщение *
                   </label>
                   <textarea
+                    required
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     placeholder="Ваше сообщение..."
                     rows={6}
-                    className="w-full bg-white/[0.02] border border-white/10 text-white rounded-2xl p-6 resize-none focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all"
+                    className="w-full bg-white/[0.02] border border-white/10 text-white rounded-2xl p-6 resize-none focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all outline-none"
                   />
                 </div>
 
+                <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-neon/20 transition-all group">
+                  <div className="relative flex items-center h-5">
+                    <input
+                      id="legal-consent"
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      className="w-5 h-5 rounded border-neutral-800 bg-neutral-900 text-neon focus:ring-neon/20 focus:ring-offset-0 transition-all cursor-pointer accent-neon"
+                    />
+                  </div>
+                  <label htmlFor="legal-consent" className="text-[11px] font-medium text-neutral-400 leading-normal cursor-pointer">
+                    Я согласен с{" "}
+                    <Link href="/legal/public-offer" target="_blank" className="text-neon hover:underline">Публичной офертой</Link>,{" "}
+                    <Link href="/legal/terms" target="_blank" className="text-neon hover:underline">Пользовательским соглашением</Link>,{" "}
+                    <Link href="/legal/privacy" target="_blank" className="text-neon hover:underline">Политикой конфиденциальности</Link>,{" "}
+                    <Link href="/legal/data-processing" target="_blank" className="text-neon hover:underline">Согласием на обработку персональных данных</Link>,{" "}
+                    <Link href="/legal/advertising-consent" target="_blank" className="text-neon hover:underline">Согласием на рекламную рассылку</Link>
+                    {" "}и{" "}
+                    <Link href="/legal/cookies" target="_blank" className="text-neon hover:underline">Политикой использования Cookie</Link>
+                  </label>
+                </div>
+
+                {status === "success" && (
+                  <div className="p-4 rounded-2xl bg-neon/10 border border-neon/20 text-neon text-center font-bold text-sm">
+                    Сообщение успешно отправлено! Мы свяжемся с вами в ближайшее время.
+                  </div>
+                )}
+
+                {status === "error" && (
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-center font-bold text-sm">
+                    {errorMessage || "Произошла ошибка. Пожалуйста, попробуйте еще раз."}
+                  </div>
+                )}
+
                 <Button
                   type="submit"
-                  className="w-full bg-neon text-black hover:scale-105 transition-transform rounded-2xl h-14 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)] gap-2"
+                  disabled={!agreed || status === "loading"}
+                  className="w-full bg-neon text-black hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all rounded-2xl h-14 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)] gap-2"
                 >
-                  <Send className="w-5 h-5" />
-                  Отправить сообщение
+                  {status === "loading" ? (
+                    "Отправка..."
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Отправить сообщение
+                    </>
+                  )}
                 </Button>
 
                 <p className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest text-center">
-                  Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности
+                  Все поля обязательны для заполнения для связи с нами
                 </p>
               </form>
             </div>

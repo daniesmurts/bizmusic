@@ -131,22 +131,26 @@ export default function Register() {
               className="mt-1 border-white/20 data-[state=checked]:bg-neon data-[state=checked]:text-black"
             />
             <div className="grid gap-1.5 leading-none">
-              <Label
+              <label
                 htmlFor="terms"
                 className="text-xs font-bold leading-relaxed text-neutral-400 cursor-pointer select-none"
               >
                 Я соглашаюсь с{" "}
-                <Link href="/legal/terms" target="_blank" className="text-neon hover:underline underline-offset-4">Пользовательским соглашением</Link>
+                <Link href="/legal/public-offer" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Публичной офертой</Link>,{" "}
+                <Link href="/legal/terms" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Пользовательским соглашением</Link>,{" "}
+                <Link href="/legal/privacy" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Политикой конфиденциальности</Link>,{" "}
+                <Link href="/legal/data-processing" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Согласием на обработку персональных данных</Link>,{" "}
+                <Link href="/legal/advertising-consent" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Согласием на рекламную рассылку</Link>
                 {" "}и{" "}
-                <Link href="/legal/privacy" target="_blank" className="text-neon hover:underline underline-offset-4">Политикой конфиденциальности</Link>
-              </Label>
+                <Link href="/legal/cookies" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Политикой использования Cookie</Link>
+              </label>
             </div>
           </div>
 
           <Button 
             type="submit" 
-            className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-            disabled={loading}
+            className="w-full bg-neon text-black hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
+            disabled={loading || !agreed}
           >
             {loading ? (
               <Loader2 className="w-6 h-6 animate-spin" />

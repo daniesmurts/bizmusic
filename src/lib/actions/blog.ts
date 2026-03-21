@@ -69,6 +69,7 @@ export async function getBlogPostsAction(filters?: {
       take: filters?.limit || 100,
       skip: filters?.offset || 0,
     });
+    console.log("Get blog posts success, count:", posts.length);
 
     return {
       success: true,

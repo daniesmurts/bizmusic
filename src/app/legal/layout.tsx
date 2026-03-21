@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, Scale, Cookie, ChevronRight, Home, FileText, UserCheck } from "lucide-react";
+import { ShieldCheck, Scale, Cookie, ChevronRight, Home, FileText, UserCheck, Mail } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 
 const legalLinks = [
@@ -11,6 +11,7 @@ const legalLinks = [
   { name: "Пользовательское соглашение", href: "/legal/terms", icon: Scale },
   { name: "Политика конфиденциальности", href: "/legal/privacy", icon: ShieldCheck },
   { name: "Согласие на обработку ПД", href: "/legal/data-processing", icon: UserCheck },
+  { name: "Согласие на рассылку", href: "/legal/advertising-consent", icon: Mail },
   { name: "Использование Cookie", href: "/legal/cookies", icon: Cookie },
 ];
 

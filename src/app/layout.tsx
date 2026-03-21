@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { Player } from "@/components/Player";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/Providers";
+import { Footer } from "@/components/Footer";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -43,9 +44,10 @@ export default function RootLayout({
         <Providers>
           <AuthProvider>
             <Navbar />
-            <main className="pt-24 pb-32">
+            <main className="pt-24">
               {children}
             </main>
+            <Footer />
             <Player />
             <Toaster position="top-center" richColors theme="dark" />
           </AuthProvider>
