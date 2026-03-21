@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   BarChart3,
   Play,
@@ -14,36 +15,55 @@ import {
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
 
-const navItems = [
-  {
-    name: "Обзор",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Плеер",
-    href: "/dashboard/player",
-    icon: Play,
-  },
-  {
-    name: "Подписка",
-    href: "/dashboard/subscription",
-    icon: CreditCard,
-  },
-  {
-    name: "Договор",
-    href: "/dashboard/contract",
-    icon: FileText,
-    hasAction: true, // Red dot
-  },
-];
-
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isSigned, setIsSigned] = useState(false);
+
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const res = await fetch('/api/user/business');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.subscriptionStatus === "ACTIVE") {
+            setIsSigned(true);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check business status in layout", err);
+      }
+    }
+    checkStatus();
+  }, [pathname]); // Refresh on navigation to catch changes
+
+  const navItems = [
+    {
+      name: "Обзор",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      name: "Плеер",
+      href: "/dashboard/player",
+      icon: Play,
+    },
+    {
+      name: "Подписка",
+      href: "/dashboard/subscription",
+      icon: CreditCard,
+    },
+    {
+      name: "Договор",
+      href: "/dashboard/contract",
+      icon: FileText,
+      hasAction: true,
+      status: isSigned ? 'success' : 'action'
+    },
+  ];
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-64px)]">
@@ -83,7 +103,10 @@ export default function DashboardLayout({
 
                     {item.hasAction && (
                       <div className="relative flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse" />
+                        <div className={cn(
+                          "w-2 h-2 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse",
+                          item.status === 'success' ? "bg-neon shadow-neon/50" : "bg-red-500 shadow-red-500/50"
+                        )} />
                       </div>
                     )}
 

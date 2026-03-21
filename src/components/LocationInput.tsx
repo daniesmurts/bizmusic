@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import Script from "next/script";
 import { MapPin, Loader2 } from "lucide-react";
 
 interface LocationInputProps {
@@ -11,12 +10,7 @@ interface LocationInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
-}
-
-declare global {
-  interface Window {
-    ymaps: any;
-  }
+  disabled?: boolean;
 }
 
 export const LocationInput: React.FC<LocationInputProps> = ({
@@ -24,6 +18,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   onChange,
   placeholder,
   className,
+  disabled,
 }) => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -31,7 +26,6 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestQueryRef = useRef<string>("");
-  const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -44,6 +38,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const query = e.target.value;
     onChange(query);
 
@@ -51,7 +46,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
       clearTimeout(debounceRef.current);
     }
 
-    if (query.length < 3 || !window.ymaps) {
+    if (query.length < 3) {
       setSuggestions([]);
       setIsOpen(false);
       return;
@@ -60,37 +55,42 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     latestQueryRef.current = query;
     setLoading(true);
 
-    debounceRef.current = setTimeout(() => {
+    debounceRef.current = setTimeout(async () => {
       const capturedQuery = query;
       try {
-        window.ymaps.ready(() => {
-          window.ymaps.suggest(capturedQuery).then((items: any[]) => {
-            // Ignore out-of-order responses
-            if (capturedQuery !== latestQueryRef.current) return;
-            setSuggestions(items);
-            setIsOpen(items.length > 0);
-            setLoading(false);
-          });
-        });
+        const response = await fetch(`/api/location/suggest?text=${encodeURIComponent(capturedQuery)}`);
+        if (!response.ok) throw new Error("Suggest API failed");
+        
+        const data = await response.json();
+        
+        // Ignore out-of-order responses
+        if (capturedQuery !== latestQueryRef.current) return;
+        
+        const items = data.results || [];
+        setSuggestions(items);
+        setIsOpen(items.length > 0);
       } catch (error) {
-        console.error("Yandex Suggest Error:", error);
-        setLoading(false);
+        console.error("Geosuggest Error:", error);
+      } finally {
+        if (capturedQuery === latestQueryRef.current) {
+          setLoading(false);
+        }
       }
-    }, 250);
+    }, 300);
   };
 
   const handleSelect = (item: any) => {
-    onChange(item.value);
+    onChange(item.fullAddress || item.value);
     setIsOpen(false);
     setSuggestions([]);
   };
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      <Script
-        src={`https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${apiKey}`}
-        strategy="afterInteractive"
-      />
+      {/* 
+         NOTE: We no longer load the Yandex Maps JS API (ymaps). 
+         We now use the specialized Geosuggest HTTP API via /api/location/suggest proxy.
+      */}
       
       <div className="relative group">
         <Input
@@ -98,9 +98,10 @@ export const LocationInput: React.FC<LocationInputProps> = ({
           onChange={handleInputChange}
           placeholder={placeholder}
           className={cn(
-            "bg-neutral-900 border-white/10 rounded-2xl p-6 pr-12 text-white h-14 focus:border-neon focus:ring-1 focus:ring-neon transition-all",
+            "bg-neutral-900 border-white/10 rounded-2xl p-6 pr-12 text-white h-14 focus:border-neon focus:ring-1 focus:ring-neon transition-all disabled:opacity-50 disabled:cursor-not-allowed",
             className
           )}
+          disabled={disabled}
         />
         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-neon transition-colors">
           {loading ? (
@@ -122,7 +123,16 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                 className="w-full px-6 py-4 text-left text-sm text-neutral-300 hover:bg-white/5 hover:text-white transition-colors border-b border-white/5 last:border-0 flex flex-col gap-0.5"
               >
                 <span className="font-bold tracking-tight">{item.displayName}</span>
-                <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-black opacity-50">Выбрать этот адрес</span>
+                {item.address && (
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-black opacity-50">
+                    {item.address}
+                  </span>
+                )}
+                {!item.address && (
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-black opacity-50">
+                    Выбрать этот адрес
+                  </span>
+                )}
               </button>
             ))}
           </div>

@@ -1,19 +1,31 @@
-import { createClient } from "@/utils/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createServerClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const business = await (prisma as any).business.findFirst({
       where: { userId: user.id },
-      select: { id: true, legalName: true, currentPlanSlug: true }
+      select: { 
+        id: true, 
+        legalName: true, 
+        currentPlanSlug: true,
+        subscriptionStatus: true,
+        inn: true,
+        kpp: true,
+        address: true,
+        licenses: {
+          orderBy: { issuedAt: 'desc' },
+          take: 1
+        }
+      }
     });
 
     if (!business) {
@@ -22,7 +34,7 @@ export async function GET() {
 
     return NextResponse.json(business);
   } catch (error) {
-    console.error("Fetch business error:", error);
+    console.error("[API/Business] Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -27,6 +27,7 @@ export async function generateLicensePDF(data: LicenseData): Promise<Buffer> {
       const doc = new PDFDocument({
         size: "A4",
         margin: 50,
+        font: regularFontPath, // Set default font to avoid Helvetica loading
       });
 
       const chunks: Buffer[] = [];
@@ -97,10 +98,10 @@ export async function generateLicensePDF(data: LicenseData): Promise<Buffer> {
       const qrBuffer = Buffer.from(qrDataUrl.split(",")[1], "base64");
       doc.image(qrBuffer, 380, 620, { width: 120 });
       
-      doc.fontSize(8).fillColor("#999999").text("ОТСКАНИРУЙТЕ ДЛЯ ПРОВЕРКИ", 380, 745, { width: 120, align: "center" });
+      doc.font(regularFontPath).fontSize(8).fillColor("#999999").text("ОТСКАНИРУЙТЕ ДЛЯ ПРОВЕРКИ", 380, 745, { width: 120, align: "center" });
 
       // Signature Section
-      doc.fontSize(12).fillColor("#000000").text("Уполномоченный представитель", 70, 650);
+      doc.font(regularFontPath).fontSize(12).fillColor("#000000").text("Уполномоченный представитель", 70, 650);
       doc.font(boldFontPath).text("ООО «БИЗНЕС МУЗЫКА»", 70, 670);
       
       // Stylized Signature
@@ -109,7 +110,7 @@ export async function generateLicensePDF(data: LicenseData): Promise<Buffer> {
       
       // Stamp Placeholder
       doc.circle(280, 710, 45).lineWidth(2).strokeColor("#1e40af").dash(5, { space: 2 }).stroke();
-      doc.fontSize(8).fillColor("#1e40af").text("ДЛЯ ДОКУМЕНТОВ", 250, 705, { width: 60, align: "center" });
+      doc.font(regularFontPath).fontSize(8).fillColor("#1e40af").text("ДЛЯ ДОКУМЕНТОВ", 250, 705, { width: 60, align: "center" });
 
       doc.end();
     } catch (err) {

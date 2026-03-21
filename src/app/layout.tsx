@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { Player } from "@/components/Player";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/Providers";
+import { Navbar } from "@/components/Navbar";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -40,7 +41,10 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen bg-black text-white antialiased`} suppressHydrationWarning>
         <Providers>
           <AuthProvider>
-            {children}
+            <Navbar />
+            <main className="pt-24">
+              {children}
+            </main>
             <Player />
             <Toaster position="top-center" richColors theme="dark" />
           </AuthProvider>
