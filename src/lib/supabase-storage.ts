@@ -21,7 +21,8 @@ export const supabaseAdmin = createClient(
 const BUCKET_NAME = 'bizmusic-assets';
 
 export async function getUploadSignedUrl(
-  fileName: string
+  fileName: string,
+  fileType?: string
 ): Promise<{ uploadUrl: string; publicUrl: string }> {
   const path = `tracks/${fileName}`;
   const { data, error } = await supabaseAdmin.storage
