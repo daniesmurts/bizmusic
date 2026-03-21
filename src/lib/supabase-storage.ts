@@ -24,6 +24,8 @@ export async function getUploadSignedUrl(
   fileName: string,
   fileType?: string
 ): Promise<{ uploadUrl: string; publicUrl: string }> {
+  // `fileType` is currently unused in the upload flow but kept for future validation/logic.
+  void fileType;
   const path = `tracks/${fileName}`;
   const { data, error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
