@@ -60,8 +60,9 @@ export default function SubscriptionPage() {
       if (result.paymentUrl) {
         router.push(result.paymentUrl);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to start trial");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to start trial";
+      toast.error(message);
     } finally {
       setLoading(null);
     }

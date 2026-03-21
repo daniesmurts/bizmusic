@@ -9,6 +9,40 @@ function sanitizeSearch(query: string) {
   return query.replace(/[(),]/g, " ").trim();
 }
 
+interface BlogPostTag {
+  tagName: string;
+}
+
+interface BlogCategory {
+  id: string;
+  name: string;
+}
+
+interface BlogAuthor {
+  id: string;
+  email: string;
+}
+
+interface RawBlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  imageUrl: string;
+  published: boolean;
+  featured: boolean;
+  views: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  categoryId: string;
+  authorId: string;
+  category: BlogCategory | BlogCategory[] | null;
+  author: BlogAuthor | BlogAuthor[] | null;
+  tags: BlogPostTag[] | null;
+}
+
 async function checkAdmin() {
   const { createClient } = await import("@/utils/supabase/server");
   const supabase = await createClient();
@@ -82,22 +116,23 @@ export async function getBlogPostsAction(filters?: {
     const { data, error } = await query;
     if (error) throw error;
 
-    const mappedData = (data || []).map((post: any) => ({
+    const mappedData = (data as RawBlogPost[] || []).map((post) => ({
       ...post,
       category: Array.isArray(post.category) ? post.category[0] : post.category,
       author: Array.isArray(post.author) ? post.author[0] : post.author,
-      tags: post.tags?.map((t: any) => t.tagName) || [],
+      tags: post.tags?.map((t) => t.tagName) || [],
     }));
 
     return {
       success: true,
       data: mappedData,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch blog posts";
     console.error("Get blog posts error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch blog posts",
+      error: message,
     };
   }
 }
@@ -138,14 +173,15 @@ export async function getBlogPostBySlugAction(slug: string) {
         ...post,
         category: Array.isArray(post.category) ? post.category[0] : post.category,
         author: Array.isArray(post.author) ? post.author[0] : post.author,
-        tags: post.tags?.map((t: any) => t.tagName) || [],
+        tags: (post as RawBlogPost).tags?.map((t) => t.tagName) || [],
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch blog post";
     console.error("Get blog post by slug error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch blog post",
+      error: message,
     };
   }
 }
@@ -186,14 +222,15 @@ export async function getBlogPostByIdAction(postId: string) {
         ...post,
         category: Array.isArray(post.category) ? post.category[0] : post.category,
         author: Array.isArray(post.author) ? post.author[0] : post.author,
-        tags: post.tags?.map((t: any) => t.tagName) || [],
+        tags: (post as RawBlogPost).tags?.map((t) => t.tagName) || [],
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch blog post";
     console.error("Get blog post error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch blog post",
+      error: message,
     };
   }
 }
@@ -218,7 +255,7 @@ export async function getBlogCategoriesAction() {
 
     // Get post counts separately
     const categoriesWithCount = await Promise.all(
-      (categories || []).map(async (cat: any) => {
+      (categories || []).map(async (cat) => {
         const { count } = await supabase
           .from("blog_posts")
           .select("*", { count: "exact", head: true })
@@ -238,11 +275,12 @@ export async function getBlogCategoriesAction() {
       success: true,
       data: categoriesWithCount,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch categories";
     console.error("Get categories error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch categories",
+      error: message,
     };
   }
 }
@@ -293,11 +331,12 @@ export async function createBlogPostAction(data: BlogPostInput) {
         tags: data.tags || [],
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to create blog post";
     console.error("Create blog post error:", error);
     return {
       success: false,
-      error: error.message || "Failed to create blog post",
+      error: message,
     };
   }
 }
@@ -313,7 +352,7 @@ export async function updateBlogPostAction(
     const { isAdmin, error: adminError, supabase } = await checkAdmin();
     if (!isAdmin || !supabase) return { success: false, error: adminError };
 
-    const updateData: any = {};
+    const updateData: Partial<Record<string, string | boolean | null>> = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
@@ -354,11 +393,12 @@ export async function updateBlogPostAction(
       success: true,
       data: post,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update blog post";
     console.error("Update blog post error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update blog post",
+      error: message,
     };
   }
 }
@@ -385,11 +425,12 @@ export async function deleteBlogPostAction(postId: string) {
     revalidatePath("/blog");
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to delete blog post";
     console.error("Delete blog post error:", error);
     return {
       success: false,
-      error: error.message || "Failed to delete blog post",
+      error: message,
     };
   }
 }

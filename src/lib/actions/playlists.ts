@@ -2,11 +2,12 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 
 export interface PlaylistInput {
   name: string;
   businessId?: string;
-  scheduleConfig?: any;
+  scheduleConfig?: Prisma.InputJsonValue;
 }
 
 /**
@@ -14,7 +15,7 @@ export interface PlaylistInput {
  */
 export async function getPlaylistsAction(businessId?: string) {
   try {
-    const where: any = {};
+    const where: Prisma.PlaylistWhereInput = {};
     
     if (businessId) {
       where.businessId = businessId;
@@ -40,11 +41,12 @@ export async function getPlaylistsAction(businessId?: string) {
       success: true,
       data: playlists,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch playlists";
     console.error("Get playlists error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch playlists",
+      error: message,
     };
   }
 }
@@ -85,11 +87,12 @@ export async function getPlaylistByIdAction(playlistId: string) {
       success: true,
       data: playlist,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch playlist";
     console.error("Get playlist error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch playlist",
+      error: message,
     };
   }
 }
@@ -113,11 +116,12 @@ export async function createPlaylistAction(data: PlaylistInput) {
       success: true,
       data: playlist,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to create playlist";
     console.error("Playlist creation error:", error);
     return {
       success: false,
-      error: error.message || "Failed to create playlist",
+      error: message,
     };
   }
 }
@@ -144,11 +148,12 @@ export async function updatePlaylistAction(
       success: true,
       data: playlist,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update playlist";
     console.error("Playlist update error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update playlist",
+      error: message,
     };
   }
 }
@@ -193,11 +198,12 @@ export async function updatePlaylistTracksAction(
     return {
       success: true,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update playlist tracks";
     console.error("Playlist tracks update error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update playlist tracks",
+      error: message,
     };
   }
 }
@@ -216,11 +222,12 @@ export async function deletePlaylistAction(playlistId: string) {
     return {
       success: true,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to delete playlist";
     console.error("Playlist deletion error:", error);
     return {
       success: false,
-      error: error.message || "Failed to delete playlist",
+      error: message,
     };
   }
 }
@@ -246,11 +253,12 @@ export async function getTracksForPlaylistAction() {
       success: true,
       data: tracks,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch tracks";
     console.error("Get tracks error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch tracks",
+      error: message,
     };
   }
 }

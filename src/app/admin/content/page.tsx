@@ -13,6 +13,7 @@ import {
   createTrackAction,
   updateTrackAction,
   deleteTrackAction,
+  type TrackInput,
 } from "@/lib/actions/tracks";
 import {
   getPlaylistsAction,
@@ -74,7 +75,7 @@ export default function AdminContentPage() {
 
   // Create track mutation
   const createTrackMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: TrackInput) => {
       const result = await createTrackAction(data);
       if (!result.success) {
         throw new Error(result.error);
@@ -94,7 +95,7 @@ export default function AdminContentPage() {
 
   // Update track mutation
   const updateTrackMutation = useMutation({
-    mutationFn: async ({ trackId, data }: { trackId: string; data: any }) => {
+    mutationFn: async ({ trackId, data }: { trackId: string; data: Partial<TrackInput> }) => {
       const result = await updateTrackAction(trackId, data);
       if (!result.success) {
         throw new Error(result.error);
@@ -208,6 +209,7 @@ export default function AdminContentPage() {
       createTrackMutation.mutate({
         ...formData,
         fileUrl: uploadedFile.fileName,
+        fileName: uploadedFile.fileName,
         duration: Math.round(uploadedFile.duration),
       });
     }

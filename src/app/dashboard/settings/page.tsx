@@ -31,6 +31,28 @@ import {
   getSubscriptionInfoAction,
 } from "@/lib/actions/settings";
 
+interface SubscriptionInfo {
+  subscriptionStatus: string | null;
+  subscriptionExpiresAt: string | null;
+  currentPlanSlug: string | null;
+  trialEndsAt: string | null;
+  rebillId: string | null;
+}
+
+interface PaymentRecord {
+  id: string;
+  businessId: string;
+  amount: number;
+  status: string;
+  orderId: string;
+  tbankPaymentId?: string | null;
+  recurrent: boolean;
+  rebillId?: string | null;
+  errorCode?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"profile" | "business" | "security" | "billing">("profile");
@@ -64,8 +86,8 @@ export default function SettingsPage() {
   });
 
   // Billing state
-  const [subscription, setSubscription] = useState<any>(null);
-  const [payments, setPayments] = useState<any[]>([]);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
 
   useEffect(() => {
     loadSettings();
@@ -105,7 +127,7 @@ export default function SettingsPage() {
       }
 
       if (subscriptionResult.success) {
-        setSubscription(subscriptionResult.data);
+        setSubscription(subscriptionResult.data ?? null);
       }
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -576,7 +598,7 @@ export default function SettingsPage() {
                       </div>
                       <div>
                         <p className="text-white font-black uppercase tracking-tight">
-                          {payment.description || "Платеж"}
+                          {payment.orderId || "Платеж"}
                         </p>
                         <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">
                           {new Date(payment.createdAt).toLocaleDateString("ru-RU")}

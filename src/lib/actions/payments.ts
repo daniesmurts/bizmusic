@@ -53,7 +53,7 @@ export async function startFreeTrial(businessId: string, planSlug: string) {
   }
 
   // Create payment record in DB
-  await (prisma as any).payment.create({
+  await prisma.payment.create({
     data: {
       businessId,
       amount: 100,
@@ -65,7 +65,7 @@ export async function startFreeTrial(businessId: string, planSlug: string) {
   });
 
   // Update business with selected plan
-  await (prisma as any).business.update({
+  await prisma.business.update({
     where: { id: businessId },
     data: { currentPlanSlug: planSlug }
   });
@@ -74,7 +74,7 @@ export async function startFreeTrial(businessId: string, planSlug: string) {
 }
 
 export async function getPaymentStatus(orderId: string) {
-  const payment = await (prisma as any).payment.findUnique({
+  const payment = await prisma.payment.findUnique({
     where: { orderId },
   });
 

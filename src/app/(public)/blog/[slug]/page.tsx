@@ -52,11 +52,26 @@ interface BlogPost {
   featured: boolean;
 }
 
+interface RelatedPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  imageUrl: string;
+  image?: string;
+  readTime: number;
+  category: { name: string } | null;
+  publishedAt?: string | null;
+  featured: boolean;
+  tags: string[];
+}
+
 export default function BlogPostPage() {
   const params = useParams();
   const slug = params.slug as string;
   const [postData, setPostData] = useState<BlogPost | null>(null);
-  const [relatedPosts, setRelatedPosts] = useState<any[]>([]);
+  const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
@@ -65,7 +80,7 @@ export default function BlogPostPage() {
       try {
         const result = await getBlogPostBySlugAction(slug);
         if (result.success && result.data) {
-          const post = result.data as any;
+          const post = result.data;
           setPostData({
             ...post,
             author: {
@@ -90,9 +105,9 @@ export default function BlogPostPage() {
           if (relatedResult.success && relatedResult.data) {
             setRelatedPosts(
               relatedResult.data
-                .filter((p: any) => p.id !== post.id)
+                .filter((p) => p.id !== post.id)
                 .slice(0, 3)
-                .map((p: any) => ({
+                .map((p) => ({
                   ...p,
                   image: p.imageUrl,
                   readTime: Math.max(3, Math.ceil(p.content.split(' ').length / 200)),
@@ -368,7 +383,7 @@ export default function BlogPostPage() {
                 >
                   <div className="relative h-40 overflow-hidden">
                     <Image
-                      src={post.image}
+                      src={post.image ?? "/images/placeholder.png"}
                       alt={post.title}
                       fill
                       className="object-cover brightness-75 group-hover:scale-110 transition-transform duration-700"

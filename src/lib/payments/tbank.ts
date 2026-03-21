@@ -30,7 +30,7 @@ interface NotificationData {
   Token: string;
   Pan?: string;
   ExpDate?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class TBankClient {
@@ -43,13 +43,13 @@ export class TBankClient {
     this.password = config.password;
   }
 
-  private generateToken(params: Record<string, any>): string {
-    const data: Record<string, any> = { ...params, Password: this.password };
+  private generateToken(params: Record<string, unknown>): string {
+    const data: Record<string, unknown> = { ...params, Password: this.password };
     const sortedKeys = Object.keys(data)
       .filter((key) => key !== 'Token' && key !== 'Shops' && key !== 'Receipt' && key !== 'DATA')
       .sort();
 
-    const signString = sortedKeys.map((key) => data[key]).join('');
+    const signString = sortedKeys.map((key) => String(data[key])).join('');
     return crypto.createHash('sha256').update(signString).digest('hex');
   }
 
@@ -64,7 +64,7 @@ export class TBankClient {
     FailURL?: string;
     DATA?: Record<string, string>;
   }): Promise<InitResponse> {
-    const body: any = {
+    const body: Record<string, unknown> = {
       TerminalKey: this.terminalKey,
       ...params,
     };
@@ -80,7 +80,7 @@ export class TBankClient {
   }
 
   async getState(paymentId: string): Promise<InitResponse> {
-    const body: any = {
+    const body: Record<string, unknown> = {
       TerminalKey: this.terminalKey,
       PaymentId: paymentId,
     };
@@ -99,7 +99,7 @@ export class TBankClient {
     PaymentId: string;
     RebillId: string;
   }): Promise<InitResponse> {
-    const body: any = {
+    const body: Record<string, unknown> = {
       TerminalKey: this.terminalKey,
       ...params,
     };

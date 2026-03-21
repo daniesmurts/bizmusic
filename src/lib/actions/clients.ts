@@ -35,7 +35,7 @@ export async function getClientsAction() {
     });
 
     return { success: true, data: businesses as unknown as AdminBusiness[] };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching clients:", error);
     return { success: false, error: "Не удалось загрузить список клиентов" };
   }
