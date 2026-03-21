@@ -113,6 +113,7 @@ const pricingTiers: PricingTier[] = [
       "Лицензирование для клиентов",
       "Персональный менеджер",
     ],
+    notIncluded: [],
     highlight: true,
   },
 ];
