@@ -56,12 +56,21 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Helper to create a redirect response preserving session cookies
+  const redirectWithCookies = (pathname: string) => {
+    const url = request.nextUrl.clone()
+    url.pathname = pathname
+    const redirectResponse = NextResponse.redirect(url)
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
+  }
+
   // RBAC for /admin: strict check
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
+      return redirectWithCookies('/login')
     }
 
     // Fetch user role from database
@@ -72,24 +81,18 @@ export async function updateSession(request: NextRequest) {
       .single()
 
     if (roleError || userData?.role !== 'ADMIN') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
+      return redirectWithCookies('/dashboard')
     }
   }
 
   // Protected routes: redirect to login if not authenticated
   if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    return redirectWithCookies('/login')
   }
 
   // Auth routes: redirect to dashboard if already authenticated
   if ((request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register')) && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    return redirectWithCookies('/dashboard')
   }
 
   return response

@@ -1,8 +1,18 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import dynamic from "next/dynamic";
 import { useState } from "react";
+
+// Only load devtools in development to avoid production overhead
+const ReactQueryDevtools =
+  process.env.NODE_ENV === "development"
+    ? dynamic(() =>
+        import("@tanstack/react-query-devtools").then((m) => ({
+          default: m.ReactQueryDevtools,
+        }))
+      )
+    : null;
 
 export function AdminProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -20,7 +30,7 @@ export function AdminProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools buttonPosition="bottom-right" />
+      {ReactQueryDevtools && <ReactQueryDevtools buttonPosition="bottom-right" />}
     </QueryClientProvider>
   );
 }

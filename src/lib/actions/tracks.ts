@@ -63,7 +63,7 @@ export async function createTrackAction(data: TrackInput) {
         title: data.title,
         artist: data.artist,
         fileUrl: data.fileUrl,
-        duration: data.duration,
+        duration: Math.round(data.duration),
         bpm: data.bpm,
         moodTags: data.moodTags,
         genre: data.genre || "Unknown",
@@ -213,8 +213,10 @@ export async function getTracksAction(filters?: {
 
     const tracksWithUrls = await Promise.all(
       tracks.map(async (track: any) => {
+        // Extract the storage object filename from the full URL
+        const fileName = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
         const streamUrl = await getDownloadSignedUrl(
-          track.fileUrl,
+          fileName,
           3600 // 1 hour
         );
 
@@ -260,8 +262,10 @@ export async function getTrackByIdAction(trackId: string) {
     }
 
     // Generate signed URL
+    // Extract the storage object filename from the full URL
+    const fileNameForSigning = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
     const streamUrl = await getDownloadSignedUrl(
-      track.fileUrl,
+      fileNameForSigning,
       3600
     );
 

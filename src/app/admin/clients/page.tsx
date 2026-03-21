@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Building2, Plus, Users, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ClientTable } from "@/components/admin/ClientTable";
@@ -20,9 +21,11 @@ export default function ClientsPage() {
     },
   });
 
-  if (error) {
-    toast.error("Ошибка загрузки клиентов");
-  }
+  useEffect(() => {
+    if (error) {
+      toast.error("Ошибка загрузки клиентов");
+    }
+  }, [error]);
 
   return (
     <div className="space-y-12">

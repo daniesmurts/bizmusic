@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,6 @@ import {
   CheckCircle2,
   Plus,
   Trash2,
-  Save,
   Building2,
   Landmark,
   MapPin,
@@ -20,11 +18,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { LocationInput } from "@/components/LocationInput";
-import { generateLicenseAction } from "@/lib/actions/licenses";
+import { submitContractAction } from "@/lib/actions/licenses";
 import { toast } from "sonner";
 
 export default function ContractPage() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -66,13 +63,12 @@ export default function ContractPage() {
 
     setLoading(true);
     try {
-      const result = await generateLicenseAction({
-        userId: user?.email || "unknown",
+      const result = await submitContractAction({
         businessType,
         businessCategory: category,
         legalName,
         inn,
-        kpp: ogrn,
+        ogrn,
         regAddress,
         phone,
         contactPerson,

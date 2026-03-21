@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { History, FileText, Download, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogTable } from "@/components/admin/LogTable";
@@ -21,9 +22,11 @@ export default function LogsPage() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  if (error) {
-    toast.error("Ошибка загрузки логов");
-  }
+  useEffect(() => {
+    if (error) {
+      toast.error("Ошибка загрузки логов");
+    }
+  }, [error]);
 
   return (
     <div className="space-y-12">

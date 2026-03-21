@@ -53,5 +53,5 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     };
   }),
   
-  prevTrack: () => set((state) => ({ progress: 0 })), // Simplification for now
+  prevTrack: () => set(() => ({ progress: 0 })), // Simplification for now
 }));

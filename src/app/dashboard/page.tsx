@@ -105,7 +105,7 @@ export default function Dashboard() {
              </div>
              <div className="flex items-center gap-2 text-neutral-500">
                <CreditCard className="w-4 h-4" />
-               <span className="text-xs font-bold uppercase tracking-widest">Следующая оплата: 20.04.2026</span>
+               <span className="text-xs font-bold uppercase tracking-widest">Следующая оплата: —</span>
              </div>
           </div>
         </div>

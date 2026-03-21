@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { 
   ShieldCheck, 
   Zap, 
-  Clock, 
   ArrowRight, 
   Play,
   Heart,
   ExternalLink,
-  CreditCard,
-  WifiOff
+  CreditCard
 } from "lucide-react";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
 
@@ -24,7 +22,7 @@ export default function Home() {
       id: "demo-" + Math.random(),
       title,
       artist,
-      file_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", // Demo URL
+      fileUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", // Demo URL
       duration: 372,
       cover_url: title.includes("Jazz") ? "/images/mood-1.png" : "/images/mood-2.png"
     };
