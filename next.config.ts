@@ -9,6 +9,7 @@ const pwaConfig = withPWA({
 });
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   /* config options here */
 };
 
