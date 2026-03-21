@@ -46,6 +46,9 @@ jobs:
           yc config set service-account-key key.json
           yc config set folder-id ${{ secrets.YC_FOLDER_ID }}
           
+          # Ensure the container exists before deploying a revision
+          yc serverless container create --name bizmusic || true
+
           yc serverless container revision deploy \
             --container-name bizmusic \
             --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/bizmusic:${{ github.sha }} \
