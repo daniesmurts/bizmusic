@@ -31,6 +31,10 @@ jobs:
           context: .
           push: true
           tags: cr.yandex/${{ secrets.YC_REGISTRY_ID }}/bizmusic:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
