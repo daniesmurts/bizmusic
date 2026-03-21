@@ -56,10 +56,15 @@ model Business {
   settlementAccount  String?
   corrAccount        String?
   subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  subscriptionExpiresAt DateTime?
+  trialEndsAt        DateTime?
+  rebillId           String?            // T-Bank RebillId for recurring payments
+  currentPlanSlug    String?            // e.g., 'business', 'content', 'business-plus'
   locations          Location[]
   playlists          Playlist[]
   licenses           License[]
   playLogs           PlayLog[]
+  payments           Payment[]
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -199,4 +204,21 @@ model BlogPostTag {
   @@index([postId])
   @@index([tagName])
   @@map("blog_post_tags")
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id])
+  amount        Int      // in kopeks (kopeyki)
+  status        String   // AUTHORIZED, CONFIRMED, REJECTED, etc.
+  tbankPaymentId String? @unique
+  orderId       String   @unique
+  recurrent     Boolean  @default(false)
+  rebillId      String?
+  errorCode     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("payments")
 }

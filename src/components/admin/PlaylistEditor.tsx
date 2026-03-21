@@ -203,7 +203,6 @@ export const PlaylistEditor = ({
 
     const trackIds = playlistTracks.map((t) => t.id);
     onUpdatePlaylist(selectedPlaylistId, trackIds);
-    toast.success("Плейлист сохранен!");
   };
 
   const handleCreatePlaylist = () => {

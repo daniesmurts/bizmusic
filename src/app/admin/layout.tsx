@@ -3,7 +3,6 @@ import { createClient } from "@/utils/supabase/server";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminProviders } from "@/components/admin/AdminProviders";
 import { Footer } from "@/components/Footer";
-import { Toaster } from "sonner";
 
 export default async function AdminLayout({
   children,
@@ -44,7 +43,6 @@ export default async function AdminLayout({
           </AdminProviders>
         </main>
       </div>
-      <Toaster position="top-right" theme="dark" closeButton />
     </div>
   );
 }

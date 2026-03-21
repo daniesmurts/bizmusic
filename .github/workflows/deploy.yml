@@ -1,0 +1,53 @@
+name: Deploy to Yandex Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: bizmusic
+  YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
+  YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Yandex Container Registry
+        uses: yc-actions/yc-cr-login@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_KEY }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: cr.yandex/${{ secrets.YC_REGISTRY_ID }}/bizmusic:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Serverless Container
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+          export PATH=$PATH:/home/runner/yandex-cloud/bin
+          echo '${{ secrets.YC_SA_KEY }}' > key.json
+          yc config set service-account-key key.json
+          yc config set folder-id ${{ secrets.YC_FOLDER_ID }}
+          
+          yc serverless container revision deploy \
+            --container-name bizmusic \
+            --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/bizmusic:${{ github.sha }} \
+            --cores 1 \
+            --memory 512MB \
+            --concurrency 10 \
+            --execution-timeout 30s \
+            --service-account-id ${{ secrets.YC_DEPLOY_SA_ID }} \
+            --environment DATABASE_URL="${{ secrets.DATABASE_URL }}",NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}",NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}",SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}",TBANK_TERMINAL_KEY="${{ secrets.TBANK_TERMINAL_KEY }}",TBANK_PASSWORD="${{ secrets.TBANK_PASSWORD }}",NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}",NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}"
