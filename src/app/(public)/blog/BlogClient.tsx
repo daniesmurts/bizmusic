@@ -26,9 +26,10 @@ interface BlogPost {
   excerpt: string;
   content: string;
   author: {
-    name: string;
-    avatar: string;
-    role: string;
+    id?: string;
+    name?: string;
+    avatar?: string;
+    role?: string;
     email: string;
   };
   publishedAt: string | null;
@@ -36,11 +37,13 @@ interface BlogPost {
   views: number;
   comments: number;
   category: {
+    id?: string;
     name: string;
   };
   image: string;
+  imageUrl?: string;
   featured: boolean;
-  tags: string[];
+  tags: any[];
 }
 
 interface BlogClientProps {
