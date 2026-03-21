@@ -46,9 +46,6 @@ jobs:
           yc config set service-account-key key.json
           yc config set folder-id ${{ secrets.YC_FOLDER_ID }}
           
-          # Ensure the container exists before deploying a revision
-          yc serverless container create --name bizmusic || true
-
           yc serverless container revision deploy \
             --container-name bizmusic \
             --image cr.yandex/${{ secrets.YC_REGISTRY_ID }}/bizmusic:${{ github.sha }} \
@@ -56,6 +53,5 @@ jobs:
             --memory 512MB \
             --concurrency 10 \
             --execution-timeout 30s \
-            --port 8080 \
             --service-account-id ${{ secrets.YC_DEPLOY_SA_ID }} \
             --environment DATABASE_URL="${{ secrets.DATABASE_URL }}",DATABASE_DIRECT_URL="${{ secrets.DATABASE_DIRECT_URL }}",NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}",NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}",SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}",TBANK_TERMINAL_KEY="${{ secrets.TBANK_TERMINAL_KEY }}",TBANK_PASSWORD="${{ secrets.TBANK_PASSWORD }}",NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}",NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}"
