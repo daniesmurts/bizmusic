@@ -44,6 +44,7 @@ model Business {
   userId             String
   user               User               @relation(fields: [userId], references: [id])
   inn                String             @unique
+  ogrn               String?
   kpp                String?
   legalName          String
   address            String

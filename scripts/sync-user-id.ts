@@ -3,9 +3,15 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const currentSessionUserId = '49a08a8b-0ded-40b1-a0f0-94607f3e22b4';
-  const targetEmail = 'daniel.smurts@yandex.ru';
-  const oldUserId = 'bd53f787-a450-46fc-bb05-6371ba20eae3';
+  const currentSessionUserId = process.env.CURRENT_SESSION_USER_ID;
+  const targetEmail = process.env.TARGET_EMAIL;
+  const oldUserId = process.env.OLD_USER_ID;
+
+  if (!currentSessionUserId || !targetEmail || !oldUserId) {
+    throw new Error(
+      'Environment variables CURRENT_SESSION_USER_ID, TARGET_EMAIL, and OLD_USER_ID must be set.'
+    );
+  }
 
   console.log(`--- Syncing Account: ${targetEmail} ---`);
   

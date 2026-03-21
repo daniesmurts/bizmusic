@@ -62,7 +62,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname = pathname
     const redirectResponse = NextResponse.redirect(url)
     response.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value)
+      redirectResponse.cookies.set(cookie)
     })
     return redirectResponse
   }

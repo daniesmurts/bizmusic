@@ -9,6 +9,25 @@ import { AdminPlayLog } from "@/types/admin";
  */
 export async function logPlayAction(trackId: string, businessId?: string, locationId?: string) {
   try {
+    const { createClient } = await import("@/utils/supabase/server");
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Unauthorized: Please log in to play music" };
+    }
+
+    // Verify ownership of the business/location if provided
+    if (businessId) {
+      const business = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: { userId: true }
+      });
+      if (!business || business.userId !== user.id) {
+        return { success: false, error: "Forbidden: Unauthorized business association" };
+      }
+    }
+
     const playLog = await prisma.playLog.create({
       data: {
         trackId,
@@ -17,8 +36,8 @@ export async function logPlayAction(trackId: string, businessId?: string, locati
       },
     });
 
-    // Revalidate the content page to update play counts
-    revalidatePath("/admin/content");
+    // Revalidate the content page to update play counts (Removed to reduce server load)
+    // revalidatePath("/admin/content");
 
     return {
       success: true,

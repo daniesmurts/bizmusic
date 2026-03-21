@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 interface BlogContentProps {
   content: string;
 }
@@ -6,7 +8,7 @@ export function BlogContent({ content }: BlogContentProps) {
   // Parse content with better structure
   const parseContent = (text: string) => {
     const lines = text.split("\n");
-    const elements: JSX.Element[] = [];
+    const elements: ReactNode[] = [];
     let inList = false;
     let listItems: string[] = [];
     let listType: "ul" | "ol" = "ul";
@@ -41,12 +43,23 @@ export function BlogContent({ content }: BlogContentProps) {
         .replace(/'/g, "&#x27;");
     };
 
+    const sanitizeUrl = (url: string): string => {
+      const trimmed = url.trim().toLowerCase();
+      if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:')) {
+        return '#';
+      }
+      return url;
+    };
+
     const parseInline = (text: string): string => {
       const safe = escapeHtml(text);
       return safe
         .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>')
         .replace(/\*(.*?)\*/g, '<em class="text-neutral-400 italic">$1</em>')
-        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-neon hover:underline underline-offset-4">$1</a>')
+        .replace(/\[(.*?)\]\((.*?)\)/g, (_, text, url) => {
+          const sUrl = sanitizeUrl(url);
+          return `<a href="${sUrl}" class="text-neon hover:underline underline-offset-4" ${sUrl === '#' ? '' : 'target="_blank" rel="noopener noreferrer"'}>${text}</a>`;
+        })
         .replace(/`([^`]+)`/g, '<code class="bg-white/5 px-2 py-0.5 rounded text-sm font-mono text-neon">$1</code>');
     };
 

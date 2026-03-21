@@ -31,6 +31,7 @@ export default function ContractPage() {
   const [legalName, setLegalName] = useState("");
   const [inn, setInn] = useState("");
   const [ogrn, setOgrn] = useState("");
+  const [kpp, setKpp] = useState("");
   const [regAddress, setRegAddress] = useState("");
   
   const [bankName, setBankName] = useState("");
@@ -56,7 +57,8 @@ export default function ContractPage() {
           if (data) {
             setLegalName(data.legalName || "");
             setInn(data.inn || "");
-            setOgrn(data.kpp || "");
+            setOgrn(data.ogrn || "");
+            setKpp(data.kpp || "");
             setRegAddress(data.address || "");
             if (data.subscriptionStatus === "ACTIVE") {
               setSuccess(true);
@@ -102,6 +104,7 @@ export default function ContractPage() {
         legalName,
         inn,
         ogrn,
+        kpp,
         regAddress,
         phone,
         contactPerson,
@@ -229,24 +232,34 @@ export default function ContractPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-4">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">ИНН</Label>
                 <Input 
                   value={inn}
                   disabled={success}
                   onChange={(e) => setInn(e.target.value)}
-                  placeholder="12 цифр" 
+                  placeholder="10 или 12 цифр" 
                   className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" 
                 />
               </div>
               <div className="space-y-4">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">ОГРН / КПП</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">ОГРН</Label>
                 <Input 
                   value={ogrn}
                   disabled={success}
                   onChange={(e) => setOgrn(e.target.value)}
-                  placeholder="15 цифр" 
+                  placeholder="13 или 15 цифр" 
+                  className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" 
+                />
+              </div>
+              <div className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">КПП</Label>
+                <Input 
+                  value={kpp}
+                  disabled={success}
+                  onChange={(e) => setKpp(e.target.value)}
+                  placeholder="9 цифр" 
                   className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" 
                 />
               </div>

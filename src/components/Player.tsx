@@ -37,15 +37,18 @@ export const Player = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
 
+  const lastLoggedTrackIdRef = useRef<string | null>(null);
+
   // Sync audio element with store
   useEffect(() => {
     if (!audioRef.current) return;
     
     if (isPlaying) {
       audioRef.current.play().then(() => {
-        // Log the play event when playback actually starts
-        if (currentTrack) {
+        // Log the play event when playback actually starts AND it's a new track session
+        if (currentTrack && lastLoggedTrackIdRef.current !== currentTrack.id) {
           logPlayAction(currentTrack.id).then(() => {
+            lastLoggedTrackIdRef.current = currentTrack.id;
             // Dispatch event to refresh UI
             window.dispatchEvent(new CustomEvent('track-played', { detail: { trackId: currentTrack.id } }));
           }).catch(err => {

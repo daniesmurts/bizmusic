@@ -7,11 +7,9 @@ import {
   Music, 
   Building2, 
   MapPin, 
-  Clock,
-  ArrowUpDown
+  Clock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { AdminPlayLog } from "@/types/admin";
 
 interface LogTableProps {

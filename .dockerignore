@@ -13,5 +13,5 @@ npm-debug.log
 yarn-debug.log
 yarn-error.log
 .DS_Store
-Dockerfile
-.dockerignore
+# Docker files are needed in context for some build strategies
+# Removing from ignore as requested by audit

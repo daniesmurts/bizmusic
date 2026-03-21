@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Loader2, Download, CheckCircle2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateLicenseAction } from "@/lib/actions/licenses";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ export function LicenseButton({ businessId, hasLicense, pdfUrl }: LicenseButtonP
     setLoading(true);
     try {
       const result = await generateLicenseAction(businessId);
-      if (result.success) {
+      if (result.success && result.data) {
         toast.success("Лицензия успешно сформирована!");
         queryClient.invalidateQueries({ queryKey: ["admin-clients"] });
         if (result.data.pdfUrl) {

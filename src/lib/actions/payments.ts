@@ -3,18 +3,31 @@
 import { prisma } from "@/lib/prisma";
 import { tbank } from "@/lib/payments/tbank";
 import { getPlanBySlug } from "@/lib/payments/plans";
-import { revalidatePath } from "next/cache";
 
 export async function startFreeTrial(businessId: string, planSlug: string) {
   const plan = getPlanBySlug(planSlug);
   if (!plan) throw new Error("Plan not found");
+
+  const { createClient } = await import("@/utils/supabase/server");
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
 
   const business = await prisma.business.findUnique({
     where: { id: businessId },
     include: { user: true },
   });
 
-  if (!business) throw new Error("Business not found");
+  if (!business) {
+    throw new Error("Business not found");
+  }
+
+  if (business.userId !== user.id) {
+    throw new Error("Forbidden: You do not own this business");
+  }
 
   // Create a pending payment record
   const orderId = `TRIAL_${businessId}_${Date.now()}`;
@@ -61,7 +74,7 @@ export async function startFreeTrial(businessId: string, planSlug: string) {
 }
 
 export async function getPaymentStatus(orderId: string) {
-  const payment = await prisma.payment.findUnique({
+  const payment = await (prisma as any).payment.findUnique({
     where: { orderId },
   });
 

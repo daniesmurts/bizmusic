@@ -146,6 +146,7 @@ export interface ContractFormData {
   legalName: string;
   inn: string;
   ogrn: string;
+  kpp: string;
   regAddress: string;
   phone: string;
   contactPerson: string;
@@ -168,19 +169,26 @@ export async function submitContractAction(formData: ContractFormData) {
       return { success: false, error: "Пользователь не авторизован" };
     }
 
-    // Find or create Prisma user record by email
-    let prismaUser = await prisma.user.findUnique({ where: { email: authUser.email! } });
+    // Find or create Prisma user record and SYNC ID with Supabase
+    let prismaUser = await prisma.user.findUnique({ where: { id: authUser.id } });
     if (!prismaUser) {
       prismaUser = await prisma.user.create({
         data: {
+          id: authUser.id,
           email: authUser.email!,
           passwordHash: "",
         },
       });
+    } else if (prismaUser.email !== authUser.email) {
+      // Sync email if it changed in Supabase
+      prismaUser = await prisma.user.update({
+        where: { id: authUser.id },
+        data: { email: authUser.email! }
+      });
     }
 
     // Upsert business record using the real user ID
-    const business = await prisma.business.upsert({
+    const business = await (prisma.business as any).upsert({
       where: { inn: formData.inn },
       update: {
         legalName: formData.legalName,
@@ -189,7 +197,8 @@ export async function submitContractAction(formData: ContractFormData) {
       create: {
         userId: prismaUser.id,
         inn: formData.inn,
-        kpp: formData.ogrn,
+        ogrn: formData.ogrn,
+        kpp: formData.kpp,
         legalName: formData.legalName,
         address: formData.regAddress,
         subscriptionStatus: "INACTIVE",

@@ -12,8 +12,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Generate Prisma Client (use dummy URL during build)
+RUN DATABASE_URL=postgres://dummy:dummy@localhost:5432/dummy npx prisma generate
 
 # Build the app
 ENV NEXT_TELEMETRY_DISABLED 1

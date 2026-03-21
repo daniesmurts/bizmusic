@@ -2,13 +2,13 @@
 
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
-import { 
-  Music, 
-  MapPin, 
-  Plus, 
-  Settings, 
-  CreditCard, 
-  ShieldCheck, 
+import {
+  Music,
+  MapPin,
+  Plus,
+  Settings,
+  CreditCard,
+  ShieldCheck,
   BarChart3,
   Play,
   ArrowRight
@@ -29,9 +29,11 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex gap-4">
-          <Button className="bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-2xl px-6 py-6 font-black uppercase text-xs tracking-widest gap-2">
-            <Settings className="w-4 h-4" /> Настройки
-          </Button>
+          <Link href="/dashboard/settings">
+            <Button className="bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-2xl px-6 py-6 font-black uppercase text-xs tracking-widest gap-2">
+              <Settings className="w-4 h-4" /> Настройки
+            </Button>
+          </Link>
           <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 py-6 font-black uppercase text-xs tracking-widest gap-2 shadow-lg shadow-neon/20">
             <Plus className="w-4 h-4" /> Добавить точку
           </Button>

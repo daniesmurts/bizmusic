@@ -5,19 +5,18 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("--- Checking User and Business Mappings ---");
   
-  // 1. Find the user with the ID reported in the browser
-  const debugUserId = '49a08a8b-0ded-40b1-a0f0-94607f3e22b4';
-  const userByDebugId = await prisma.user.findUnique({
+  const debugUserId = process.env.DEBUG_USER_ID;
+  const userByDebugId = debugUserId ? await prisma.user.findUnique({
     where: { id: debugUserId }
-  });
-  console.log("User for debug_user_id (49a0...):", userByDebugId ? `${userByDebugId.email} (ID: ${userByDebugId.id})` : "NOT FOUND");
+  }) : null;
+  console.log("User for DEBUG_USER_ID:", userByDebugId ? `${userByDebugId.email} (ID: ${userByDebugId.id})` : "NOT FOUND or NOT PROVIDED");
 
-  // 2. Find daniel.smurts@yandex.ru specifically
-  const targetEmail = 'daniel.smurts@yandex.ru';
-  const userByEmail = await prisma.user.findFirst({
+  // 2. Find target user by email
+  const targetEmail = process.env.TARGET_EMAIL;
+  const userByEmail = targetEmail ? await prisma.user.findFirst({
     where: { email: targetEmail }
-  });
-  console.log(`User for ${targetEmail}:`, userByEmail ? `${userByEmail.email} (ID: ${userByEmail.id})` : "NOT FOUND");
+  }) : null;
+  console.log(`User for ${targetEmail || 'TARGET_EMAIL'}:`, userByEmail ? `${userByEmail.email} (ID: ${userByEmail.id})` : "NOT FOUND or NOT PROVIDED");
 
   // 3. List all businesses and their associated user IDs
   const businesses = await prisma.business.findMany({

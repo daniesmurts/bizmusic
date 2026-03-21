@@ -1,13 +1,32 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
-// Initialize Supabase client for server actions
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { prisma } from "@/lib/prisma";
+
+// Sanitizes search input for PostgREST .or() query
+function sanitizeSearch(query: string) {
+  return query.replace(/[(),]/g, " ").trim();
+}
+
+async function checkAdmin() {
+  const { createClient } = await import("@/utils/supabase/server");
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { isAdmin: false, error: "Unauthorized" };
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { role: true }
+  });
+
+  if (dbUser?.role !== "ADMIN") {
+    return { isAdmin: false, error: "Forbidden: Admin access required" };
+  }
+
+  return { isAdmin: true, user, supabase };
+}
 
 export interface BlogPostInput {
   title: string;
@@ -33,6 +52,9 @@ export async function getBlogPostsAction(filters?: {
   offset?: number;
 }) {
   try {
+    const { createClient } = await import("@/utils/supabase/server");
+    const supabase = await createClient();
+
     let query = supabase
       .from("blog_posts")
       .select('id, title, slug, excerpt, content, "imageUrl", published, featured, views, "publishedAt", "createdAt", "updatedAt", "categoryId", "authorId", category:blog_categories(id, name), author:users(id, email), tags:blog_post_tags(tagName)')
@@ -47,7 +69,10 @@ export async function getBlogPostsAction(filters?: {
     }
 
     if (filters?.search) {
-      query = query.or(`title.ilike.%${filters.search}%,excerpt.ilike.%${filters.search}%`);
+      const sanitized = sanitizeSearch(filters.search);
+      if (sanitized) {
+        query = query.or(`title.ilike.%${sanitized}%,excerpt.ilike.%${sanitized}%`);
+      }
     }
 
     if (filters?.limit) {
@@ -76,6 +101,9 @@ export async function getBlogPostsAction(filters?: {
  */
 export async function getBlogPostBySlugAction(slug: string) {
   try {
+    const { createClient } = await import("@/utils/supabase/server");
+    const supabase = await createClient();
+
     const { data: post, error } = await supabase
       .from("blog_posts")
       .select(`
@@ -121,6 +149,9 @@ export async function getBlogPostBySlugAction(slug: string) {
  */
 export async function getBlogPostByIdAction(postId: string) {
   try {
+    const { createClient } = await import("@/utils/supabase/server");
+    const supabase = await createClient();
+
     const { data: post, error } = await supabase
       .from("blog_posts")
       .select(`
@@ -166,6 +197,9 @@ export async function getBlogPostByIdAction(postId: string) {
  */
 export async function getBlogCategoriesAction() {
   try {
+    const { createClient } = await import("@/utils/supabase/server");
+    const supabase = await createClient();
+
     const { data: categories, error } = await supabase
       .from("blog_categories")
       .select(`*`)
@@ -212,6 +246,9 @@ export async function getBlogCategoriesAction() {
  */
 export async function createBlogPostAction(data: BlogPostInput) {
   try {
+    const { isAdmin, error: adminError, supabase } = await checkAdmin();
+    if (!isAdmin || !supabase) return { success: false, error: adminError };
+
     const { data: post, error } = await supabase
       .from("blog_posts")
       .insert({
@@ -267,6 +304,9 @@ export async function updateBlogPostAction(
   data: Partial<BlogPostInput>
 ) {
   try {
+    const { isAdmin, error: adminError, supabase } = await checkAdmin();
+    if (!isAdmin || !supabase) return { success: false, error: adminError };
+
     const updateData: any = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.slug !== undefined) updateData.slug = data.slug;
@@ -322,6 +362,9 @@ export async function updateBlogPostAction(
  */
 export async function deleteBlogPostAction(postId: string) {
   try {
+    const { isAdmin, error: adminError, supabase } = await checkAdmin();
+    if (!isAdmin || !supabase) return { success: false, error: adminError };
+
     // Delete tags first (cascade should handle this, but being explicit)
     await supabase.from("blog_post_tags").delete().eq("postId", postId);
     

@@ -21,16 +21,12 @@ export const supabaseAdmin = createClient(
 const BUCKET_NAME = 'bizmusic-assets';
 
 export async function getUploadSignedUrl(
-  fileName: string,
-  contentType: string,
-  expiresIn: number = 3600
+  fileName: string
 ): Promise<{ uploadUrl: string; publicUrl: string }> {
   const path = `tracks/${fileName}`;
   const { data, error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
-    .createSignedUploadUrl(path, {
-      upsert: false,
-    });
+    .createSignedUploadUrl(path);
 
   if (error) {
     throw new Error(`Failed to create upload URL: ${error.message}`);
