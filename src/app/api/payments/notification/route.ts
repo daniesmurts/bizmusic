@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const { OrderId, Status, PaymentId, RebillId, ErrorCode } = data;
 
     // 2. Find the payment in DB
-    const payment = await (prisma as any).payment.findUnique({
+    const payment = await prisma.payment.findUnique({
       where: { orderId: OrderId },
       include: { business: true },
     });
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Update payment status
-    await (prisma as any).payment.update({
+    await prisma.payment.update({
       where: { orderId: OrderId },
       data: {
         status: Status,
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + trialDurationDays);
 
-      await (prisma as any).business.update({
+      await prisma.business.update({
         where: { id: payment.businessId },
         data: {
           rebillId: RebillId,

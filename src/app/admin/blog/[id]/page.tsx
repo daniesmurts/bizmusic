@@ -25,6 +25,7 @@ import {
   createBlogPostAction,
   updateBlogPostAction,
   getBlogCategoriesAction,
+  type BlogPostInput,
 } from "@/lib/actions/blog";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
@@ -57,7 +58,7 @@ export default function AdminBlogEditorPage() {
       if (!postId) return null;
       const result = await getBlogPostByIdAction(postId);
       if (!result.success) throw new Error(result.error);
-      return result.data as any;
+      return result.data;
     },
     enabled: isEdit,
   });
@@ -89,13 +90,21 @@ export default function AdminBlogEditorPage() {
 
   // Create/Update mutation
   const saveMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Partial<BlogPostInput>) => {
       if (isEdit && postId) {
         return await updateBlogPostAction(postId, data);
       } else {
         return await createBlogPostAction({
-          ...data,
-          authorId: user?.id || "",
+          title: data.title ?? "",
+          slug: data.slug ?? "",
+          excerpt: data.excerpt ?? "",
+          content: data.content ?? "",
+          categoryId: data.categoryId ?? "",
+          authorId: user?.id ?? "",
+          imageUrl: data.imageUrl ?? "",
+          published: data.published,
+          featured: data.featured,
+          tags: data.tags,
         });
       }
     },

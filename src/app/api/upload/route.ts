@@ -42,10 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename and upload URL
     const uniqueFileName = generateUniqueFileName(file.name);
-    const { uploadUrl, publicUrl } = await getUploadSignedUrl(
-      uniqueFileName,
-      file.type
-    );
+    const { uploadUrl, publicUrl } = await getUploadSignedUrl(uniqueFileName);
 
     return NextResponse.json({
       success: true,
@@ -53,10 +50,11 @@ export async function POST(request: NextRequest) {
       fileName: uniqueFileName,
       publicUrl,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Upload failed";
     console.error("Upload API error:", error);
     return NextResponse.json(
-      { error: error.message || "Upload failed" },
+      { error: message },
       { status: 500 }
     );
   }

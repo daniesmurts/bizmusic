@@ -3,9 +3,34 @@ import BlogClient from "./BlogClient";
 
 export const dynamic = "force-dynamic";
 
+interface BlogPostSummary {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  imageUrl: string;
+  published: boolean;
+  featured: boolean;
+  views: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  categoryId: string;
+  authorId: string;
+  category: { id: string; name: string } | null;
+  author: { id: string; email: string } | null;
+  tags: string[];
+}
+
+interface CategorySummary {
+  name: string;
+  count: number;
+}
+
 export default async function BlogPage() {
-  let initialPosts: any[] = [];
-  let fetchedCategories: any[] = [];
+  let initialPosts: BlogPostSummary[] = [];
+  let fetchedCategories: CategorySummary[] = [];
 
   try {
     const timeoutPromise = new Promise((_, reject) => {
@@ -15,7 +40,7 @@ export default async function BlogPage() {
     const postsResult = await Promise.race([
       getBlogPostsAction({ published: true }),
       timeoutPromise
-    ]) as any;
+    ]) as Awaited<ReturnType<typeof getBlogPostsAction>>;
 
     if (postsResult?.success && postsResult?.data) {
       initialPosts = postsResult.data;
@@ -24,14 +49,14 @@ export default async function BlogPage() {
     const categoriesResult = await getBlogCategoriesAction();
 
     if (categoriesResult?.success && categoriesResult?.data) {
-      fetchedCategories = categoriesResult.data.map((cat: any) => ({
+      fetchedCategories = categoriesResult.data.map((cat) => ({
         name: cat.name || "Категория",
         count: cat._count?.posts || 0,
       }));
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (process.env.NODE_ENV === "development") {
-      console.error("Blog page error:", err?.message || err);
+      console.error("Blog page error:", err instanceof Error ? err.message : err);
     }
   }
 

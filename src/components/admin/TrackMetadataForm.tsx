@@ -32,7 +32,7 @@ interface TrackMetadataFormProps {
     bpm?: number | null;
     genre?: string | null;
     moodTags: string[];
-    energyLevel?: number;
+    energyLevel?: number | null;
     isExplicit?: boolean;
   };
 }

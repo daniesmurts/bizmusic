@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { MapPin, Loader2 } from "lucide-react";
 
+interface LocationSuggestion {
+  value: string;
+  displayName: string;
+  address: string;
+  fullAddress: string;
+}
+
 interface LocationInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -20,7 +27,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   className,
   disabled,
 }) => {
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,7 +73,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
         // Ignore out-of-order responses
         if (capturedQuery !== latestQueryRef.current) return;
         
-        const items = data.results || [];
+        const items: LocationSuggestion[] = data.results || [];
         setSuggestions(items);
         setIsOpen(items.length > 0);
       } catch (error) {
@@ -79,7 +86,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     }, 300);
   };
 
-  const handleSelect = (item: any) => {
+  const handleSelect = (item: LocationSuggestion) => {
     onChange(item.fullAddress || item.value);
     setIsOpen(false);
     setSuggestions([]);

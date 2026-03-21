@@ -41,7 +41,11 @@ export async function GET(request: Request) {
     
     // Map Yandex v1 results to a standard format for our frontend
     // The structure is typically { results: [ { title: { text: ... }, subtitle: { text: ... }, ... } ] }
-    const formattedResults = data.results?.map((item: any) => ({
+    interface YandexSuggestItem {
+      title: { text: string };
+      subtitle?: { text: string };
+    }
+    const formattedResults = (data.results as YandexSuggestItem[] | undefined)?.map((item) => ({
       value: item.title.text + (item.subtitle?.text ? `, ${item.subtitle.text}` : ""),
       displayName: item.title.text,
       address: item.subtitle?.text || "",

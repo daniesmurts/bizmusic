@@ -122,10 +122,11 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
       });
 
       toast.success("Файл загружен успешно!");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : "Upload failed";
       console.error("Upload error:", err);
-      setError(err.message || "Upload failed");
-      toast.error(err.message || "Failed to upload file");
+      setError(errMessage);
+      toast.error(errMessage);
     } finally {
       setUploading(false);
     }
