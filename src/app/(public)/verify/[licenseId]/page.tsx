@@ -18,13 +18,14 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  params: {
+  params: Promise<{
     licenseId: string;
-  };
+  }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function VerificationPage({ params }: PageProps) {
-  const { licenseId } = params;
+  const { licenseId } = await params;
   const result = await getLicenseByIdAction(licenseId);
 
   if (!result.success || !result.data) {
