@@ -80,12 +80,18 @@ export async function getBlogPostsAction(filters?: {
     }
 
     const { data, error } = await query;
-
     if (error) throw error;
+
+    const mappedData = (data || []).map((post: any) => ({
+      ...post,
+      category: Array.isArray(post.category) ? post.category[0] : post.category,
+      author: Array.isArray(post.author) ? post.author[0] : post.author,
+      tags: post.tags?.map((t: any) => t.tagName) || [],
+    }));
 
     return {
       success: true,
-      data: data || [],
+      data: mappedData,
     };
   } catch (error: any) {
     console.error("Get blog posts error:", error);
@@ -130,8 +136,8 @@ export async function getBlogPostBySlugAction(slug: string) {
       success: true,
       data: {
         ...post,
-        category: post.category,
-        author: post.author,
+        category: Array.isArray(post.category) ? post.category[0] : post.category,
+        author: Array.isArray(post.author) ? post.author[0] : post.author,
         tags: post.tags?.map((t: any) => t.tagName) || [],
       },
     };
@@ -178,8 +184,8 @@ export async function getBlogPostByIdAction(postId: string) {
       success: true,
       data: {
         ...post,
-        category: post.category,
-        author: post.author,
+        category: Array.isArray(post.category) ? post.category[0] : post.category,
+        author: Array.isArray(post.author) ? post.author[0] : post.author,
         tags: post.tags?.map((t: any) => t.tagName) || [],
       },
     };
