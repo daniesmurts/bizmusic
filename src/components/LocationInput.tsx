@@ -29,6 +29,8 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestQueryRef = useRef<string>("");
   const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
 
   useEffect(() => {
@@ -41,9 +43,13 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     onChange(query);
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
 
     if (query.length < 3 || !window.ymaps) {
       setSuggestions([]);
@@ -51,19 +57,26 @@ export const LocationInput: React.FC<LocationInputProps> = ({
       return;
     }
 
+    latestQueryRef.current = query;
     setLoading(true);
-    try {
-      window.ymaps.ready(() => {
-        window.ymaps.suggest(query).then((items: any[]) => {
-          setSuggestions(items);
-          setIsOpen(items.length > 0);
-          setLoading(false);
+
+    debounceRef.current = setTimeout(() => {
+      const capturedQuery = query;
+      try {
+        window.ymaps.ready(() => {
+          window.ymaps.suggest(capturedQuery).then((items: any[]) => {
+            // Ignore out-of-order responses
+            if (capturedQuery !== latestQueryRef.current) return;
+            setSuggestions(items);
+            setIsOpen(items.length > 0);
+            setLoading(false);
+          });
         });
-      });
-    } catch (error) {
-      console.error("Yandex Suggest Error:", error);
-      setLoading(false);
-    }
+      } catch (error) {
+        console.error("Yandex Suggest Error:", error);
+        setLoading(false);
+      }
+    }, 250);
   };
 
   const handleSelect = (item: any) => {

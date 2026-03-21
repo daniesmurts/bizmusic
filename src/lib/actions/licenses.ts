@@ -22,7 +22,7 @@ export async function generateLicenseAction(businessId: string) {
     }
 
     // 2. Prepare license data
-    const licenseNumber = `BM-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const licenseNumber = `BM-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const validFrom = new Date();
     const validTo = new Date();
     validTo.setFullYear(validTo.getFullYear() + 1); // 1 year validity
@@ -130,8 +130,131 @@ export async function getLicenseByIdAction(id: string) {
     }
 
     return { success: true, data: license };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Ошибка при получении лицензии";
     console.error("Error fetching license:", error);
-    return { success: false, error: "Ошибка при получении лицензии" };
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Form-based contract submission: creates/updates business record and generates license PDF
+ */
+export interface ContractFormData {
+  businessType: string;
+  businessCategory: string;
+  legalName: string;
+  inn: string;
+  ogrn: string;
+  regAddress: string;
+  phone: string;
+  contactPerson: string;
+  bankName: string;
+  bik: string;
+  settlementAccount: string;
+  corrAccount: string;
+  tradePoints: string[];
+  signingName: string;
+}
+
+export async function submitContractAction(formData: ContractFormData) {
+  try {
+    // Get authenticated user from Supabase session
+    const { createClient } = await import("@/utils/supabase/server");
+    const supabase = await createClient();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+
+    if (!authUser) {
+      return { success: false, error: "Пользователь не авторизован" };
+    }
+
+    // Find or create Prisma user record by email
+    let prismaUser = await prisma.user.findUnique({ where: { email: authUser.email! } });
+    if (!prismaUser) {
+      prismaUser = await prisma.user.create({
+        data: {
+          email: authUser.email!,
+          passwordHash: "",
+        },
+      });
+    }
+
+    // Upsert business record using the real user ID
+    const business = await prisma.business.upsert({
+      where: { inn: formData.inn },
+      update: {
+        legalName: formData.legalName,
+        address: formData.regAddress,
+      },
+      create: {
+        userId: prismaUser.id,
+        inn: formData.inn,
+        kpp: formData.ogrn,
+        legalName: formData.legalName,
+        address: formData.regAddress,
+        subscriptionStatus: "INACTIVE",
+      },
+    });
+
+    // Generate license
+    const licenseNumber = `BM-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const validFrom = new Date();
+    const validTo = new Date();
+    validTo.setFullYear(validTo.getFullYear() + 1);
+
+    const licenseId = crypto.randomUUID();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const verificationUrl = `${appUrl}/verify/${licenseId}`;
+
+    const pdfBuffer = await generateLicensePDF({
+      businessName: formData.legalName,
+      inn: formData.inn,
+      licenseNumber,
+      validFrom: validFrom.toLocaleDateString("ru-RU"),
+      validTo: validTo.toLocaleDateString("ru-RU"),
+      verificationUrl,
+    });
+
+    // Upload PDF to Supabase storage
+    const fileName = `licenses/${licenseId}.pdf`;
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(BUCKET_NAME)
+      .upload(fileName, pdfBuffer, { contentType: "application/pdf", upsert: true });
+
+    if (uploadError) {
+      throw new Error(`Upload failed: ${uploadError.message}`);
+    }
+
+    const { data: { publicUrl } } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+
+    // Persist license record
+    await prisma.license.create({
+      data: {
+        id: licenseId,
+        businessId: business.id,
+        licenseNumber,
+        signingName: formData.signingName,
+        issuedAt: validFrom,
+        expiresAt: validTo,
+        validFrom,
+        validTo,
+        pdfUrl: publicUrl,
+        totalCost: 0,
+      },
+    });
+
+    await prisma.business.update({
+      where: { id: business.id },
+      data: { subscriptionStatus: "ACTIVE" },
+    });
+
+    revalidatePath("/dashboard/contract");
+
+    // Return PDF as base64 for immediate client-side download
+    return { success: true, data: pdfBuffer.toString("base64"), pdfUrl: publicUrl };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Не удалось сформировать лицензию";
+    console.error("Contract submission error:", error);
+    return { success: false, error: message };
   }
 }

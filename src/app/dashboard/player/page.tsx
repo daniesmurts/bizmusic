@@ -1,11 +1,9 @@
 "use client";
 
-import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { 
   Play, 
   ListMusic, 
-  History, 
   Settings,
   Plus,
   ArrowRight
@@ -14,7 +12,6 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export default function PlayerPage() {
-  const { user } = useAuth();
 
   return (
     <div className="space-y-12">

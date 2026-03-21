@@ -17,32 +17,23 @@ export default async function BlogPage() {
       timeoutPromise
     ]) as any;
 
-    console.log("Blog posts result:", postsResult);
-
     if (postsResult?.success && postsResult?.data) {
-      console.log("Found posts:", postsResult.data.length);
-      console.log("First post imageUrl:", postsResult.data[0]?.imageUrl);
       initialPosts = postsResult.data;
-    } else {
-      console.log("No posts data or not successful", postsResult);
     }
 
     const categoriesResult = await getBlogCategoriesAction();
-    console.log("Categories result:", categoriesResult);
 
     if (categoriesResult?.success && categoriesResult?.data) {
-      console.log("Found categories:", categoriesResult.data.length);
       fetchedCategories = categoriesResult.data.map((cat: any) => ({
         name: cat.name || "Категория",
         count: cat._count?.posts || 0,
       }));
     }
   } catch (err: any) {
-    console.error("Blog page error:", err?.message || err);
+    if (process.env.NODE_ENV === "development") {
+      console.error("Blog page error:", err?.message || err);
+    }
   }
-
-  console.log("Final posts count:", initialPosts.length);
-  console.log("Final categories count:", fetchedCategories.length);
 
   const initialCategories = [
     { name: "Все", count: initialPosts.length },

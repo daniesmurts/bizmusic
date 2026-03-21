@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { 
   CreditCard, 
@@ -12,7 +11,6 @@ import {
 } from "lucide-react";
 
 export default function SubscriptionPage() {
-  const { user } = useAuth();
 
   return (
     <div className="space-y-12">
@@ -55,7 +53,7 @@ export default function SubscriptionPage() {
           <div className="text-center md:text-right space-y-4">
              <div className="space-y-1">
                <div className="text-5xl font-black text-white">1 500 ₽ <span className="text-xl text-neutral-500 font-bold">/ мес</span></div>
-               <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">Следующее списание: 20 апреля 2026</p>
+               <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">Следующее списание: —</p>
              </div>
              <Button className="w-full md:w-auto bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-12 py-8 font-black uppercase text-xs tracking-widest shadow-lg shadow-neon/20">
                Изменить план

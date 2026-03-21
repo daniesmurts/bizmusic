@@ -144,7 +144,7 @@ export default function ProductsPage() {
       id: "demo-" + Math.random(),
       title,
       artist,
-      file_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      fileUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
       duration: 372,
       cover_url: "/images/mood-1.png",
     };

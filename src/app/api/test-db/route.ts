@@ -1,16 +1,16 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function GET() {
-  try {
-    console.log("Testing Supabase connection...");
-    console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log("Key exists:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  // This debug endpoint is only available in development
+  if (process.env.NODE_ENV !== "development") {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
 
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  try {
     const { data: categories, error } = await supabase
       .from("blog_categories")
       .select("*")
@@ -20,7 +20,6 @@ export async function GET() {
       return Response.json({ 
         success: false, 
         error: error.message,
-        details: error 
       }, { status: 500 });
     }
 
@@ -36,11 +35,11 @@ export async function GET() {
       message: "Connection successful!"
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
     return Response.json({ 
       success: false, 
-      error: error.message,
-      stack: error.stack 
+      error: message,
     }, { status: 500 });
   }
 }

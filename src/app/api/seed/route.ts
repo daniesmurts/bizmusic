@@ -1,7 +1,13 @@
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function GET() {
+  // This endpoint is only available in development
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const { prisma } = await import("@/lib/prisma");
+
   try {
     // Get first user
     const user = await prisma.user.findFirst();
@@ -26,7 +32,8 @@ export async function GET() {
     });
 
     return NextResponse.json({ success: true, business });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

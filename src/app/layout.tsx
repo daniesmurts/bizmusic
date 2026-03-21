@@ -1,13 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-import { Navbar } from "@/components/Navbar";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Player } from "@/components/Player";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/Providers";
-import { Footer } from "@/components/Footer";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -43,11 +40,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen bg-black text-white antialiased`} suppressHydrationWarning>
         <Providers>
           <AuthProvider>
-            <Navbar />
-            <main className="pt-24">
-              {children}
-            </main>
-            <Footer />
+            {children}
             <Player />
             <Toaster position="top-center" richColors theme="dark" />
           </AuthProvider>

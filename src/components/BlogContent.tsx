@@ -1,6 +1,3 @@
-import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle, Info, Lightbulb } from "lucide-react";
-
 interface BlogContentProps {
   content: string;
 }
@@ -34,8 +31,19 @@ export function BlogContent({ content }: BlogContentProps) {
       }
     };
 
+    // Escape raw HTML to prevent XSS before applying markdown-style replacements
+    const escapeHtml = (raw: string): string => {
+      return raw
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#x27;");
+    };
+
     const parseInline = (text: string): string => {
-      return text
+      const safe = escapeHtml(text);
+      return safe
         .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>')
         .replace(/\*(.*?)\*/g, '<em class="text-neutral-400 italic">$1</em>')
         .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-neon hover:underline underline-offset-4">$1</a>')

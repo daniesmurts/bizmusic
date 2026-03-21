@@ -24,7 +24,7 @@ export const LogTable = ({ logs }: LogTableProps) => {
   const filteredLogs = logs.filter((log) =>
     log.track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     log.track.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.business?.legalName.toLowerCase().includes(searchQuery.toLowerCase())
+    log.business?.legalName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatTime = (date: Date) => {
