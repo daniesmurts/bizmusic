@@ -218,17 +218,20 @@ export async function getTracksAction(filters?: {
 
     const tracksWithUrls = await Promise.all(
       tracks.map(async (track) => {
-        // Extract the storage object filename from the full URL
-        const fileName = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
-        const streamUrl = await getDownloadSignedUrl(
-          fileName,
-          3600 // 1 hour
-        );
+        // Self-healing: Ensure fileUrl is a full URL for fallback
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const fallbackUrl = track.fileUrl.startsWith('http') 
+          ? track.fileUrl 
+          : `${supabaseUrl}/storage/v1/object/public/bizmusic-assets/tracks/${track.fileUrl}`;
 
-        return {
-          ...track,
-          streamUrl,
-        };
+        try {
+          const fileName = (track as any).fileName || track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
+          const streamUrl = await getDownloadSignedUrl(fileName, 3600);
+          return { ...track, fileUrl: fallbackUrl, streamUrl };
+        } catch (err: any) {
+          console.error(`[Tracks] Critical: Failed to generate signed URL for track ${track.id}:`, err.message || err);
+          return { ...track, fileUrl: fallbackUrl, streamUrl: null };
+        }
       })
     );
 
@@ -266,8 +269,15 @@ export async function getFeaturedTracksAction() {
 
     const tracksWithUrls = await Promise.all(
       tracks.map(async (track) => {
+        // Self-healing: Ensure fileUrl is a full URL for fallback
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const fallbackUrl = track.fileUrl.startsWith('http') 
+          ? track.fileUrl 
+          : `${supabaseUrl}/storage/v1/object/public/bizmusic-assets/tracks/${track.fileUrl}`;
+          
         try {
-          const fileName = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
+          // Extract filename from the URL or use the filename field directly
+          const fileName = (track as any).fileName || track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
           const streamUrl = await getDownloadSignedUrl(
             fileName,
             3600 // 1 hour
@@ -275,12 +285,14 @@ export async function getFeaturedTracksAction() {
 
           return {
             ...track,
+            fileUrl: fallbackUrl,
             streamUrl,
           };
-        } catch (err) {
-          console.error(`Error generating URL for track ${track.id}:`, err);
+        } catch (err: any) {
+          console.error(`[Tracks] Critical: Failed to generate signed URL for track ${track.id} (${track.title}):`, err.message || err);
           return {
             ...track,
+            fileUrl: fallbackUrl,
             streamUrl: null,
           };
         }
@@ -322,18 +334,25 @@ export async function getTrackByIdAction(trackId: string) {
       };
     }
 
-    // Generate signed URL
-    // Extract the storage object filename from the full URL
-    const fileNameForSigning = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
-    const streamUrl = await getDownloadSignedUrl(
-      fileNameForSigning,
-      3600
-    );
+    // Self-healing: Ensure fileUrl is a full URL for fallback
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const fallbackUrl = track.fileUrl.startsWith('http') 
+      ? track.fileUrl 
+      : `${supabaseUrl}/storage/v1/object/public/bizmusic-assets/tracks/${track.fileUrl}`;
+
+    let streamUrl = null;
+    try {
+      const fileNameForSigning = (track as any).fileName || track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
+      streamUrl = await getDownloadSignedUrl(fileNameForSigning, 3600);
+    } catch (err: any) {
+      console.error(`[Tracks] Failed to sign URL for single track ${track.id}:`, err.message || err);
+    }
 
     return {
       success: true,
       data: {
         ...track,
+        fileUrl: fallbackUrl,
         streamUrl,
       },
     };

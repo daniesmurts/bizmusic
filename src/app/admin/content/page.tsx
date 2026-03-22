@@ -208,7 +208,7 @@ export default function AdminContentPage() {
     } else if (uploadedFile) {
       createTrackMutation.mutate({
         ...formData,
-        fileUrl: uploadedFile.fileName,
+        fileUrl: uploadedFile.url, // Store the full public URL
         fileName: uploadedFile.fileName,
         duration: Math.round(uploadedFile.duration),
       });
