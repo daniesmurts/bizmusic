@@ -4,10 +4,9 @@ import { prisma } from "@/lib/prisma";
 import {
   getUploadSignedUrl,
   generateUniqueFileName,
-  isValidAudioFile,
-  MAX_FILE_SIZE,
   getDownloadSignedUrl,
   deleteFile,
+  getTrackPublicUrl,
 } from "@/lib/supabase-storage";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
@@ -24,6 +23,13 @@ export interface TrackInput {
   genre?: string;
   fileUrl: string;
   fileName: string;
+}
+
+/**
+ * Standardize filename extraction from a file URL, handling query parameters.
+ */
+function getFileNameFromUrl(fileUrl: string): string {
+  return fileUrl.split("/").pop()?.split("?")[0] || fileUrl;
 }
 
 /**
@@ -149,7 +155,7 @@ export async function deleteTrackAction(trackId: string) {
     }
 
     // Delete the file from storage (extract filename from URL)
-    const fileName = track.fileUrl.split("/").pop()?.split("?")[0];
+    const fileName = getFileNameFromUrl(track.fileUrl);
     if (fileName) {
       try {
         await deleteFile(fileName);
@@ -216,21 +222,34 @@ export async function getTracksAction(filters?: {
       },
     });
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    // Check if we have any tracks that require a supabaseUrl which is missing
+    const needsConfiguration = tracks.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
+    
+    if (needsConfiguration) {
+      console.error("[Tracks] NEXT_PUBLIC_SUPABASE_URL is not set; cannot construct fallback URLs for library tracks");
+      return {
+        success: false,
+        error: "Server configuration is incomplete: NEXT_PUBLIC_SUPABASE_URL is required for storage access.",
+      };
+    }
+
     const tracksWithUrls = await Promise.all(
       tracks.map(async (track) => {
-        // Self-healing: Ensure fileUrl is a full URL for fallback
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const fallbackUrl = track.fileUrl.startsWith('http') 
+        const isFullUrl = track.fileUrl.startsWith('http');
+        const fileName = getFileNameFromUrl(track.fileUrl);
+        const fallbackUrl = (isFullUrl || !supabaseUrl)
           ? track.fileUrl 
-          : `${supabaseUrl}/storage/v1/object/public/bizmusic-assets/tracks/${track.fileUrl}`;
+          : getTrackPublicUrl(fileName);
 
         try {
-          const fileName = (track as any).fileName || track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
           const streamUrl = await getDownloadSignedUrl(fileName, 3600);
           return { ...track, fileUrl: fallbackUrl, streamUrl };
-        } catch (err: any) {
-          console.error(`[Tracks] Critical: Failed to generate signed URL for track ${track.id}:`, err.message || err);
-          return { ...track, fileUrl: fallbackUrl, streamUrl: null };
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error(`[Tracks] Critical: Failed to generate signed URL for track ${track.id}:`, errMsg);
+          return { ...track, fileUrl: fallbackUrl };
         }
       })
     );
@@ -267,33 +286,44 @@ export async function getFeaturedTracksAction() {
       return { success: true, data: [] };
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    // Check if any featured tracks require a supabaseUrl which is missing
+    const needsConfiguration = tracks.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
+    
+    if (needsConfiguration) {
+      console.error("[Tracks] NEXT_PUBLIC_SUPABASE_URL is not set; cannot construct fallback URLs for featured tracks");
+      return {
+        success: false,
+        error: "Server configuration is incomplete.",
+      };
+    }
+
     const tracksWithUrls = await Promise.all(
       tracks.map(async (track) => {
-        // Self-healing: Ensure fileUrl is a full URL for fallback
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const fallbackUrl = track.fileUrl.startsWith('http') 
+        const isFullUrl = track.fileUrl.startsWith('http');
+        const fileName = getFileNameFromUrl(track.fileUrl);
+        const fallbackUrl = (isFullUrl || !supabaseUrl)
           ? track.fileUrl 
-          : `${supabaseUrl}/storage/v1/object/public/bizmusic-assets/tracks/${track.fileUrl}`;
+          : getTrackPublicUrl(fileName);
           
         try {
-          // Extract filename from the URL or use the filename field directly
-          const fileName = (track as any).fileName || track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
           const streamUrl = await getDownloadSignedUrl(
             fileName,
             3600 // 1 hour
           );
-
+ 
           return {
             ...track,
             fileUrl: fallbackUrl,
             streamUrl,
           };
-        } catch (err: any) {
-          console.error(`[Tracks] Critical: Failed to generate signed URL for track ${track.id} (${track.title}):`, err.message || err);
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error(`[Tracks] Critical: Failed to generate signed URL for track ${track.id} (${track.title}):`, errMsg);
           return {
             ...track,
             fileUrl: fallbackUrl,
-            streamUrl: null,
           };
         }
       })
@@ -334,18 +364,28 @@ export async function getTrackByIdAction(trackId: string) {
       };
     }
 
-    // Self-healing: Ensure fileUrl is a full URL for fallback
+    const isFullUrl = track.fileUrl.startsWith('http');
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const fallbackUrl = track.fileUrl.startsWith('http') 
-      ? track.fileUrl 
-      : `${supabaseUrl}/storage/v1/object/public/bizmusic-assets/tracks/${track.fileUrl}`;
 
-    let streamUrl = null;
+    if (!isFullUrl && !supabaseUrl) {
+      console.error(`[Tracks] NEXT_PUBLIC_SUPABASE_URL is not set; cannot construct fallback file URL for track: ${track.id}`);
+      return {
+        success: false,
+        error: "File URL is invalid and server configuration is incomplete.",
+      };
+    }
+
+    const fileName = getFileNameFromUrl(track.fileUrl);
+    const fallbackUrl = (isFullUrl || !supabaseUrl)
+      ? track.fileUrl 
+      : getTrackPublicUrl(fileName);
+
+    let streamUrl: string | undefined = undefined;
     try {
-      const fileNameForSigning = (track as any).fileName || track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
-      streamUrl = await getDownloadSignedUrl(fileNameForSigning, 3600);
-    } catch (err: any) {
-      console.error(`[Tracks] Failed to sign URL for single track ${track.id}:`, err.message || err);
+      streamUrl = await getDownloadSignedUrl(fileName, 3600);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[Tracks] Failed to sign URL for single track ${track.id}:`, errMsg);
     }
 
     return {

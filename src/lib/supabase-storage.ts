@@ -47,6 +47,20 @@ export async function getUploadSignedUrl(
 }
 
 /**
+ * Get the public URL for a track file
+ * @param fileName - The name of the file
+ * @returns Public URL for the file
+ */
+export function getTrackPublicUrl(fileName: string): string {
+  const path = `tracks/${fileName}`;
+  const { data: { publicUrl } } = supabaseAdmin.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(path);
+  
+  return publicUrl;
+}
+
+/**
  * Generate a signed URL for downloading/streaming a file
  * @param fileName - The name of the file
  * @param expiresIn - URL expiration time in seconds (default: 24 hours for streaming)
