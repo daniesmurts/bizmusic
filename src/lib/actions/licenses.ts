@@ -172,13 +172,16 @@ export async function submitContractAction(formData: ContractFormData) {
 
     // Find or create Prisma user record and SYNC ID with Supabase
     let prismaUser = await prisma.user.findUnique({ where: { id: authUser.id } });
+
     if (!prismaUser) {
+      console.log(`[SubmitContract] Prisma user not found for ID: ${authUser.id}, creating...`);
       prismaUser = await prisma.user.create({
         data: {
           id: authUser.id,
           email: authUser.email!,
-          passwordHash: "",
-        },
+          passwordHash: "SUPABASE_AUTH",
+          role: "BUSINESS_OWNER",
+        }
       });
     } else if (prismaUser.email !== authUser.email) {
       // Sync email if it changed in Supabase
@@ -194,6 +197,9 @@ export async function submitContractAction(formData: ContractFormData) {
       update: {
         legalName: formData.legalName,
         address: formData.regAddress,
+        userId: prismaUser.id, // Ensure it's linked to this user
+        kpp: formData.kpp,
+        ogrn: formData.ogrn
       },
       create: {
         userId: prismaUser.id,
@@ -208,22 +214,32 @@ export async function submitContractAction(formData: ContractFormData) {
 
     // Save trade points as Location records
     if (formData.tradePoints && formData.tradePoints.length > 0) {
-      const validPoints = formData.tradePoints.filter(p => p.trim() !== "");
+      const normalizedPoints = formData.tradePoints
+        .map(p => p.trim())
+        .filter(p => p !== "");
       
-      // For a fresh contract sign, we'll add these as new locations 
-      // if they don't already exist for this business (to avoid duplicates on re-submission)
-      for (const point of validPoints) {
-        const exists = await prisma.location.findFirst({
-          where: { businessId: business.id, address: point }
+      if (normalizedPoints.length > 0) {
+        // Fetch existing locations for this business in one go to avoid N+1
+        const existingLocations = await prisma.location.findMany({
+          where: {
+            businessId: business.id,
+            address: { in: normalizedPoints }
+          },
+          select: { address: true }
         });
-        
-        if (!exists) {
-          await prisma.location.create({
-            data: {
+
+        const existingAddresses = new Set(existingLocations.map(l => l.address));
+        const newPoints = normalizedPoints.filter(p => !existingAddresses.has(p));
+
+        if (newPoints.length > 0) {
+          // Use createMany for efficient batch insert
+          await prisma.location.createMany({
+            data: newPoints.map(p => ({
               businessId: business.id,
-              name: point.split(',')[0].trim() || "Точка продаж",
-              address: point,
-            }
+              name: p.split(',')[0].trim() || "Точка продаж",
+              address: p,
+            })),
+            skipDuplicates: true
           });
         }
       }

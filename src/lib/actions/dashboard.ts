@@ -15,16 +15,28 @@ export async function getDashboardDataAction() {
     const business = await prisma.business.findFirst({
       where: { userId: user.id },
       orderBy: [
-        { subscriptionStatus: 'asc' }, // ACTIVE is before INACTIVE in some enum orders, but let's use updatedAt for sure
+        { subscriptionStatus: 'desc' }, // ACTIVE (1) is after INACTIVE (0) in this schema, so desc puts ACTIVE first
         { updatedAt: 'desc' }
       ],
-      include: {
+      select: {
+        id: true,
+        legalName: true,
+        subscriptionStatus: true,
         locations: {
           orderBy: { createdAt: "desc" },
-          take: 5
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            createdAt: true
+          }
         },
         playlists: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            updatedAt: true,
             _count: {
               select: { tracks: true }
             }
@@ -33,7 +45,7 @@ export async function getDashboardDataAction() {
       }
     });
 
-    console.log(`[DashboardData] User: ${user.email}, Business Found: ${!!business}, Status: ${business?.subscriptionStatus}`);
+    console.log(`[DashboardData] UserId: ${user.id}, Business Found: ${!!business}, Status: ${business?.subscriptionStatus}`);
 
     if (!business) {
       return {
@@ -91,15 +103,34 @@ export async function getBusinessDetailsAction() {
     const business = await prisma.business.findFirst({
       where: { userId: user.id },
       orderBy: [
-        { subscriptionStatus: 'asc' }, 
+        { subscriptionStatus: 'desc' }, 
         { updatedAt: 'desc' }
       ],
-      include: {
+      select: {
+        id: true,
+        legalName: true,
+        inn: true,
+        ogrn: true,
+        kpp: true,
+        address: true,
+        subscriptionStatus: true,
         licenses: {
           orderBy: { issuedAt: 'desc' },
-          take: 1
+          take: 1,
+          select: {
+            id: true,
+            pdfUrl: true,
+            signingName: true,
+            issuedAt: true
+          }
         },
-        locations: true
+        locations: {
+          select: {
+            id: true,
+            name: true,
+            address: true
+          }
+        }
       }
     });
 

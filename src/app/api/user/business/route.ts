@@ -35,9 +35,10 @@ export async function GET() {
     return NextResponse.json(business);
   } catch (error: any) {
     console.error("[API/Business] Error:", error);
-    return NextResponse.json({ 
-      error: "Internal Server Error", 
-      details: error instanceof Error ? error.message : String(error) 
-    }, { status: 500 });
+    const responseBody: any = { error: "Internal Server Error" };
+    if (process.env.NODE_ENV !== 'production') {
+      responseBody.details = error instanceof Error ? error.message : String(error);
+    }
+    return NextResponse.json(responseBody, { status: 500 });
   }
 }

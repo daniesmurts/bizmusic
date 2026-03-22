@@ -35,7 +35,7 @@ export default function Dashboard() {
   const stats = {
     locationCount: dashboardData?.stats?.locationCount ?? 0,
     trackCount: dashboardData?.stats?.trackCount ?? 0,
-    licenseStatus: dashboardData?.stats?.licenseStatus || (isLoading ? "..." : "INACTIVE")
+    licenseStatus: dashboardData?.stats?.licenseStatus || (isLoading ? "..." : "—")
   };
 
   const locations = dashboardData?.locations || [];
