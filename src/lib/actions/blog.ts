@@ -2,13 +2,10 @@
 
 import { db } from "@/db";
 import { blogPosts, blogCategories, blogPostTags, users } from "@/db/schema";
-import { eq, desc, and, ilike, or, sql } from "drizzle-orm";
+import { eq, asc, desc, and, ilike, or, sql, SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-// Sanitizes search input for PostgREST .or() query
-function sanitizeSearch(query: string) {
-  return query.replace(/[(),]/g, " ").trim();
-}
+
 
 // Redundant types removed as Drizzle handles inference
 
@@ -55,9 +52,13 @@ export async function getBlogPostsAction(filters?: {
   offset?: number;
 }) {
   try {
-    const conditions = [];
+    const { isAdmin } = await checkAdmin().catch(() => ({ isAdmin: false }));
+    const conditions: SQL[] = [];
 
-    if (filters?.published !== undefined) {
+    // If not admin, always force published: true
+    if (!isAdmin) {
+      conditions.push(eq(blogPosts.published, true));
+    } else if (filters?.published !== undefined) {
       conditions.push(eq(blogPosts.published, filters.published));
     }
 
@@ -70,12 +71,12 @@ export async function getBlogPostsAction(filters?: {
         or(
           ilike(blogPosts.title, `%${filters.search}%`),
           ilike(blogPosts.excerpt, `%${filters.search}%`)
-        )
+        ) as SQL
       );
     }
 
     const posts = await db.query.blogPosts.findMany({
-      where: conditions.length > 0 ? and(...conditions as any) : undefined,
+      where: conditions.length > 0 ? and(...conditions) : undefined,
       orderBy: [desc(blogPosts.createdAt)],
       limit: filters?.limit,
       offset: filters?.offset,
@@ -115,8 +116,15 @@ export async function getBlogPostsAction(filters?: {
  */
 export async function getBlogPostBySlugAction(slug: string) {
   try {
+    const { isAdmin } = await checkAdmin().catch(() => ({ isAdmin: false }));
+    
+    const conditions = [eq(blogPosts.slug, slug)];
+    if (!isAdmin) {
+      conditions.push(eq(blogPosts.published, true));
+    }
+
     const post = await db.query.blogPosts.findFirst({
-      where: eq(blogPosts.slug, slug),
+      where: and(...conditions),
       with: {
         category: true,
         author: {
@@ -192,7 +200,7 @@ export async function getBlogPostByIdAction(postId: string) {
 export async function getBlogCategoriesAction() {
   try {
     const categories = await db.query.blogCategories.findMany({
-      orderBy: [desc(blogCategories.name)],
+      orderBy: [asc(blogCategories.name)],
       with: {
         posts: true,
       },

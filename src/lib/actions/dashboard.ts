@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { businesses, locations, playlists, licenses, playlistTracks } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 
 export async function getDashboardDataAction() {
@@ -23,8 +23,9 @@ export async function getDashboardDataAction() {
           limit: 5,
         },
         playlists: {
-          with: {
-            tracks: true,
+          columns: {
+            id: true,
+            name: true,
           }
         }
       }
@@ -46,8 +47,21 @@ export async function getDashboardDataAction() {
       };
     }
 
-    // Count tracks across all playlists belonging to this business
-    const trackCount = business.playlists.reduce((acc, p) => acc + p.tracks.length, 0);
+    // Fetch playlists with track counts separately
+    const playlistsList = await Promise.all(business.playlists.map(async (p) => {
+      const [{ count }] = await db
+        .select({ count: sql`count(*)`.mapWith(Number) })
+        .from(playlistTracks)
+        .where(eq(playlistTracks.playlistId, p.id));
+      
+      return {
+        id: p.id,
+        name: p.name,
+        trackCount: count || 0
+      };
+    }));
+
+    const totalTrackCount = playlistsList.reduce((acc, p) => acc + p.trackCount, 0);
 
     return {
       success: true,
@@ -55,15 +69,10 @@ export async function getDashboardDataAction() {
         businessId: business.id,
         businessName: business.legalName,
         locations: business.locations,
-        playlists: business.playlists.map(p => ({
-          id: p.id,
-          name: p.name,
-          trackCount: p.tracks.length,
-          updatedAt: p.updatedAt
-        })),
+        playlists: playlistsList,
         stats: {
           locationCount: business.locations.length,
-          trackCount,
+          trackCount: totalTrackCount,
           licenseStatus: business.subscriptionStatus
         }
       }

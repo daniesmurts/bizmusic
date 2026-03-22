@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { businesses, payments, users } from "@/db/schema";
+import { businesses, payments } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
@@ -162,7 +162,7 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
     if (!existingBusiness) {
       // Create new business profile
       const [newBusiness] = await db.insert(businesses)
-        .values(businessData as any)
+        .values(businessData as typeof businesses.$inferInsert)
         .returning();
       
       revalidatePath("/dashboard/settings");

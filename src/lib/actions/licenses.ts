@@ -189,36 +189,28 @@ export async function submitContractAction(formData: ContractFormData) {
     }
 
     // Upsert business record using the real user ID
-    // Drizzle doesn't have a single-call upsert for non-serial IDs without ON CONFLICT
-    const existingBusiness = await db.query.businesses.findFirst({
-      where: eq(businesses.inn, formData.inn)
-    });
-
-    let business;
-    if (existingBusiness) {
-      const [updatedBusiness] = await db.update(businesses)
-        .set({
-          legalName: formData.legalName,
-          address: formData.regAddress,
-          userId: dbUser.id,
-          kpp: formData.kpp,
-          ogrn: formData.ogrn
-        })
-        .where(eq(businesses.inn, formData.inn))
-        .returning();
-      business = updatedBusiness;
-    } else {
-      const [newBusiness] = await db.insert(businesses).values({
+    // Using onConflictDoUpdate to ensure atomicity and prevent race conditions
+    const [business] = await db.insert(businesses).values({
+      userId: dbUser.id,
+      inn: formData.inn,
+      ogrn: formData.ogrn,
+      kpp: formData.kpp,
+      legalName: formData.legalName,
+      address: formData.regAddress,
+      subscriptionStatus: "INACTIVE",
+    })
+    .onConflictDoUpdate({
+      target: businesses.inn,
+      set: {
         userId: dbUser.id,
-        inn: formData.inn,
         ogrn: formData.ogrn,
         kpp: formData.kpp,
         legalName: formData.legalName,
         address: formData.regAddress,
-        subscriptionStatus: "INACTIVE",
-      }).returning();
-      business = newBusiness;
-    }
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
 
     // Save trade points as Location records
     if (formData.tradePoints && formData.tradePoints.length > 0) {

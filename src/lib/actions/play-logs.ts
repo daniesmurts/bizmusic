@@ -1,10 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { playLogs, businesses, tracks, locations } from "@/db/schema";
+import { playLogs, businesses } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { AdminPlayLog } from "@/types/admin";
+import type { AdminPlayLog } from "@/types/admin";
 
 /**
  * Log a track play event

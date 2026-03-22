@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { tracks, playLogs } from "@/db/schema";
-import { eq, or, ilike, sql, desc, and, arrayContains } from "drizzle-orm";
+import { eq, or, ilike, sql, desc, and, arrayContains, SQL } from "drizzle-orm";
 import {
   getUploadSignedUrl,
   generateUniqueFileName,
@@ -192,35 +192,38 @@ export async function getTracksAction(filters?: {
   offset?: number;
 }) {
   try {
-    const conditions = [];
+    const conditions: SQL[] = [];
 
     if (filters?.search) {
       conditions.push(
         or(
           ilike(tracks.title, `%${filters.search}%`),
           ilike(tracks.artist, `%${filters.search}%`)
-        )
+        ) as SQL
       );
     }
 
     if (filters?.moodTag) {
-      conditions.push(arrayContains(tracks.moodTags, [filters.moodTag]));
+      conditions.push(arrayContains(tracks.moodTags, [filters.moodTag]) as SQL);
     }
 
-    const tracksList = await db.query.tracks.findMany({
-      where: conditions.length > 0 ? and(...conditions as any) : undefined,
-      orderBy: [desc(tracks.createdAt)],
-      limit: filters?.limit || 100,
-      offset: filters?.offset || 0,
-      with: {
-        playLogs: true,
-      },
-    });
+    const tracksList = await db
+      .select({
+        track: tracks,
+        playLogsCount: sql<number>`cast(count(${playLogs.id}) as int)`,
+      })
+      .from(tracks)
+      .leftJoin(playLogs, eq(playLogs.trackId, tracks.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .groupBy(tracks.id)
+      .orderBy(desc(tracks.createdAt))
+      .limit(filters?.limit || 100)
+      .offset(filters?.offset || 0);
 
     // Remap to match previous return structure with _count
-    const tracksWithCount = tracksList.map(t => ({
-      ...t,
-      _count: { playLogs: t.playLogs.length }
+    const tracksWithCount = tracksList.map(({ track, playLogsCount }) => ({
+      ...track,
+      _count: { playLogs: playLogsCount || 0 }
     }));
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

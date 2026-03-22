@@ -25,7 +25,12 @@ export async function getPlaylistsAction(businessId?: string) {
             legalName: true,
           },
         },
-        tracks: true,
+        tracks: {
+          with: {
+            track: true,
+          },
+          orderBy: (tracks, { asc }) => [asc(tracks.position)],
+        },
       },
       orderBy: [desc(playlists.createdAt)],
     });

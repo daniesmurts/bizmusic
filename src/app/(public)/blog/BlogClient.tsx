@@ -32,7 +32,7 @@ interface BlogPost {
     role?: string;
     email: string;
   };
-  publishedAt: string | null;
+  publishedAt: Date | string | null;
   readTime: number;
   views: number;
   comments: number;
@@ -61,7 +61,7 @@ interface RawBlogPost {
     avatar?: string;
     role?: string;
   } | null;
-  publishedAt?: string | null;
+  publishedAt?: Date | string | null;
   readTime?: number;
   views?: number;
   comments?: number;
@@ -108,7 +108,7 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
   const featuredPosts = filteredPosts.filter((post) => post.featured);
   const regularPosts = filteredPosts.filter((post) => !post.featured);
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | Date | null) => {
     if (!dateString) return "Черновик";
     const date = new Date(dateString);
     return date.toLocaleDateString("ru-RU", {

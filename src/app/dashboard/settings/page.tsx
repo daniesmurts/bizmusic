@@ -33,9 +33,9 @@ import {
 
 interface SubscriptionInfo {
   subscriptionStatus: string | null;
-  subscriptionExpiresAt: string | null;
+  subscriptionExpiresAt: Date | string | null;
   currentPlanSlug: string | null;
-  trialEndsAt: string | null;
+  trialEndsAt: Date | string | null;
   rebillId: string | null;
 }
 
@@ -49,8 +49,8 @@ interface PaymentRecord {
   recurrent: boolean;
   rebillId?: string | null;
   errorCode?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export default function SettingsPage() {

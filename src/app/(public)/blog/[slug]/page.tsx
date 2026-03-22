@@ -38,8 +38,8 @@ interface BlogPost {
     email: string;
     bio: string;
   };
-  publishedAt: string | null;
-  updatedAt: string | null;
+  publishedAt: Date | string | null;
+  updatedAt: Date | string | null;
   readTime: number;
   views: number;
   comments: number;
@@ -47,6 +47,7 @@ interface BlogPost {
     name: string;
   };
   imageUrl: string;
+  image?: string;
   tags: string[];
   published: boolean;
   featured: boolean;
@@ -62,7 +63,7 @@ interface RelatedPost {
   image?: string;
   readTime: number;
   category: { name: string } | null;
-  publishedAt?: string | null;
+  publishedAt?: Date | string | null;
   featured: boolean;
   tags: string[];
 }

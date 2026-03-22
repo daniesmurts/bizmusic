@@ -39,9 +39,9 @@ interface BlogPost {
   published: boolean;
   featured: boolean;
   views: number;
-  publishedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  publishedAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   category: {
     id: string;
     name: string;
@@ -115,7 +115,7 @@ export default function AdminBlogPage() {
     ? posts
     : posts.filter((post) => post.published);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     return new Date(dateString).toLocaleDateString("ru-RU", {
       day: "numeric",
       month: "long",

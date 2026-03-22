@@ -13,9 +13,9 @@ interface BlogPostSummary {
   published: boolean;
   featured: boolean;
   views: number;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  publishedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   categoryId: string;
   authorId: string;
   category: { id: string; name: string } | null;
