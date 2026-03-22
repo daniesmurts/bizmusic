@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
+import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
 
 export default function DashboardLayout({
   children,
@@ -26,19 +27,18 @@ export default function DashboardLayout({
   useEffect(() => {
     async function checkStatus() {
       try {
-        const res = await fetch('/api/user/business');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.subscriptionStatus === "ACTIVE") {
-            setIsSigned(true);
-          }
+        const result = await getBusinessDetailsAction();
+        if (result.success && result.data?.subscriptionStatus === "ACTIVE") {
+          setIsSigned(true);
+        } else {
+          setIsSigned(false);
         }
       } catch (err) {
         console.error("Failed to check business status in layout", err);
       }
     }
     checkStatus();
-  }, [pathname]); // Refresh on navigation to catch changes
+  }, [pathname]);
 
   const navItems = [
     {

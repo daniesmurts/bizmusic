@@ -32,10 +32,10 @@ export default function Dashboard() {
     },
   });
 
-  const stats = dashboardData?.stats || {
-    locationCount: 0,
-    trackCount: 0,
-    licenseStatus: "—"
+  const stats = {
+    locationCount: dashboardData?.stats?.locationCount ?? 0,
+    trackCount: dashboardData?.stats?.trackCount ?? 0,
+    licenseStatus: dashboardData?.stats?.licenseStatus || (isLoading ? "..." : "INACTIVE")
   };
 
   const locations = dashboardData?.locations || [];

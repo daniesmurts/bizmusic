@@ -206,6 +206,29 @@ export async function submitContractAction(formData: ContractFormData) {
       },
     });
 
+    // Save trade points as Location records
+    if (formData.tradePoints && formData.tradePoints.length > 0) {
+      const validPoints = formData.tradePoints.filter(p => p.trim() !== "");
+      
+      // For a fresh contract sign, we'll add these as new locations 
+      // if they don't already exist for this business (to avoid duplicates on re-submission)
+      for (const point of validPoints) {
+        const exists = await prisma.location.findFirst({
+          where: { businessId: business.id, address: point }
+        });
+        
+        if (!exists) {
+          await prisma.location.create({
+            data: {
+              businessId: business.id,
+              name: point.split(',')[0].trim() || "Точка продаж",
+              address: point,
+            }
+          });
+        }
+      }
+    }
+
     // Generate license
     const licenseNumber = `BM-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const validFrom = new Date();
@@ -259,6 +282,7 @@ export async function submitContractAction(formData: ContractFormData) {
     });
 
     revalidatePath("/dashboard/contract");
+    revalidatePath("/dashboard");
 
     // Return PDF as base64 for immediate client-side download
     return { success: true, data: pdfBuffer.toString("base64"), pdfUrl: publicUrl };

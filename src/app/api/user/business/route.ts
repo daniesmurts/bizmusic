@@ -33,8 +33,11 @@ export async function GET() {
     }
 
     return NextResponse.json(business);
-  } catch (error) {
+  } catch (error: any) {
     console.error("[API/Business] Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Internal Server Error", 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 }

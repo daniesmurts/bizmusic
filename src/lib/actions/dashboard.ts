@@ -14,6 +14,10 @@ export async function getDashboardDataAction() {
 
     const business = await prisma.business.findFirst({
       where: { userId: user.id },
+      orderBy: [
+        { subscriptionStatus: 'asc' }, // ACTIVE is before INACTIVE in some enum orders, but let's use updatedAt for sure
+        { updatedAt: 'desc' }
+      ],
       include: {
         locations: {
           orderBy: { createdAt: "desc" },
@@ -28,6 +32,8 @@ export async function getDashboardDataAction() {
         }
       }
     });
+
+    console.log(`[DashboardData] User: ${user.email}, Business Found: ${!!business}, Status: ${business?.subscriptionStatus}`);
 
     if (!business) {
       return {
@@ -72,5 +78,39 @@ export async function getDashboardDataAction() {
       success: false,
       error: message
     };
+  }
+}
+
+export async function getBusinessDetailsAction() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    const business = await prisma.business.findFirst({
+      where: { userId: user.id },
+      orderBy: [
+        { subscriptionStatus: 'asc' }, 
+        { updatedAt: 'desc' }
+      ],
+      include: {
+        licenses: {
+          orderBy: { issuedAt: 'desc' },
+          take: 1
+        },
+        locations: true
+      }
+    });
+
+    if (!business) return { success: true, data: null };
+
+    return {
+      success: true,
+      data: business
+    };
+  } catch (error: any) {
+    console.error("Get business details error:", error);
+    return { success: false, error: error.message || "Failed to fetch details" };
   }
 }
