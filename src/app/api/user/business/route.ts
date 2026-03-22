@@ -33,8 +33,12 @@ export async function GET() {
     }
 
     return NextResponse.json(business);
-  } catch (error) {
+  } catch (error: any) {
     console.error("[API/Business] Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    const responseBody: any = { error: "Internal Server Error" };
+    if (process.env.NODE_ENV !== 'production') {
+      responseBody.details = error instanceof Error ? error.message : String(error);
+    }
+    return NextResponse.json(responseBody, { status: 500 });
   }
 }

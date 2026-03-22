@@ -14,13 +14,29 @@ export async function getDashboardDataAction() {
 
     const business = await prisma.business.findFirst({
       where: { userId: user.id },
-      include: {
+      orderBy: [
+        { subscriptionStatus: 'desc' }, // ACTIVE (1) is after INACTIVE (0) in this schema, so desc puts ACTIVE first
+        { updatedAt: 'desc' }
+      ],
+      select: {
+        id: true,
+        legalName: true,
+        subscriptionStatus: true,
         locations: {
           orderBy: { createdAt: "desc" },
-          take: 5
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            createdAt: true
+          }
         },
         playlists: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            updatedAt: true,
             _count: {
               select: { tracks: true }
             }
@@ -28,6 +44,8 @@ export async function getDashboardDataAction() {
         }
       }
     });
+
+    console.log(`[DashboardData] UserId: ${user.id}, Business Found: ${!!business}, Status: ${business?.subscriptionStatus}`);
 
     if (!business) {
       return {
@@ -72,5 +90,58 @@ export async function getDashboardDataAction() {
       success: false,
       error: message
     };
+  }
+}
+
+export async function getBusinessDetailsAction() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    const business = await prisma.business.findFirst({
+      where: { userId: user.id },
+      orderBy: [
+        { subscriptionStatus: 'desc' }, 
+        { updatedAt: 'desc' }
+      ],
+      select: {
+        id: true,
+        legalName: true,
+        inn: true,
+        ogrn: true,
+        kpp: true,
+        address: true,
+        subscriptionStatus: true,
+        licenses: {
+          orderBy: { issuedAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            pdfUrl: true,
+            signingName: true,
+            issuedAt: true
+          }
+        },
+        locations: {
+          select: {
+            id: true,
+            name: true,
+            address: true
+          }
+        }
+      }
+    });
+
+    if (!business) return { success: true, data: null };
+
+    return {
+      success: true,
+      data: business
+    };
+  } catch (error: any) {
+    console.error("Get business details error:", error);
+    return { success: false, error: error.message || "Failed to fetch details" };
   }
 }

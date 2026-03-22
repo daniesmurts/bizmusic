@@ -172,13 +172,16 @@ export async function submitContractAction(formData: ContractFormData) {
 
     // Find or create Prisma user record and SYNC ID with Supabase
     let prismaUser = await prisma.user.findUnique({ where: { id: authUser.id } });
+
     if (!prismaUser) {
+      console.log(`[SubmitContract] Prisma user not found for ID: ${authUser.id}, creating...`);
       prismaUser = await prisma.user.create({
         data: {
           id: authUser.id,
           email: authUser.email!,
-          passwordHash: "",
-        },
+          passwordHash: "SUPABASE_AUTH",
+          role: "BUSINESS_OWNER",
+        }
       });
     } else if (prismaUser.email !== authUser.email) {
       // Sync email if it changed in Supabase
@@ -194,6 +197,9 @@ export async function submitContractAction(formData: ContractFormData) {
       update: {
         legalName: formData.legalName,
         address: formData.regAddress,
+        userId: prismaUser.id, // Ensure it's linked to this user
+        kpp: formData.kpp,
+        ogrn: formData.ogrn
       },
       create: {
         userId: prismaUser.id,
@@ -205,6 +211,39 @@ export async function submitContractAction(formData: ContractFormData) {
         subscriptionStatus: "INACTIVE",
       },
     });
+
+    // Save trade points as Location records
+    if (formData.tradePoints && formData.tradePoints.length > 0) {
+      const normalizedPoints = formData.tradePoints
+        .map(p => p.trim())
+        .filter(p => p !== "");
+      
+      if (normalizedPoints.length > 0) {
+        // Fetch existing locations for this business in one go to avoid N+1
+        const existingLocations = await prisma.location.findMany({
+          where: {
+            businessId: business.id,
+            address: { in: normalizedPoints }
+          },
+          select: { address: true }
+        });
+
+        const existingAddresses = new Set(existingLocations.map(l => l.address));
+        const newPoints = normalizedPoints.filter(p => !existingAddresses.has(p));
+
+        if (newPoints.length > 0) {
+          // Use createMany for efficient batch insert
+          await prisma.location.createMany({
+            data: newPoints.map(p => ({
+              businessId: business.id,
+              name: p.split(',')[0].trim() || "Точка продаж",
+              address: p,
+            })),
+            skipDuplicates: true
+          });
+        }
+      }
+    }
 
     // Generate license
     const licenseNumber = `BM-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
@@ -259,6 +298,7 @@ export async function submitContractAction(formData: ContractFormData) {
     });
 
     revalidatePath("/dashboard/contract");
+    revalidatePath("/dashboard");
 
     // Return PDF as base64 for immediate client-side download
     return { success: true, data: pdfBuffer.toString("base64"), pdfUrl: publicUrl };

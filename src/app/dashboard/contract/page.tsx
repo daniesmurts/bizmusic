@@ -18,17 +18,20 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { LocationInput } from "@/components/LocationInput";
+import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
 import { submitContractAction } from "@/lib/actions/licenses";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface ExistingLicense {
   id: string;
   pdfUrl: string;
   signingName?: string;
-  issuedAt?: string;
+  issuedAt?: string | Date;
 }
 
 export default function ContractPage() {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -51,39 +54,41 @@ export default function ContractPage() {
   const [tradePoints, setTradePoints] = useState<string[]>([""]);
   const [signingName, setSigningName] = useState("");
 
-  const [initialLoading, setInitialLoading] = useState(true);
   const [existingLicense, setExistingLicense] = useState<ExistingLicense | null>(null);
 
-  // Fetch initial business data
+  // Fetch initial business data using React Query for better resilience
+  const { data: businessData, isLoading: initialLoading } = useQuery({
+    queryKey: ["business-details"],
+    queryFn: async () => {
+      const result = await getBusinessDetailsAction();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    retry: 1,
+  });
+
   useEffect(() => {
-    async function fetchStatus() {
-      try {
-        const response = await fetch('/api/user/business');
-        if (response.ok) {
-          const data = await response.json();
-          if (data) {
-            setLegalName(data.legalName || "");
-            setInn(data.inn || "");
-            setOgrn(data.ogrn || "");
-            setKpp(data.kpp || "");
-            setRegAddress(data.address || "");
-            if (data.subscriptionStatus === "ACTIVE") {
-              setSuccess(true);
-              if (data.licenses && data.licenses.length > 0) {
-                setExistingLicense(data.licenses[0]);
-                setSigningName(data.licenses[0].signingName || "");
-              }
-            }
-          }
+    if (businessData) {
+      setLegalName(businessData.legalName || "");
+      setInn(businessData.inn || "");
+      setOgrn(businessData.ogrn || "");
+      setKpp(businessData.kpp || "");
+      setRegAddress(businessData.address || "");
+      
+      // Populate trade points from locations if they exist
+      if (businessData.locations && businessData.locations.length > 0) {
+        setTradePoints(businessData.locations.map((l: any) => l.address));
+      }
+
+      if (businessData.subscriptionStatus === "ACTIVE") {
+        setSuccess(true);
+        if (businessData.licenses && businessData.licenses.length > 0) {
+          setExistingLicense(businessData.licenses[0]);
+          setSigningName(businessData.licenses[0].signingName || "");
         }
-      } catch (error) {
-        console.error("Failed to fetch initial status:", error);
-      } finally {
-        setInitialLoading(false);
       }
     }
-    fetchStatus();
-  }, []);
+  }, [businessData]);
 
   const addTradePoint = () => !success && setTradePoints([...tradePoints, ""]);
   const updateTradePoint = (index: number, val: string) => {
@@ -136,14 +141,8 @@ export default function ContractPage() {
         document.body.removeChild(a);
 
         setSuccess(true);
-        // Refresh status to get the new license record
-        const response = await fetch('/api/user/business');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.licenses && data.licenses.length > 0) {
-            setExistingLicense(data.licenses[0]);
-          }
-        }
+        // Invalidate and refetch
+        queryClient.invalidateQueries({ queryKey: ["business-details"] });
         
         toast.success("Лицензия успешно сформирована и подписана!");
       } else {
