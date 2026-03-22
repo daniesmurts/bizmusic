@@ -10,7 +10,7 @@ const pwaConfig = withPWA({
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  /* config options here */
+  serverExternalPackages: ["pg", "drizzle-orm"],
 };
 
 export default pwaConfig(nextConfig);

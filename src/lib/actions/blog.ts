@@ -5,21 +5,19 @@ import { blogPosts, blogCategories, blogPostTags, users } from "@/db/schema";
 import { eq, asc, desc, and, ilike, or, sql, SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-
-
 // Redundant types removed as Drizzle handles inference
 
 async function checkAdmin() {
   const { createClient } = await import("@/utils/supabase/server");
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
   if (!user) return { isAdmin: false, error: "Unauthorized" };
 
-  const dbUser = await db.query.users.findFirst({
-    where: eq(users.id, user.id),
-    columns: { role: true }
-  });
+  const dbUserQuery = await db.execute(
+    sql`SELECT role FROM users WHERE id = ${user.id} LIMIT 1`
+  );
+  const dbUser = dbUserQuery.rows[0];
 
   if (dbUser?.role !== "ADMIN") {
     return { isAdmin: false, error: "Forbidden: Admin access required" };
@@ -41,6 +39,10 @@ export interface BlogPostInput {
   tags?: string[];
 }
 
+function escapeLike(value: string): string {
+  return value.replace(/[%_\\]/g, (ch) => `\\${ch}`);
+}
+
 /**
  * Get all blog posts with filtering
  */
@@ -52,13 +54,10 @@ export async function getBlogPostsAction(filters?: {
   offset?: number;
 }) {
   try {
-    const { isAdmin } = await checkAdmin().catch(() => ({ isAdmin: false }));
     const conditions: SQL[] = [];
 
-    // If not admin, always force published: true
-    if (!isAdmin) {
-      conditions.push(eq(blogPosts.published, true));
-    } else if (filters?.published !== undefined) {
+    // Respect the published filter — defaults to true for public pages
+    if (filters?.published !== undefined) {
       conditions.push(eq(blogPosts.published, filters.published));
     }
 
@@ -67,34 +66,45 @@ export async function getBlogPostsAction(filters?: {
     }
 
     if (filters?.search) {
+      const safeSearch = escapeLike(filters.search);
       conditions.push(
         or(
-          ilike(blogPosts.title, `%${filters.search}%`),
-          ilike(blogPosts.excerpt, `%${filters.search}%`)
+          ilike(blogPosts.title, `%${safeSearch}%`),
+          ilike(blogPosts.excerpt, `%${safeSearch}%`)
         ) as SQL
       );
     }
 
-    const posts = await db.query.blogPosts.findMany({
-      where: conditions.length > 0 ? and(...conditions) : undefined,
-      orderBy: [desc(blogPosts.createdAt)],
-      limit: filters?.limit,
-      offset: filters?.offset,
-      with: {
-        category: true,
-        author: {
-          columns: {
-            id: true,
-            email: true,
-          }
-        },
-        tags: true,
-      },
-    });
+    const limit = Math.max(1, Math.min(Number(filters?.limit) || 100, 500));
+    const offset = Math.max(0, Number(filters?.offset) || 0);
 
-    const mappedData = posts.map((post) => ({
-      ...post,
-      tags: post.tags.map(t => t.tagName),
+    const postsQuery = await db.execute(sql`
+      SELECT
+        blog_posts.id, blog_posts.title, blog_posts.slug, blog_posts.excerpt, blog_posts.content, blog_posts."imageUrl",
+        blog_posts.published, blog_posts.featured, blog_posts.views, blog_posts."publishedAt",
+        blog_posts."createdAt", blog_posts."updatedAt",
+        blog_posts."categoryId", blog_posts."authorId",
+        json_build_object('id', c.id, 'name', c.name) as category,
+        json_build_object('id', u.id, 'email', u.email) as author,
+        COALESCE(
+          (SELECT json_agg(t."tagName") FROM blog_post_tags t WHERE t."postId" = blog_posts.id),
+          '[]'::json
+        ) as tags
+      FROM blog_posts
+      LEFT JOIN blog_categories c ON blog_posts."categoryId" = c.id
+      LEFT JOIN users u ON blog_posts."authorId" = u.id
+      ${conditions.length > 0 ? sql`WHERE ${and(...conditions)}` : sql``}
+      ORDER BY blog_posts."createdAt" DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `);
+
+    // Parse JSON strings returned by json_build_object
+    const mappedData = postsQuery.rows.map((row: any) => ({
+      ...row,
+      category: typeof row.category === 'string' ? JSON.parse(row.category) : row.category,
+      author: typeof row.author === 'string' ? JSON.parse(row.author) : row.author,
+      tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags,
     }));
 
     return {
@@ -116,35 +126,44 @@ export async function getBlogPostsAction(filters?: {
  */
 export async function getBlogPostBySlugAction(slug: string) {
   try {
-    const { isAdmin } = await checkAdmin().catch(() => ({ isAdmin: false }));
-    
     const conditions = [eq(blogPosts.slug, slug)];
-    if (!isAdmin) {
-      conditions.push(eq(blogPosts.published, true));
-    }
+    // Only show published posts for public access
+    conditions.push(eq(blogPosts.published, true));
 
-    const post = await db.query.blogPosts.findFirst({
-      where: and(...conditions),
-      with: {
-        category: true,
-        author: {
-          columns: {
-            id: true,
-            email: true,
-          }
-        },
-        tags: true,
-      },
-    });
+    const postQuery = await db.execute(sql`
+      SELECT
+        blog_posts.id, blog_posts.title, blog_posts.slug, blog_posts.excerpt, blog_posts.content, blog_posts."imageUrl",
+        blog_posts.published, blog_posts.featured, blog_posts.views, blog_posts."publishedAt",
+        blog_posts."createdAt", blog_posts."updatedAt",
+        blog_posts."categoryId", blog_posts."authorId",
+        json_build_object('id', c.id, 'name', c.name) as category,
+        json_build_object('id', u.id, 'email', u.email) as author,
+        COALESCE(
+          (SELECT json_agg(t."tagName") FROM blog_post_tags t WHERE t."postId" = blog_posts.id),
+          '[]'::json
+        ) as tags
+      FROM blog_posts
+      LEFT JOIN blog_categories c ON blog_posts."categoryId" = c.id
+      LEFT JOIN users u ON blog_posts."authorId" = u.id
+      ${conditions.length > 0 ? sql`WHERE ${and(...conditions)}` : sql``}
+      LIMIT 1
+    `);
+
+    const post = postQuery.rows[0];
 
     if (!post) return { success: false, error: "Post not found" };
 
+    // Parse JSON strings returned by json_build_object
+    const parsedPost = {
+      ...post,
+      category: typeof post.category === 'string' ? JSON.parse(post.category) : post.category,
+      author: typeof post.author === 'string' ? JSON.parse(post.author) : post.author,
+      tags: typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags,
+    };
+
     return {
       success: true,
-      data: {
-        ...post,
-        tags: post.tags.map(t => t.tagName),
-      },
+      data: parsedPost,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch blog post";
@@ -157,32 +176,47 @@ export async function getBlogPostBySlugAction(slug: string) {
 }
 
 /**
- * Get a single blog post by ID
+ * Get a single blog post by ID (admin only)
  */
 export async function getBlogPostByIdAction(postId: string) {
   try {
-    const post = await db.query.blogPosts.findFirst({
-      where: eq(blogPosts.id, postId),
-      with: {
-        category: true,
-        author: {
-          columns: {
-            id: true,
-            email: true,
-          }
-        },
-        tags: true,
-      },
-    });
+    const { isAdmin, error: adminError } = await checkAdmin();
+    if (!isAdmin) return { success: false, error: adminError };
+
+    const postQuery = await db.execute(sql`
+      SELECT
+        blog_posts.id, blog_posts.title, blog_posts.slug, blog_posts.excerpt, blog_posts.content, blog_posts."imageUrl",
+        blog_posts.published, blog_posts.featured, blog_posts.views, blog_posts."publishedAt",
+        blog_posts."createdAt", blog_posts."updatedAt",
+        blog_posts."categoryId", blog_posts."authorId",
+        json_build_object('id', c.id, 'name', c.name) as category,
+        json_build_object('id', u.id, 'email', u.email) as author,
+        COALESCE(
+          (SELECT json_agg(t."tagName") FROM blog_post_tags t WHERE t."postId" = blog_posts.id),
+          '[]'::json
+        ) as tags
+      FROM blog_posts
+      LEFT JOIN blog_categories c ON blog_posts."categoryId" = c.id
+      LEFT JOIN users u ON blog_posts."authorId" = u.id
+      WHERE blog_posts.id = ${postId}
+      LIMIT 1
+    `);
+
+    const post = postQuery.rows[0];
 
     if (!post) return { success: false, error: "Post not found" };
 
+    // Parse JSON strings returned by json_build_object
+    const parsedPost = {
+      ...post,
+      category: typeof post.category === 'string' ? JSON.parse(post.category) : post.category,
+      author: typeof post.author === 'string' ? JSON.parse(post.author) : post.author,
+      tags: typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags,
+    };
+
     return {
       success: true,
-      data: {
-        ...post,
-        tags: post.tags.map(t => t.tagName),
-      },
+      data: parsedPost,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch blog post";
@@ -199,22 +233,20 @@ export async function getBlogPostByIdAction(postId: string) {
  */
 export async function getBlogCategoriesAction() {
   try {
-    const categories = await db.query.blogCategories.findMany({
-      orderBy: [asc(blogCategories.name)],
-      with: {
-        posts: {
-          columns: {
-            id: true,
-          },
-        },
-      },
-    });
+    const categoriesQuery = await db.execute(sql`
+      SELECT
+        c.id,
+        c.name,
+        (SELECT count(*) FROM blog_posts bp WHERE bp."categoryId" = c.id AND bp.published = true) as count
+      FROM blog_categories c
+      ORDER BY c.name ASC
+    `);
 
-    const categoriesWithCount = categories.map((cat) => ({
-      id: cat.id,
-      name: cat.name,
+    const categoriesWithCount = categoriesQuery.rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
       _count: {
-        posts: cat.posts.length,
+        posts: parseInt(row.count as string || "0", 10),
       },
     }));
 

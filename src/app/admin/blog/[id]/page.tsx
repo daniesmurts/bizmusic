@@ -37,8 +37,9 @@ export default function AdminBlogEditorPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const postId = params.id as string | undefined;
-  const isEdit = !!postId;
+  const rawId = params.id as string | undefined;
+  const isEdit = !!rawId && rawId !== "new";
+  const postId = isEdit ? rawId : undefined;
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -172,13 +173,13 @@ export default function AdminBlogEditorPage() {
   };
 
   const generateSlug = () => {
-    const slug = title
+    const generated = title
       .toLowerCase()
-      .replace(/[^а-яa-z0-9\s-]/g, "")
+      .replace(/[^а-яёa-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
       .trim();
-    setSlug(slug);
+    setSlug(generated);
   };
 
   const categories = categoriesData || [];
@@ -397,7 +398,7 @@ export default function AdminBlogEditorPage() {
               <Input
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 placeholder="Добавить тег"
                 className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-12 px-4 flex-1"
               />
