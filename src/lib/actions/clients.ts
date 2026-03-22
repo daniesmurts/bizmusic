@@ -1,40 +1,39 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/db";
+import { businesses, users, locations, playLogs, licenses } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { AdminBusiness } from "@/types/admin";
 
 export async function getClientsAction() {
   try {
-    const businesses = await prisma.business.findMany({
-      include: {
+    const clients = await db.query.businesses.findMany({
+      with: {
         user: {
-          select: {
+          columns: {
             email: true,
           },
         },
-        _count: {
-          select: {
-            locations: true,
-            playLogs: true,
-          },
-        },
+        locations: true,
+        playLogs: true,
         licenses: {
-          select: {
-            id: true,
-            pdfUrl: true,
-          },
-          take: 1,
-          orderBy: {
-            issuedAt: "desc",
-          },
+          orderBy: [desc(licenses.issuedAt)],
+          limit: 1,
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [desc(businesses.createdAt)],
     });
 
-    return { success: true, data: businesses as unknown as AdminBusiness[] };
+    // Map to match the expected AdminBusiness type (counts)
+    const mappedClients = clients.map(b => ({
+      ...b,
+      _count: {
+        locations: b.locations.length,
+        playLogs: b.playLogs.length,
+      }
+    }));
+
+    return { success: true, data: mappedClients as unknown as AdminBusiness[] };
   } catch (error: unknown) {
     console.error("Error fetching clients:", error);
     return { success: false, error: "Не удалось загрузить список клиентов" };

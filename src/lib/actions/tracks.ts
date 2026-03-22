@@ -1,6 +1,8 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/db";
+import { tracks, playLogs } from "@/db/schema";
+import { eq, or, ilike, sql, desc, and, arrayContains } from "drizzle-orm";
 import {
   getUploadSignedUrl,
   generateUniqueFileName,
@@ -9,7 +11,6 @@ import {
   getTrackPublicUrl,
 } from "@/lib/supabase-storage";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
 
 export interface TrackInput {
   title: string;
@@ -64,20 +65,18 @@ export async function generateUploadUrlAction(
  */
 export async function createTrackAction(data: TrackInput) {
   try {
-    const track = await prisma.track.create({
-      data: {
-        title: data.title,
-        artist: data.artist,
-        fileUrl: data.fileUrl,
-        duration: Math.round(data.duration),
-        bpm: data.bpm,
-        moodTags: data.moodTags,
-        genre: data.genre || "Unknown",
-        isExplicit: data.isExplicit || false,
-        isFeatured: data.isFeatured || false,
-        energyLevel: data.energyLevel,
-      },
-    });
+    const [track] = await db.insert(tracks).values({
+      title: data.title,
+      artist: data.artist,
+      fileUrl: data.fileUrl,
+      duration: Math.round(data.duration),
+      bpm: data.bpm,
+      moodTags: data.moodTags,
+      genre: data.genre || "Unknown",
+      isExplicit: data.isExplicit || false,
+      isFeatured: data.isFeatured || false,
+      energyLevel: data.energyLevel,
+    }).returning();
 
     revalidatePath("/admin/content");
 
@@ -103,7 +102,7 @@ export async function updateTrackAction(
   data: Partial<TrackInput>
 ) {
   try {
-    const updateData: Prisma.TrackUpdateInput = {};
+    const updateData: Partial<typeof tracks.$inferInsert> = {};
 
     if (data.title !== undefined) updateData.title = data.title;
     if (data.artist !== undefined) updateData.artist = data.artist;
@@ -116,10 +115,10 @@ export async function updateTrackAction(
     if (data.genre !== undefined) updateData.genre = data.genre;
     if (data.fileUrl !== undefined) updateData.fileUrl = data.fileUrl;
 
-    const track = await prisma.track.update({
-      where: { id: trackId },
-      data: updateData,
-    });
+    const [track] = await db.update(tracks)
+      .set(updateData)
+      .where(eq(tracks.id, trackId))
+      .returning();
 
     revalidatePath("/admin/content");
 
@@ -143,8 +142,8 @@ export async function updateTrackAction(
 export async function deleteTrackAction(trackId: string) {
   try {
     // First, get the track to find the file URL
-    const track = await prisma.track.findUnique({
-      where: { id: trackId },
+    const track = await db.query.tracks.findFirst({
+      where: eq(tracks.id, trackId),
     });
 
     if (!track) {
@@ -166,9 +165,7 @@ export async function deleteTrackAction(trackId: string) {
     }
 
     // Delete the track from database
-    await prisma.track.delete({
-      where: { id: trackId },
-    });
+    await db.delete(tracks).where(eq(tracks.id, trackId));
 
     revalidatePath("/admin/content");
 
@@ -195,37 +192,41 @@ export async function getTracksAction(filters?: {
   offset?: number;
 }) {
   try {
-    const where: Prisma.TrackWhereInput = {};
+    const conditions = [];
 
     if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search, mode: "insensitive" } },
-        { artist: { contains: filters.search, mode: "insensitive" } },
-      ];
+      conditions.push(
+        or(
+          ilike(tracks.title, `%${filters.search}%`),
+          ilike(tracks.artist, `%${filters.search}%`)
+        )
+      );
     }
 
     if (filters?.moodTag) {
-      where.moodTags = {
-        has: filters.moodTag,
-      };
+      conditions.push(arrayContains(tracks.moodTags, [filters.moodTag]));
     }
 
-    const tracks = await prisma.track.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: filters?.limit || 100,
-      skip: filters?.offset || 0,
-      include: {
-        _count: {
-          select: { playLogs: true },
-        },
+    const tracksList = await db.query.tracks.findMany({
+      where: conditions.length > 0 ? and(...conditions as any) : undefined,
+      orderBy: [desc(tracks.createdAt)],
+      limit: filters?.limit || 100,
+      offset: filters?.offset || 0,
+      with: {
+        playLogs: true,
       },
     });
+
+    // Remap to match previous return structure with _count
+    const tracksWithCount = tracksList.map(t => ({
+      ...t,
+      _count: { playLogs: t.playLogs.length }
+    }));
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     
     // Check if we have any tracks that require a supabaseUrl which is missing
-    const needsConfiguration = tracks.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
+    const needsConfiguration = tracksWithCount.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
     
     if (needsConfiguration) {
       console.error("[Tracks] NEXT_PUBLIC_SUPABASE_URL is not set; cannot construct fallback URLs for library tracks");
@@ -236,7 +237,7 @@ export async function getTracksAction(filters?: {
     }
 
     const tracksWithUrls = await Promise.all(
-      tracks.map(async (track) => {
+      tracksWithCount.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileName = getFileNameFromUrl(track.fileUrl);
         const fallbackUrl = (isFullUrl || !supabaseUrl)
@@ -274,22 +275,22 @@ export async function getTracksAction(filters?: {
 export async function getFeaturedTracksAction() {
   try {
     console.log("Fetching featured tracks...");
-    const tracks = await prisma.track.findMany({
-      where: { isFeatured: true },
-      orderBy: { createdAt: "desc" },
-      take: 6,
+    const featuredTracks = await db.query.tracks.findMany({
+      where: eq(tracks.isFeatured, true),
+      orderBy: [desc(tracks.createdAt)],
+      limit: 6,
     });
 
-    console.log(`Found ${tracks.length} featured tracks`);
+    console.log(`Found ${featuredTracks.length} featured tracks`);
 
-    if (tracks.length === 0) {
+    if (featuredTracks.length === 0) {
       return { success: true, data: [] };
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     
     // Check if any featured tracks require a supabaseUrl which is missing
-    const needsConfiguration = tracks.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
+    const needsConfiguration = featuredTracks.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
     
     if (needsConfiguration) {
       console.error("[Tracks] NEXT_PUBLIC_SUPABASE_URL is not set; cannot construct fallback URLs for featured tracks");
@@ -300,7 +301,7 @@ export async function getFeaturedTracksAction() {
     }
 
     const tracksWithUrls = await Promise.all(
-      tracks.map(async (track) => {
+      featuredTracks.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileName = getFileNameFromUrl(track.fileUrl);
         const fallbackUrl = (isFullUrl || !supabaseUrl)
@@ -348,21 +349,24 @@ export async function getFeaturedTracksAction() {
  */
 export async function getTrackByIdAction(trackId: string) {
   try {
-    const track = await prisma.track.findUnique({
-      where: { id: trackId },
-      include: {
-        _count: {
-          select: { playLogs: true },
-        },
+    const trackData = await db.query.tracks.findFirst({
+      where: eq(tracks.id, trackId),
+      with: {
+        playLogs: true,
       },
     });
 
-    if (!track) {
+    if (!trackData) {
       return {
         success: false,
         error: "Track not found",
       };
     }
+
+    const track = {
+      ...trackData,
+      _count: { playLogs: trackData.playLogs.length }
+    };
 
     const isFullUrl = track.fileUrl.startsWith('http');
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -416,8 +420,8 @@ export async function batchUpdateTagsAction(
 ) {
   try {
     const updates = trackIds.map(async (trackId) => {
-      const track = await prisma.track.findUnique({
-        where: { id: trackId },
+      const track = await db.query.tracks.findFirst({
+        where: eq(tracks.id, trackId),
       });
 
       if (!track) return;
@@ -436,10 +440,9 @@ export async function batchUpdateTagsAction(
         newTags = newTags.filter((tag) => !removeTags.includes(tag));
       }
 
-      await prisma.track.update({
-        where: { id: trackId },
-        data: { moodTags: newTags },
-      });
+      await db.update(tracks)
+        .set({ moodTags: newTags })
+        .where(eq(tracks.id, trackId));
     });
 
     await Promise.all(updates);
@@ -463,12 +466,10 @@ export async function batchUpdateTagsAction(
  */
 export async function getAllMoodTagsAction() {
   try {
-    const tracks = await prisma.track.findMany({
-      select: { moodTags: true },
-    });
+    const tracksList = await db.select({ moodTags: tracks.moodTags }).from(tracks);
 
     const allTags = new Set<string>();
-    tracks.forEach((track) => {
+    tracksList.forEach((track) => {
       track.moodTags.forEach((tag: string) => allTags.add(tag));
     });
 

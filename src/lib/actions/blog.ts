@@ -1,47 +1,16 @@
 "use server";
 
+import { db } from "@/db";
+import { blogPosts, blogCategories, blogPostTags, users } from "@/db/schema";
+import { eq, desc, and, ilike, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
-import { prisma } from "@/lib/prisma";
 
 // Sanitizes search input for PostgREST .or() query
 function sanitizeSearch(query: string) {
   return query.replace(/[(),]/g, " ").trim();
 }
 
-interface BlogPostTag {
-  tagName: string;
-}
-
-interface BlogCategory {
-  id: string;
-  name: string;
-}
-
-interface BlogAuthor {
-  id: string;
-  email: string;
-}
-
-interface RawBlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  imageUrl: string;
-  published: boolean;
-  featured: boolean;
-  views: number;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  categoryId: string;
-  authorId: string;
-  category: BlogCategory | BlogCategory[] | null;
-  author: BlogAuthor | BlogAuthor[] | null;
-  tags: BlogPostTag[] | null;
-}
+// Redundant types removed as Drizzle handles inference
 
 async function checkAdmin() {
   const { createClient } = await import("@/utils/supabase/server");
@@ -50,9 +19,9 @@ async function checkAdmin() {
 
   if (!user) return { isAdmin: false, error: "Unauthorized" };
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { role: true }
+  const dbUser = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    columns: { role: true }
   });
 
   if (dbUser?.role !== "ADMIN") {
@@ -86,41 +55,45 @@ export async function getBlogPostsAction(filters?: {
   offset?: number;
 }) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
-
-    let query = supabase
-      .from("blog_posts")
-      .select('id, title, slug, excerpt, content, "imageUrl", published, featured, views, "publishedAt", "createdAt", "updatedAt", "categoryId", "authorId", category:blog_categories(id, name), author:users(id, email), tags:blog_post_tags(tagName)')
-      .order("createdAt", { ascending: false });
+    const conditions = [];
 
     if (filters?.published !== undefined) {
-      query = query.eq("published", filters.published);
+      conditions.push(eq(blogPosts.published, filters.published));
     }
 
     if (filters?.categoryId) {
-      query = query.eq("categoryId", filters.categoryId);
+      conditions.push(eq(blogPosts.categoryId, filters.categoryId));
     }
 
     if (filters?.search) {
-      const sanitized = sanitizeSearch(filters.search);
-      if (sanitized) {
-        query = query.or(`title.ilike.%${sanitized}%,excerpt.ilike.%${sanitized}%`);
-      }
+      conditions.push(
+        or(
+          ilike(blogPosts.title, `%${filters.search}%`),
+          ilike(blogPosts.excerpt, `%${filters.search}%`)
+        )
+      );
     }
 
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
+    const posts = await db.query.blogPosts.findMany({
+      where: conditions.length > 0 ? and(...conditions as any) : undefined,
+      orderBy: [desc(blogPosts.createdAt)],
+      limit: filters?.limit,
+      offset: filters?.offset,
+      with: {
+        category: true,
+        author: {
+          columns: {
+            id: true,
+            email: true,
+          }
+        },
+        tags: true,
+      },
+    });
 
-    const { data, error } = await query;
-    if (error) throw error;
-
-    const mappedData = (data as RawBlogPost[] || []).map((post) => ({
+    const mappedData = posts.map((post) => ({
       ...post,
-      category: Array.isArray(post.category) ? post.category[0] : post.category,
-      author: Array.isArray(post.author) ? post.author[0] : post.author,
-      tags: post.tags?.map((t) => t.tagName) || [],
+      tags: post.tags.map(t => t.tagName),
     }));
 
     return {
@@ -142,38 +115,27 @@ export async function getBlogPostsAction(filters?: {
  */
 export async function getBlogPostBySlugAction(slug: string) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
+    const post = await db.query.blogPosts.findFirst({
+      where: eq(blogPosts.slug, slug),
+      with: {
+        category: true,
+        author: {
+          columns: {
+            id: true,
+            email: true,
+          }
+        },
+        tags: true,
+      },
+    });
 
-    const { data: post, error } = await supabase
-      .from("blog_posts")
-      .select(`
-        *,
-        category:blog_categories (
-          id,
-          name
-        ),
-        author:users (
-          id,
-          email
-        ),
-        tags:blog_post_tags (
-          tagName
-        )
-      `)
-      .eq("slug", slug)
-      .single();
-
-    if (error) throw error;
     if (!post) return { success: false, error: "Post not found" };
 
     return {
       success: true,
       data: {
         ...post,
-        category: Array.isArray(post.category) ? post.category[0] : post.category,
-        author: Array.isArray(post.author) ? post.author[0] : post.author,
-        tags: (post as RawBlogPost).tags?.map((t) => t.tagName) || [],
+        tags: post.tags.map(t => t.tagName),
       },
     };
   } catch (error: unknown) {
@@ -191,38 +153,27 @@ export async function getBlogPostBySlugAction(slug: string) {
  */
 export async function getBlogPostByIdAction(postId: string) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
+    const post = await db.query.blogPosts.findFirst({
+      where: eq(blogPosts.id, postId),
+      with: {
+        category: true,
+        author: {
+          columns: {
+            id: true,
+            email: true,
+          }
+        },
+        tags: true,
+      },
+    });
 
-    const { data: post, error } = await supabase
-      .from("blog_posts")
-      .select(`
-        *,
-        category:blog_categories (
-          id,
-          name
-        ),
-        author:users (
-          id,
-          email
-        ),
-        tags:blog_post_tags (
-          tagName
-        )
-      `)
-      .eq("id", postId)
-      .single();
-
-    if (error) throw error;
     if (!post) return { success: false, error: "Post not found" };
 
     return {
       success: true,
       data: {
         ...post,
-        category: Array.isArray(post.category) ? post.category[0] : post.category,
-        author: Array.isArray(post.author) ? post.author[0] : post.author,
-        tags: (post as RawBlogPost).tags?.map((t) => t.tagName) || [],
+        tags: post.tags.map(t => t.tagName),
       },
     };
   } catch (error: unknown) {
@@ -240,36 +191,20 @@ export async function getBlogPostByIdAction(postId: string) {
  */
 export async function getBlogCategoriesAction() {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
+    const categories = await db.query.blogCategories.findMany({
+      orderBy: [desc(blogCategories.name)],
+      with: {
+        posts: true,
+      },
+    });
 
-    const { data: categories, error } = await supabase
-      .from("blog_categories")
-      .select(`*`)
-      .order("name", { ascending: true });
-
-    if (error) {
-      console.error("Supabase categories error:", error);
-      throw error;
-    }
-
-    // Get post counts separately
-    const categoriesWithCount = await Promise.all(
-      (categories || []).map(async (cat) => {
-        const { count } = await supabase
-          .from("blog_posts")
-          .select("*", { count: "exact", head: true })
-          .eq("categoryId", cat.id);
-
-        return {
-          id: cat.id,
-          name: cat.name,
-          _count: {
-            posts: count || 0,
-          },
-        };
-      })
-    );
+    const categoriesWithCount = categories.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      _count: {
+        posts: cat.posts.length,
+      },
+    }));
 
     return {
       success: true,
@@ -293,24 +228,18 @@ export async function createBlogPostAction(data: BlogPostInput) {
     const { isAdmin, error: adminError, supabase } = await checkAdmin();
     if (!isAdmin || !supabase) return { success: false, error: adminError };
 
-    const { data: post, error } = await supabase
-      .from("blog_posts")
-      .insert({
-        title: data.title,
-        slug: data.slug,
-        excerpt: data.excerpt,
-        content: data.content,
-        categoryId: data.categoryId,
-        authorId: data.authorId,
-        imageUrl: data.imageUrl,
-        published: data.published || false,
-        featured: data.featured || false,
-        publishedAt: data.published ? new Date().toISOString() : null,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
+    const [post] = await db.insert(blogPosts).values({
+      title: data.title,
+      slug: data.slug,
+      excerpt: data.excerpt,
+      content: data.content,
+      categoryId: data.categoryId,
+      authorId: data.authorId,
+      imageUrl: data.imageUrl,
+      published: data.published || false,
+      featured: data.featured || false,
+      publishedAt: data.published ? new Date() : null,
+    }).returning();
 
     // Add tags if provided
     if (data.tags && data.tags.length > 0) {
@@ -318,7 +247,7 @@ export async function createBlogPostAction(data: BlogPostInput) {
         postId: post.id,
         tagName: tagName,
       }));
-      await supabase.from("blog_post_tags").insert(tagsToInsert);
+      await db.insert(blogPostTags).values(tagsToInsert);
     }
 
     revalidatePath("/admin/blog");
@@ -352,7 +281,7 @@ export async function updateBlogPostAction(
     const { isAdmin, error: adminError, supabase } = await checkAdmin();
     if (!isAdmin || !supabase) return { success: false, error: adminError };
 
-    const updateData: Partial<Record<string, string | boolean | null>> = {};
+    const updateData: Partial<typeof blogPosts.$inferInsert> = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
@@ -361,28 +290,24 @@ export async function updateBlogPostAction(
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
     if (data.published !== undefined) {
       updateData.published = data.published;
-      if (data.published) updateData.publishedAt = new Date().toISOString();
+      if (data.published) updateData.publishedAt = new Date();
     }
     if (data.featured !== undefined) updateData.featured = data.featured;
 
-    const { data: post, error } = await supabase
-      .from("blog_posts")
-      .update(updateData)
-      .eq("id", postId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const [post] = await db.update(blogPosts)
+      .set(updateData)
+      .where(eq(blogPosts.id, postId))
+      .returning();
 
     // Update tags if provided
     if (data.tags) {
-      await supabase.from("blog_post_tags").delete().eq("postId", postId);
+      await db.delete(blogPostTags).where(eq(blogPostTags.postId, postId));
       if (data.tags.length > 0) {
         const tagsToInsert = data.tags.map((tagName) => ({
           postId: postId,
           tagName: tagName,
         }));
-        await supabase.from("blog_post_tags").insert(tagsToInsert);
+        await db.insert(blogPostTags).values(tagsToInsert);
       }
     }
 
@@ -411,15 +336,7 @@ export async function deleteBlogPostAction(postId: string) {
     const { isAdmin, error: adminError, supabase } = await checkAdmin();
     if (!isAdmin || !supabase) return { success: false, error: adminError };
 
-    // Delete tags first (cascade should handle this, but being explicit)
-    await supabase.from("blog_post_tags").delete().eq("postId", postId);
-    
-    const { error } = await supabase
-      .from("blog_posts")
-      .delete()
-      .eq("id", postId);
-
-    if (error) throw error;
+    await db.delete(blogPosts).where(eq(blogPosts.id, postId));
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");

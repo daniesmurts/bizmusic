@@ -1,5 +1,7 @@
 import { tbank } from "@/lib/payments/tbank";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/db";
+import { payments, businesses } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -14,9 +16,9 @@ export async function POST(req: Request) {
     const { OrderId, Status, PaymentId, RebillId, ErrorCode } = data;
 
     // 2. Find the payment in DB
-    const payment = await prisma.payment.findUnique({
-      where: { orderId: OrderId },
-      include: { business: true },
+    const payment = await db.query.payments.findFirst({
+      where: eq(payments.orderId, OrderId),
+      with: { business: true },
     });
 
     if (!payment) {
@@ -24,15 +26,14 @@ export async function POST(req: Request) {
     }
 
     // 3. Update payment status
-    await prisma.payment.update({
-      where: { orderId: OrderId },
-      data: {
+    await db.update(payments)
+      .set({
         status: Status,
         rebillId: RebillId,
         errorCode: ErrorCode,
         tbankPaymentId: PaymentId,
-      },
-    });
+      })
+      .where(eq(payments.orderId, OrderId));
 
     // 4. Handle trial activation on successful confirmation
     if (Status === "CONFIRMED" || Status === "AUTHORIZED") {
@@ -40,15 +41,14 @@ export async function POST(req: Request) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + trialDurationDays);
 
-      await prisma.business.update({
-        where: { id: payment.businessId },
-        data: {
+      await db.update(businesses)
+        .set({
           rebillId: RebillId,
           trialEndsAt: trialEndsAt,
           subscriptionExpiresAt: trialEndsAt,
           subscriptionStatus: "ACTIVE",
-        },
-      });
+        })
+        .where(eq(businesses.id, payment.businessId));
       
       console.log(`Trial activated for business ${payment.businessId} until ${trialEndsAt.toISOString()}`);
     }
