@@ -79,7 +79,7 @@ export const tracks = pgTable("tracks", {
   duration: integer("duration").notNull(),
   bpm: integer("bpm"),
   genre: text("genre").default("Unknown"),
-  moodTags: jsonb("moodTags").$type<string[]>().$defaultFn(() => []).notNull(),
+  moodTags: text("moodTags").array().$defaultFn(() => ([] as string[])).notNull(),
   isExplicit: boolean("isExplicit").default(false).notNull(),
   isFeatured: boolean("isFeatured").default(false).notNull(),
   energyLevel: integer("energyLevel"),
