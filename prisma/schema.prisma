@@ -96,6 +96,7 @@ model Track {
   genre      String?   @default("Unknown")
   moodTags   String[]  // Prisma supports arrays in Postgres
   isExplicit Boolean   @default(false)
+  isFeatured Boolean   @default(false)
   energyLevel Int?
   playLogs    PlayLog[]
   playlists   PlaylistTrack[]

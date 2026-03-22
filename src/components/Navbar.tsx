@@ -2,11 +2,25 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Music, Menu, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Music, Menu, User, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
 export const Navbar = () => {
   const { user, role, signOut } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
@@ -61,11 +75,67 @@ export const Navbar = () => {
               </Button>
             </>
           )}
-          <Button variant="ghost" size="icon" className="md:hidden text-white hover:bg-white/5 rounded-full">
-            <Menu className="w-6 h-6" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden text-white hover:bg-white/5 rounded-full"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </Button>
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" />
+          
+          {/* Close Button Inside Overlay */}
+          <div className="absolute top-8 right-8 z-[70]">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white hover:bg-white/10 rounded-full w-12 h-12"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <X className="w-8 h-8" />
+            </Button>
+          </div>
+
+          <div className="relative h-full flex flex-col items-center justify-center gap-12 p-6 text-center">
+            <div className="flex flex-col gap-8 text-3xl font-black uppercase tracking-[0.25em]">
+              {role === 'ADMIN' && (
+                <Link href="/admin/content" onClick={() => setIsMenuOpen(false)} className="text-neon">Админ</Link>
+              )}
+              <Link href="/products" onClick={() => setIsMenuOpen(false)} className="text-white hover:text-neon transition-colors">Продукты</Link>
+              <Link href="/blog" onClick={() => setIsMenuOpen(false)} className="text-white hover:text-neon transition-colors">Блог</Link>
+              <Link href="/about" onClick={() => setIsMenuOpen(false)} className="text-white hover:text-neon transition-colors">О нас</Link>
+              <Link href="/pricing" onClick={() => setIsMenuOpen(false)} className="text-white hover:text-neon transition-colors">Тарифы</Link>
+              {!user && (
+                <Link href="/login" onClick={() => setIsMenuOpen(false)} className="text-neutral-400 hover:text-neon transition-colors">Войти</Link>
+              )}
+            </div>
+            
+            {user ? (
+              <Button 
+                variant="ghost" 
+                className="text-neon font-black uppercase tracking-widest text-xl mt-4"
+                onClick={() => {
+                  signOut();
+                  setIsMenuOpen(false);
+                }}
+              >
+                Выйти
+              </Button>
+            ) : (
+              <Button asChild className="bg-neon text-black rounded-full px-16 py-10 text-2xl font-black uppercase tracking-widest mt-4 shadow-2xl shadow-neon/40">
+                <Link href="/register" onClick={() => setIsMenuOpen(false)}>Регистрация</Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

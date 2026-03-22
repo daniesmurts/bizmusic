@@ -20,6 +20,7 @@ export interface TrackInput {
   moodTags: string[];
   energyLevel?: number;
   isExplicit?: boolean;
+  isFeatured?: boolean;
   genre?: string;
   fileUrl: string;
   fileName: string;
@@ -67,6 +68,7 @@ export async function createTrackAction(data: TrackInput) {
         moodTags: data.moodTags,
         genre: data.genre || "Unknown",
         isExplicit: data.isExplicit || false,
+        isFeatured: data.isFeatured || false,
         energyLevel: data.energyLevel,
       },
     });
@@ -104,6 +106,7 @@ export async function updateTrackAction(
     if (data.moodTags !== undefined) updateData.moodTags = data.moodTags;
     if (data.energyLevel !== undefined) updateData.energyLevel = data.energyLevel;
     if (data.isExplicit !== undefined) updateData.isExplicit = data.isExplicit;
+    if (data.isFeatured !== undefined) updateData.isFeatured = data.isFeatured;
     if (data.genre !== undefined) updateData.genre = data.genre;
     if (data.fileUrl !== undefined) updateData.fileUrl = data.fileUrl;
 
@@ -236,6 +239,61 @@ export async function getTracksAction(filters?: {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch tracks";
     console.error("Get tracks error:", error);
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+/**
+ * Get featured tracks for the home page (PUBLIC)
+ */
+export async function getFeaturedTracksAction() {
+  try {
+    console.log("Fetching featured tracks...");
+    const tracks = await prisma.track.findMany({
+      where: { isFeatured: true },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+
+    console.log(`Found ${tracks.length} featured tracks`);
+
+    if (tracks.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const tracksWithUrls = await Promise.all(
+      tracks.map(async (track) => {
+        try {
+          const fileName = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
+          const streamUrl = await getDownloadSignedUrl(
+            fileName,
+            3600 // 1 hour
+          );
+
+          return {
+            ...track,
+            streamUrl,
+          };
+        } catch (err) {
+          console.error(`Error generating URL for track ${track.id}:`, err);
+          return {
+            ...track,
+            streamUrl: null,
+          };
+        }
+      })
+    );
+
+    return {
+      success: true,
+      data: tracksWithUrls,
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch featured tracks";
+    console.error("Get featured tracks error:", error);
     return {
       success: false,
       error: message,

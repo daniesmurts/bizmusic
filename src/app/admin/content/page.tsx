@@ -218,6 +218,13 @@ export default function AdminContentPage() {
   const handleDeleteTrack = async (trackId: string) => {
     await deleteTrackMutation.mutateAsync(trackId);
   };
+  
+  const handleToggleFeatured = async (trackId: string, isFeatured: boolean) => {
+    await updateTrackMutation.mutateAsync({ 
+      trackId, 
+      data: { isFeatured } 
+    });
+  };
 
   const setTrack = usePlayerStore((state) => state.setTrack);
 
@@ -338,7 +345,7 @@ export default function AdminContentPage() {
       {currentView === "tracks" ? (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="glass-dark border border-white/5 rounded-2xl p-6">
               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
                 Всего треков
@@ -347,10 +354,18 @@ export default function AdminContentPage() {
             </div>
             <div className="glass-dark border border-white/5 rounded-2xl p-6">
               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
-                С явным контентом
+                С явным контентом (18+)
               </p>
               <p className="text-4xl font-black text-red-400">
                 {tracks.filter((t) => t.isExplicit).length}
+              </p>
+            </div>
+            <div className="glass-dark border border-white/5 rounded-2xl p-6">
+              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                Популярные (Featured)
+              </p>
+              <p className="text-4xl font-black text-amber-400">
+                {tracks.filter((t) => t.isFeatured).length}
               </p>
             </div>
             <div className="glass-dark border border-white/5 rounded-2xl p-6">
@@ -385,6 +400,7 @@ export default function AdminContentPage() {
             onEdit={handleEditTrack}
             onDelete={handleDeleteTrack}
             onPlay={handlePlayTrack}
+            onToggleFeatured={handleToggleFeatured}
           />
         </>
       ) : (

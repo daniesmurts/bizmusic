@@ -13,6 +13,7 @@ import {
   Zap,
   Tag,
   AlertTriangle,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,12 +22,14 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AdminTrack } from "@/types/admin";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { Switch } from "@/components/ui/switch";
 
 interface TrackTableProps {
   tracks: AdminTrack[];
   onEdit: (track: AdminTrack) => void;
   onDelete: (trackId: string) => Promise<void>;
   onPlay: (track: AdminTrack) => void;
+  onToggleFeatured: (trackId: string, isFeatured: boolean) => Promise<void>;
 }
 
 export const TrackTable = ({
@@ -34,6 +37,7 @@ export const TrackTable = ({
   onEdit,
   onDelete,
   onPlay,
+  onToggleFeatured,
 }: TrackTableProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMoodTag, setSelectedMoodTag] = useState<string | null>(null);
@@ -203,6 +207,9 @@ export const TrackTable = ({
                 <th className="text-left py-6 px-6 text-[10px] font-black uppercase tracking-widest text-neutral-500">
                   Проигрываний
                 </th>
+                <th className="text-center py-6 px-6 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                  Featured
+                </th>
                 <th className="text-right py-6 px-6 text-[10px] font-black uppercase tracking-widest text-neutral-500">
                   Действия
                 </th>
@@ -260,9 +267,15 @@ export const TrackTable = ({
                             {track.artist}
                           </p>
                           {track.isExplicit && (
-                            <Badge className="mt-1 bg-red-500/10 border-red-500/20 text-red-400 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest">
+                            <Badge className="mt-1 bg-red-500/10 border-red-500/20 text-red-400 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest mr-1">
                               <AlertTriangle className="w-3 h-3 mr-1" />
                               18+
+                            </Badge>
+                          )}
+                          {track.isFeatured && (
+                            <Badge className="mt-1 bg-neon/10 border-neon/20 text-neon px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest">
+                              <Star className="w-3 h-3 mr-1 fill-current" />
+                              Featured
                             </Badge>
                           )}
                         </div>
@@ -328,6 +341,14 @@ export const TrackTable = ({
                       <span className="text-sm font-bold text-neutral-400">
                         {track._count?.playLogs || 0}
                       </span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <div className="flex justify-center">
+                        <Switch
+                          checked={track.isFeatured}
+                          onCheckedChange={(checked) => onToggleFeatured(track.id, checked)}
+                        />
+                      </div>
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-end gap-2">

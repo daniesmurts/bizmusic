@@ -81,36 +81,62 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
     setUploadProgress(0);
 
     try {
-      // Create form data for upload
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Get presigned upload URL from API
-      const uploadResponse = await fetch("/api/upload", {
+      // Step 1: Get presigned upload URL from API using metadata only
+      // This prevents 413 Payload Too Large errors
+      const metaResponse = await fetch("/api/upload", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+        }),
       });
 
-      const uploadData = await uploadResponse.json();
+      if (!metaResponse.ok) {
+        const errorData = await metaResponse.json();
+        if (metaResponse.status === 413) {
+          throw new Error("Файл слишком большой для обработки сервером.");
+        }
+        throw new Error(errorData.error || `Ошибка сервера: ${metaResponse.status}`);
+      }
+
+      const uploadData = await metaResponse.json();
 
       if (!uploadData.success) {
-        throw new Error(uploadData.error || "Upload failed");
+        throw new Error(uploadData.error || "Не удалось получить ссылку для загрузки");
       }
 
       const { uploadUrl, fileName, publicUrl } = uploadData;
 
-      // Upload file to Yandex Object Storage using presigned URL
-      const uploadResult = await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
+      // Step 2: Upload file directly to storage using presigned URL
+      // Use XMLHttpRequest to track progress
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadUrl);
+        
+        xhr.setRequestHeader("Content-Type", file.type);
+        
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(percentComplete);
+          }
+        };
 
-      if (!uploadResult.ok) {
-        throw new Error("Failed to upload file to storage");
-      }
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(xhr.response);
+          } else {
+            reject(new Error(`Ошибка загрузки в хранилище: ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Ошибка сети при загрузке файла"));
+        xhr.send(file);
+      });
 
       // Store the public URL for waveform visualization
       uploadedUrlRef.current = publicUrl;
@@ -123,7 +149,7 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
 
       toast.success("Файл загружен успешно!");
     } catch (err: unknown) {
-      const errMessage = err instanceof Error ? err.message : "Upload failed";
+      const errMessage = err instanceof Error ? err.message : "Ошибка при загрузке";
       console.error("Upload error:", err);
       setError(errMessage);
       toast.error(errMessage);
