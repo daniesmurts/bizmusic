@@ -18,6 +18,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface BlogPost {
   id: string;
@@ -32,7 +33,7 @@ interface BlogPost {
     role?: string;
     email: string;
   };
-  publishedAt: string | null;
+  publishedAt: Date | string | null;
   readTime: number;
   views: number;
   comments: number;
@@ -61,7 +62,7 @@ interface RawBlogPost {
     avatar?: string;
     role?: string;
   } | null;
-  publishedAt?: string | null;
+  publishedAt?: Date | string | null;
   readTime?: number;
   views?: number;
   comments?: number;
@@ -82,6 +83,7 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
   const [selectedCategory, setSelectedCategory] = useState("Все");
   const [searchQuery, setSearchQuery] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [email, setEmail] = useState("");
 
   // Map imageUrl to image and add author info
   const postsWithImage = initialPosts.map(post => ({
@@ -108,7 +110,7 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
   const featuredPosts = filteredPosts.filter((post) => post.featured);
   const regularPosts = filteredPosts.filter((post) => !post.featured);
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | Date | null) => {
     if (!dateString) return "Черновик";
     const date = new Date(dateString);
     return date.toLocaleDateString("ru-RU", {
@@ -365,10 +367,17 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
               <Input
                 type="email"
                 placeholder="Ваш email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="flex-1 bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6"
               />
               <Button 
-                disabled={!agreed}
+                disabled={!agreed || !email.trim()}
+                onClick={() => {
+                  toast.success("Спасибо! Вы подписаны на рассылку.");
+                  setEmail("");
+                  setAgreed(false);
+                }}
                 className="bg-neon text-black hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all rounded-2xl px-8 h-14 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)]"
               >
                 Подписаться

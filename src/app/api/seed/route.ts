@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { businesses } from "@/db/schema";
 
 export async function GET() {
   // This endpoint is only available in development
@@ -6,30 +8,31 @@ export async function GET() {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { prisma } = await import("@/lib/prisma");
-
   try {
     // Get first user
-    const user = await prisma.user.findFirst();
+    const user = await db.query.users.findFirst();
     if (!user) {
       return NextResponse.json({ error: "No user found" }, { status: 404 });
     }
 
-    const business = await prisma.business.upsert({
-      where: { inn: "7701234567" },
-      update: {
-        legalName: 'ООО "Кофейня Маяк"',
-        subscriptionStatus: "ACTIVE",
-      },
-      create: {
+    // Upsert business - Drizzle ON CONFLICT for Postgres
+    const [business] = await db.insert(businesses)
+      .values({
         userId: user.id,
         inn: "7701234567",
         kpp: "770101001",
         legalName: 'ООО "Кофейня Маяк"',
         address: "г. Москва, ул. Арбат, д. 1",
         subscriptionStatus: "ACTIVE",
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: businesses.inn,
+        set: {
+          legalName: 'ООО "Кофейня Маяк"',
+          subscriptionStatus: "ACTIVE",
+        }
+      })
+      .returning();
 
     return NextResponse.json({ success: true, business });
   } catch (error: unknown) {

@@ -1,6 +1,8 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/db";
+import { businesses, payments } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { tbank } from "@/lib/payments/tbank";
 import { getPlanBySlug } from "@/lib/payments/plans";
 
@@ -16,9 +18,9 @@ export async function startFreeTrial(businessId: string, planSlug: string) {
     throw new Error("Unauthorized");
   }
 
-  const business = await prisma.business.findUnique({
-    where: { id: businessId },
-    include: { user: true },
+  const business = await db.query.businesses.findFirst({
+    where: eq(businesses.id, businessId),
+    with: { user: true },
   });
 
   if (!business) {
@@ -53,29 +55,26 @@ export async function startFreeTrial(businessId: string, planSlug: string) {
   }
 
   // Create payment record in DB
-  await prisma.payment.create({
-    data: {
-      businessId,
-      amount: 100,
-      status: "NEW",
-      orderId: orderId,
-      tbankPaymentId: initResult.PaymentId,
-      recurrent: true,
-    },
+  await db.insert(payments).values({
+    businessId,
+    amount: 100,
+    status: "NEW",
+    orderId: orderId,
+    tbankPaymentId: initResult.PaymentId,
+    recurrent: true,
   });
 
   // Update business with selected plan
-  await prisma.business.update({
-    where: { id: businessId },
-    data: { currentPlanSlug: planSlug }
-  });
+  await db.update(businesses)
+    .set({ currentPlanSlug: planSlug })
+    .where(eq(businesses.id, businessId));
 
   return { paymentUrl: initResult.PaymentURL };
 }
 
 export async function getPaymentStatus(orderId: string) {
-  const payment = await prisma.payment.findUnique({
-    where: { orderId },
+  const payment = await db.query.payments.findFirst({
+    where: eq(payments.orderId, orderId),
   });
 
   return payment?.status;

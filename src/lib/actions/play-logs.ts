@@ -1,8 +1,9 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { AdminPlayLog } from "@/types/admin";
+import { db } from "@/db";
+import { playLogs, businesses } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
+import type { AdminPlayLog } from "@/types/admin";
 
 /**
  * Log a track play event
@@ -19,22 +20,20 @@ export async function logPlayAction(trackId: string, businessId?: string, locati
 
     // Verify ownership of the business/location if provided
     if (businessId) {
-      const business = await prisma.business.findUnique({
-        where: { id: businessId },
-        select: { userId: true }
+      const business = await db.query.businesses.findFirst({
+        where: eq(businesses.id, businessId),
+        columns: { userId: true }
       });
       if (!business || business.userId !== user.id) {
         return { success: false, error: "Forbidden: Unauthorized business association" };
       }
     }
 
-    const playLog = await prisma.playLog.create({
-      data: {
-        trackId,
-        businessId,
-        locationId,
-      },
-    });
+    const [playLog] = await db.insert(playLogs).values({
+      trackId,
+      businessId,
+      locationId: locationId || null,
+    }).returning();
 
     // Revalidate the content page to update play counts (Removed to reduce server load)
     // revalidatePath("/admin/content");
@@ -58,25 +57,23 @@ export async function logPlayAction(trackId: string, businessId?: string, locati
  */
 export async function getPlayLogsAction(limit: number = 50) {
   try {
-    const logs = await prisma.playLog.findMany({
-      take: limit,
-      orderBy: {
-        playedAt: "desc",
-      },
-      include: {
+    const logs = await db.query.playLogs.findMany({
+      limit: limit,
+      orderBy: [desc(playLogs.playedAt)],
+      with: {
         track: {
-          select: {
+          columns: {
             title: true,
             artist: true,
           },
         },
         business: {
-          select: {
+          columns: {
             legalName: true,
           },
         },
         location: {
-          select: {
+          columns: {
             name: true,
           },
         },

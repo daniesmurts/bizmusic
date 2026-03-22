@@ -39,9 +39,9 @@ interface BlogPost {
   published: boolean;
   featured: boolean;
   views: number;
-  publishedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  publishedAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   category: {
     id: string;
     name: string;
@@ -59,7 +59,7 @@ export default function AdminBlogPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showUnpublished, setShowUnpublished] = useState(false);
 
-  // Fetch blog posts
+  // Fetch blog posts (no published filter — admin sees all)
   const { data: postsData } = useQuery({
     queryKey: ["admin-blog-posts", { search: searchQuery, categoryId: selectedCategory }],
     queryFn: async () => {
@@ -115,7 +115,7 @@ export default function AdminBlogPage() {
     ? posts
     : posts.filter((post) => post.published);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     return new Date(dateString).toLocaleDateString("ru-RU", {
       day: "numeric",
       month: "long",

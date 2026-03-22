@@ -30,7 +30,7 @@ The core value proposition is **100% Legal Compliance** (exempt from RAO/VOIS fe
 -   **Production (152-FZ):** Yandex Cloud (PostgreSQL, Object Storage).
 -   **Testing/Prototype:** Supabase (PostgreSQL, Storage, Auth) — *Temporary for concept validation.*
 -   **Hosting:** Yandex Cloud (Serverless) or Vercel (for testing only).
--   **Database:** PostgreSQL (via Prisma).
+-   **Database:** PostgreSQL (via Drizzle ORM).
 -   **Storage:** S3-compatible (Yandex Object Storage or Supabase Storage).
 -   **Auth:** Supabase Auth (Testing) or Yandex ID (Production).
 -   **Payments:** YooKassa SDK.
@@ -112,4 +112,4 @@ The core value proposition is **100% Legal Compliance** (exempt from RAO/VOIS fe
 -   **Foreign Scripts:** Do not import Google Fonts that might be blocked. Use Yandex Fonts or system fonts (`Inter`, `Roboto`).
 
 ## 📝 First Task
-Initialize the Next.js project with TypeScript, Tailwind, and configure `next-pwa`. Set up the Yandex Cloud PostgreSQL connection string in `.env.example`. Create the base database schema using Prisma/Drizzle.
+Initialize the Next.js project with TypeScript, Tailwind, and configure `next-pwa`. Set up the Yandex Cloud PostgreSQL connection string in `.env.example`. Create the base database schema using Drizzle.

@@ -1,6 +1,8 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/db";
+import { businesses, locations, playlists, licenses, playlistTracks } from "@/db/schema";
+import { eq, desc, sql } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 
 export async function getDashboardDataAction() {
@@ -12,34 +14,18 @@ export async function getDashboardDataAction() {
       return { success: false, error: "Not authenticated" };
     }
 
-    const business = await prisma.business.findFirst({
-      where: { userId: user.id },
-      orderBy: [
-        { subscriptionStatus: 'desc' }, // ACTIVE (1) is after INACTIVE (0) in this schema, so desc puts ACTIVE first
-        { updatedAt: 'desc' }
-      ],
-      select: {
-        id: true,
-        legalName: true,
-        subscriptionStatus: true,
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      orderBy: [desc(businesses.subscriptionStatus), desc(businesses.updatedAt)],
+      with: {
         locations: {
-          orderBy: { createdAt: "desc" },
-          take: 5,
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            createdAt: true
-          }
+          orderBy: [desc(locations.createdAt)],
+          limit: 5,
         },
         playlists: {
-          select: {
+          columns: {
             id: true,
             name: true,
-            updatedAt: true,
-            _count: {
-              select: { tracks: true }
-            }
           }
         }
       }
@@ -61,8 +47,21 @@ export async function getDashboardDataAction() {
       };
     }
 
-    // Count tracks across all playlists belonging to this business
-    const trackCount = business.playlists.reduce((acc, p) => acc + p._count.tracks, 0);
+    // Fetch playlists with track counts separately
+    const playlistsList = await Promise.all(business.playlists.map(async (p) => {
+      const [{ count }] = await db
+        .select({ count: sql`count(*)`.mapWith(Number) })
+        .from(playlistTracks)
+        .where(eq(playlistTracks.playlistId, p.id));
+      
+      return {
+        id: p.id,
+        name: p.name,
+        trackCount: count || 0
+      };
+    }));
+
+    const totalTrackCount = playlistsList.reduce((acc, p) => acc + p.trackCount, 0);
 
     return {
       success: true,
@@ -70,15 +69,10 @@ export async function getDashboardDataAction() {
         businessId: business.id,
         businessName: business.legalName,
         locations: business.locations,
-        playlists: business.playlists.map(p => ({
-          id: p.id,
-          name: p.name,
-          trackCount: p._count.tracks,
-          updatedAt: p.updatedAt
-        })),
+        playlists: playlistsList,
         stats: {
           locationCount: business.locations.length,
-          trackCount,
+          trackCount: totalTrackCount,
           licenseStatus: business.subscriptionStatus
         }
       }
@@ -100,37 +94,15 @@ export async function getBusinessDetailsAction() {
 
     if (!user) return { success: false, error: "Not authenticated" };
 
-    const business = await prisma.business.findFirst({
-      where: { userId: user.id },
-      orderBy: [
-        { subscriptionStatus: 'desc' }, 
-        { updatedAt: 'desc' }
-      ],
-      select: {
-        id: true,
-        legalName: true,
-        inn: true,
-        ogrn: true,
-        kpp: true,
-        address: true,
-        subscriptionStatus: true,
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      orderBy: [desc(businesses.subscriptionStatus), desc(businesses.updatedAt)],
+      with: {
         licenses: {
-          orderBy: { issuedAt: 'desc' },
-          take: 1,
-          select: {
-            id: true,
-            pdfUrl: true,
-            signingName: true,
-            issuedAt: true
-          }
+          orderBy: [desc(licenses.issuedAt)],
+          limit: 1,
         },
-        locations: {
-          select: {
-            id: true,
-            name: true,
-            address: true
-          }
-        }
+        locations: true,
       }
     });
 

@@ -1,6 +1,8 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/db";
+import { businesses, payments } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 
@@ -15,11 +17,9 @@ export async function getUserProfileAction() {
     if (!user) throw new Error("Not authenticated");
     
     // Get business data
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("*")
-      .eq("userId", user.id)
-      .single();
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+    });
     
     return {
       success: true,
@@ -137,14 +137,13 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
     if (!user) throw new Error("Not authenticated");
     
     // Get existing business
-    const { data: existingBusiness } = await supabase
-      .from("businesses")
-      .select("id")
-      .eq("userId", user.id)
-      .maybeSingle(); // Correctly handle 0 or 1
+    const existingBusiness = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      columns: { id: true }
+    });
     
     // Basic fields
-    const businessData: Record<string, string | null> = {
+    const businessData: Partial<typeof businesses.$inferInsert> = {
       userId: user.id,
       inn: data.inn || "",
       legalName: data.legalName || "",
@@ -162,13 +161,9 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
     
     if (!existingBusiness) {
       // Create new business profile
-      const { data: newBusiness, error } = await supabase
-        .from("businesses")
-        .insert(businessData)
-        .select()
-        .single();
-      
-      if (error) throw error;
+      const [newBusiness] = await db.insert(businesses)
+        .values(businessData as typeof businesses.$inferInsert)
+        .returning();
       
       revalidatePath("/dashboard/settings");
       
@@ -180,14 +175,10 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
     }
     
     // Update existing business
-    const { data: updatedBusiness, error } = await supabase
-      .from("businesses")
-      .update(businessData)
-      .eq("id", existingBusiness.id)
-      .select()
-      .single();
-    
-    if (error) throw error;
+    const [updatedBusiness] = await db.update(businesses)
+      .set(businessData)
+      .where(eq(businesses.id, existingBusiness.id))
+      .returning();
     
     revalidatePath("/dashboard/settings");
     
@@ -217,24 +208,22 @@ export async function getPaymentMethodsAction() {
     if (!user) throw new Error("Not authenticated");
 
     // First find businessId
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("id")
-      .eq("userId", user.id)
-      .single();
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      columns: { id: true }
+    });
 
     if (!business) return { success: true, data: [] };
     
-    const { data: payments } = await supabase
-      .from("payments")
-      .select("*")
-      .eq("businessId", business.id)
-      .order("createdAt", { ascending: false })
-      .limit(10);
+    const paymentsList = await db.query.payments.findMany({
+      where: eq(payments.businessId, business.id),
+      orderBy: [desc(payments.createdAt)],
+      limit: 10,
+    });
     
     return {
       success: true,
-      data: payments || [],
+      data: paymentsList || [],
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch payment history";
@@ -256,11 +245,16 @@ export async function getSubscriptionInfoAction() {
     
     if (!user) throw new Error("Not authenticated");
     
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("subscriptionStatus, subscriptionExpiresAt, currentPlanSlug, trialEndsAt, rebillId")
-      .eq("userId", user.id)
-      .maybeSingle();
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      columns: {
+        subscriptionStatus: true,
+        subscriptionExpiresAt: true,
+        currentPlanSlug: true,
+        trialEndsAt: true,
+        rebillId: true,
+      }
+    });
     
     return {
       success: true,

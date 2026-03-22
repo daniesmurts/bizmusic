@@ -1,13 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { db } from "@/db";
+import { playlists, playlistTracks, tracks, type ScheduleConfig } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
 
 export interface PlaylistInput {
   name: string;
   businessId?: string;
-  scheduleConfig?: Prisma.InputJsonValue;
+  scheduleConfig?: ScheduleConfig;
 }
 
 /**
@@ -15,31 +16,34 @@ export interface PlaylistInput {
  */
 export async function getPlaylistsAction(businessId?: string) {
   try {
-    const where: Prisma.PlaylistWhereInput = {};
-    
-    if (businessId) {
-      where.businessId = businessId;
-    }
-
-    const playlists = await prisma.playlist.findMany({
-      where,
-      include: {
+    const playlistsList = await db.query.playlists.findMany({
+      where: businessId ? eq(playlists.businessId, businessId) : undefined,
+      with: {
         business: {
-          select: {
+          columns: {
             id: true,
             legalName: true,
           },
         },
-        _count: {
-          select: { tracks: true },
+        tracks: {
+          with: {
+            track: true,
+          },
+          orderBy: (tracks, { asc }) => [asc(tracks.position)],
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [desc(playlists.createdAt)],
     });
+
+    // Remap to match previous structure with _count
+    const mappedPlaylists = playlistsList.map((p) => ({
+      ...p,
+      _count: { tracks: p.tracks.length }
+    }));
 
     return {
       success: true,
-      data: playlists,
+      data: mappedPlaylists,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch playlists";
@@ -56,22 +60,20 @@ export async function getPlaylistsAction(businessId?: string) {
  */
 export async function getPlaylistByIdAction(playlistId: string) {
   try {
-    const playlist = await prisma.playlist.findUnique({
-      where: { id: playlistId },
-      include: {
+    const playlist = await db.query.playlists.findFirst({
+      where: eq(playlists.id, playlistId),
+      with: {
         business: {
-          select: {
+          columns: {
             id: true,
             legalName: true,
           },
         },
         tracks: {
-          include: {
+          with: {
             track: true,
           },
-          orderBy: {
-            position: "asc",
-          },
+          orderBy: (tracks, { asc }) => [asc(tracks.position)],
         },
       },
     });
@@ -102,13 +104,11 @@ export async function getPlaylistByIdAction(playlistId: string) {
  */
 export async function createPlaylistAction(data: PlaylistInput) {
   try {
-    const playlist = await prisma.playlist.create({
-      data: {
-        name: data.name,
-        businessId: data.businessId,
-        scheduleConfig: data.scheduleConfig,
-      },
-    });
+    const [playlist] = await db.insert(playlists).values({
+      name: data.name,
+      businessId: data.businessId,
+      scheduleConfig: data.scheduleConfig,
+    }).returning();
 
     revalidatePath("/admin/content");
 
@@ -134,13 +134,13 @@ export async function updatePlaylistAction(
   data: Partial<PlaylistInput>
 ) {
   try {
-    const playlist = await prisma.playlist.update({
-      where: { id: playlistId },
-      data: {
+    const [playlist] = await db.update(playlists)
+      .set({
         name: data.name,
         scheduleConfig: data.scheduleConfig,
-      },
-    });
+      })
+      .where(eq(playlists.id, playlistId))
+      .returning();
 
     revalidatePath("/admin/content");
 
@@ -167,30 +167,25 @@ export async function updatePlaylistTracksAction(
 ) {
   try {
     // We use a transaction to ensure atomic update of the playlist tracks
-    await prisma.$transaction(async (tx) => {
+    await db.transaction(async (tx) => {
       // 1. Delete all existing tracks for this playlist
-      await tx.playlistTrack.deleteMany({
-        where: { playlistId },
-      });
+      await tx.delete(playlistTracks).where(eq(playlistTracks.playlistId, playlistId));
 
       // 2. Insert new tracks in the specified order
       if (trackIds.length > 0) {
-        const playlistTracks = trackIds.map((trackId, index) => ({
+        const newPlaylistTracks = trackIds.map((trackId, index) => ({
           playlistId,
           trackId,
           position: index,
         }));
 
-        await tx.playlistTrack.createMany({
-          data: playlistTracks,
-        });
+        await tx.insert(playlistTracks).values(newPlaylistTracks);
       }
 
       // 3. Update the playlist's updatedAt timestamp
-      await tx.playlist.update({
-        where: { id: playlistId },
-        data: { updatedAt: new Date() },
-      });
+      await tx.update(playlists)
+        .set({ updatedAt: new Date() })
+        .where(eq(playlists.id, playlistId));
     });
 
     revalidatePath("/admin/content");
@@ -213,9 +208,7 @@ export async function updatePlaylistTracksAction(
  */
 export async function deletePlaylistAction(playlistId: string) {
   try {
-    await prisma.playlist.delete({
-      where: { id: playlistId },
-    });
+    await db.delete(playlists).where(eq(playlists.id, playlistId));
 
     revalidatePath("/admin/content");
 
@@ -237,21 +230,18 @@ export async function deletePlaylistAction(playlistId: string) {
  */
 export async function getTracksForPlaylistAction() {
   try {
-    const tracks = await prisma.track.findMany({
-      orderBy: { title: "asc" },
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        duration: true,
-        bpm: true,
-        moodTags: true,
-      },
-    });
+    const tracksList = await db.select({
+      id: tracks.id,
+      title: tracks.title,
+      artist: tracks.artist,
+      duration: tracks.duration,
+      bpm: tracks.bpm,
+      moodTags: tracks.moodTags,
+    }).from(tracks).orderBy(tracks.title);
 
     return {
       success: true,
-      data: tracks,
+      data: tracksList,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch tracks";

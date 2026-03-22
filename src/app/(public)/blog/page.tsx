@@ -13,9 +13,9 @@ interface BlogPostSummary {
   published: boolean;
   featured: boolean;
   views: number;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  publishedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   categoryId: string;
   authorId: string;
   category: { id: string; name: string } | null;
@@ -33,19 +33,16 @@ export default async function BlogPage() {
   let fetchedCategories: CategorySummary[] = [];
 
   try {
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Blog fetch timeout - 10s")), 10000);
-    });
-
-    const postsResult = await Promise.race([
-      getBlogPostsAction({ published: true }),
-      timeoutPromise
-    ]) as Awaited<ReturnType<typeof getBlogPostsAction>>;
+    const postsResult = await getBlogPostsAction({ published: true });
 
     if (postsResult?.success && postsResult?.data) {
       initialPosts = postsResult.data;
     }
+  } catch (err: unknown) {
+    console.error("Blog page posts error:", err instanceof Error ? err.message : err);
+  }
 
+  try {
     const categoriesResult = await getBlogCategoriesAction();
 
     if (categoriesResult?.success && categoriesResult?.data) {
@@ -55,13 +52,12 @@ export default async function BlogPage() {
       }));
     }
   } catch (err: unknown) {
-    if (process.env.NODE_ENV === "development") {
-      console.error("Blog page error:", err instanceof Error ? err.message : err);
-    }
+    console.error("Blog page categories error:", err instanceof Error ? err.message : err);
   }
 
+  const totalCount = fetchedCategories.reduce((sum, cat) => sum + cat.count, 0);
   const initialCategories = [
-    { name: "Все", count: initialPosts.length },
+    { name: "Все", count: totalCount },
     ...fetchedCategories
   ];
 

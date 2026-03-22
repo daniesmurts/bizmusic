@@ -1,6 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/db";
+import { businesses, licenses } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -11,19 +13,30 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const business = await prisma.business.findFirst({
-      where: { userId: user.id },
-      select: { 
-        id: true, 
-        legalName: true, 
-        currentPlanSlug: true,
-        subscriptionStatus: true,
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      columns: {
+        id: true,
         inn: true,
+        ogrn: true,
         kpp: true,
+        legalName: true,
         address: true,
+        phone: true,
+        contactPerson: true,
+        businessType: true,
+        businessCategory: true,
+        subscriptionStatus: true,
+        subscriptionExpiresAt: true,
+        trialEndsAt: true,
+        currentPlanSlug: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      with: {
         licenses: {
-          orderBy: { issuedAt: 'desc' },
-          take: 1
+          orderBy: [desc(licenses.issuedAt)],
+          limit: 1,
         }
       }
     });

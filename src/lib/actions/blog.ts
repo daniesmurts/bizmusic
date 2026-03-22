@@ -1,59 +1,23 @@
 "use server";
 
+import { db } from "@/db";
+import { blogPosts, blogCategories, blogPostTags, users } from "@/db/schema";
+import { eq, asc, desc, and, ilike, or, sql, SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
-
-// Sanitizes search input for PostgREST .or() query
-function sanitizeSearch(query: string) {
-  return query.replace(/[(),]/g, " ").trim();
-}
-
-interface BlogPostTag {
-  tagName: string;
-}
-
-interface BlogCategory {
-  id: string;
-  name: string;
-}
-
-interface BlogAuthor {
-  id: string;
-  email: string;
-}
-
-interface RawBlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  imageUrl: string;
-  published: boolean;
-  featured: boolean;
-  views: number;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  categoryId: string;
-  authorId: string;
-  category: BlogCategory | BlogCategory[] | null;
-  author: BlogAuthor | BlogAuthor[] | null;
-  tags: BlogPostTag[] | null;
-}
+// Redundant types removed as Drizzle handles inference
 
 async function checkAdmin() {
   const { createClient } = await import("@/utils/supabase/server");
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
   if (!user) return { isAdmin: false, error: "Unauthorized" };
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { role: true }
-  });
+  const dbUserQuery = await db.execute(
+    sql`SELECT role FROM users WHERE id = ${user.id} LIMIT 1`
+  );
+  const dbUser = dbUserQuery.rows[0];
 
   if (dbUser?.role !== "ADMIN") {
     return { isAdmin: false, error: "Forbidden: Admin access required" };
@@ -75,6 +39,10 @@ export interface BlogPostInput {
   tags?: string[];
 }
 
+function escapeLike(value: string): string {
+  return value.replace(/[%_\\]/g, (ch) => `\\${ch}`);
+}
+
 /**
  * Get all blog posts with filtering
  */
@@ -86,41 +54,57 @@ export async function getBlogPostsAction(filters?: {
   offset?: number;
 }) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
+    const conditions: SQL[] = [];
 
-    let query = supabase
-      .from("blog_posts")
-      .select('id, title, slug, excerpt, content, "imageUrl", published, featured, views, "publishedAt", "createdAt", "updatedAt", "categoryId", "authorId", category:blog_categories(id, name), author:users(id, email), tags:blog_post_tags(tagName)')
-      .order("createdAt", { ascending: false });
-
+    // Respect the published filter — defaults to true for public pages
     if (filters?.published !== undefined) {
-      query = query.eq("published", filters.published);
+      conditions.push(eq(blogPosts.published, filters.published));
     }
 
     if (filters?.categoryId) {
-      query = query.eq("categoryId", filters.categoryId);
+      conditions.push(eq(blogPosts.categoryId, filters.categoryId));
     }
 
     if (filters?.search) {
-      const sanitized = sanitizeSearch(filters.search);
-      if (sanitized) {
-        query = query.or(`title.ilike.%${sanitized}%,excerpt.ilike.%${sanitized}%`);
-      }
+      const safeSearch = escapeLike(filters.search);
+      conditions.push(
+        or(
+          ilike(blogPosts.title, `%${safeSearch}%`),
+          ilike(blogPosts.excerpt, `%${safeSearch}%`)
+        ) as SQL
+      );
     }
 
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
+    const limit = Math.max(1, Math.min(Number(filters?.limit) || 100, 500));
+    const offset = Math.max(0, Number(filters?.offset) || 0);
 
-    const { data, error } = await query;
-    if (error) throw error;
+    const postsQuery = await db.execute(sql`
+      SELECT
+        blog_posts.id, blog_posts.title, blog_posts.slug, blog_posts.excerpt, blog_posts.content, blog_posts."imageUrl",
+        blog_posts.published, blog_posts.featured, blog_posts.views, blog_posts."publishedAt",
+        blog_posts."createdAt", blog_posts."updatedAt",
+        blog_posts."categoryId", blog_posts."authorId",
+        json_build_object('id', c.id, 'name', c.name) as category,
+        json_build_object('id', u.id, 'email', u.email) as author,
+        COALESCE(
+          (SELECT json_agg(t."tagName") FROM blog_post_tags t WHERE t."postId" = blog_posts.id),
+          '[]'::json
+        ) as tags
+      FROM blog_posts
+      LEFT JOIN blog_categories c ON blog_posts."categoryId" = c.id
+      LEFT JOIN users u ON blog_posts."authorId" = u.id
+      ${conditions.length > 0 ? sql`WHERE ${and(...conditions)}` : sql``}
+      ORDER BY blog_posts."createdAt" DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `);
 
-    const mappedData = (data as RawBlogPost[] || []).map((post) => ({
-      ...post,
-      category: Array.isArray(post.category) ? post.category[0] : post.category,
-      author: Array.isArray(post.author) ? post.author[0] : post.author,
-      tags: post.tags?.map((t) => t.tagName) || [],
+    // Parse JSON strings returned by json_build_object
+    const mappedData = postsQuery.rows.map((row: any) => ({
+      ...row,
+      category: typeof row.category === 'string' ? JSON.parse(row.category) : row.category,
+      author: typeof row.author === 'string' ? JSON.parse(row.author) : row.author,
+      tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags,
     }));
 
     return {
@@ -142,39 +126,44 @@ export async function getBlogPostsAction(filters?: {
  */
 export async function getBlogPostBySlugAction(slug: string) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
+    const conditions = [eq(blogPosts.slug, slug)];
+    // Only show published posts for public access
+    conditions.push(eq(blogPosts.published, true));
 
-    const { data: post, error } = await supabase
-      .from("blog_posts")
-      .select(`
-        *,
-        category:blog_categories (
-          id,
-          name
-        ),
-        author:users (
-          id,
-          email
-        ),
-        tags:blog_post_tags (
-          tagName
-        )
-      `)
-      .eq("slug", slug)
-      .single();
+    const postQuery = await db.execute(sql`
+      SELECT
+        blog_posts.id, blog_posts.title, blog_posts.slug, blog_posts.excerpt, blog_posts.content, blog_posts."imageUrl",
+        blog_posts.published, blog_posts.featured, blog_posts.views, blog_posts."publishedAt",
+        blog_posts."createdAt", blog_posts."updatedAt",
+        blog_posts."categoryId", blog_posts."authorId",
+        json_build_object('id', c.id, 'name', c.name) as category,
+        json_build_object('id', u.id, 'email', u.email) as author,
+        COALESCE(
+          (SELECT json_agg(t."tagName") FROM blog_post_tags t WHERE t."postId" = blog_posts.id),
+          '[]'::json
+        ) as tags
+      FROM blog_posts
+      LEFT JOIN blog_categories c ON blog_posts."categoryId" = c.id
+      LEFT JOIN users u ON blog_posts."authorId" = u.id
+      ${conditions.length > 0 ? sql`WHERE ${and(...conditions)}` : sql``}
+      LIMIT 1
+    `);
 
-    if (error) throw error;
+    const post = postQuery.rows[0];
+
     if (!post) return { success: false, error: "Post not found" };
+
+    // Parse JSON strings returned by json_build_object
+    const parsedPost = {
+      ...post,
+      category: typeof post.category === 'string' ? JSON.parse(post.category) : post.category,
+      author: typeof post.author === 'string' ? JSON.parse(post.author) : post.author,
+      tags: typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags,
+    };
 
     return {
       success: true,
-      data: {
-        ...post,
-        category: Array.isArray(post.category) ? post.category[0] : post.category,
-        author: Array.isArray(post.author) ? post.author[0] : post.author,
-        tags: (post as RawBlogPost).tags?.map((t) => t.tagName) || [],
-      },
+      data: parsedPost,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch blog post";
@@ -187,43 +176,47 @@ export async function getBlogPostBySlugAction(slug: string) {
 }
 
 /**
- * Get a single blog post by ID
+ * Get a single blog post by ID (admin only)
  */
 export async function getBlogPostByIdAction(postId: string) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
+    const { isAdmin, error: adminError } = await checkAdmin();
+    if (!isAdmin) return { success: false, error: adminError };
 
-    const { data: post, error } = await supabase
-      .from("blog_posts")
-      .select(`
-        *,
-        category:blog_categories (
-          id,
-          name
-        ),
-        author:users (
-          id,
-          email
-        ),
-        tags:blog_post_tags (
-          tagName
-        )
-      `)
-      .eq("id", postId)
-      .single();
+    const postQuery = await db.execute(sql`
+      SELECT
+        blog_posts.id, blog_posts.title, blog_posts.slug, blog_posts.excerpt, blog_posts.content, blog_posts."imageUrl",
+        blog_posts.published, blog_posts.featured, blog_posts.views, blog_posts."publishedAt",
+        blog_posts."createdAt", blog_posts."updatedAt",
+        blog_posts."categoryId", blog_posts."authorId",
+        json_build_object('id', c.id, 'name', c.name) as category,
+        json_build_object('id', u.id, 'email', u.email) as author,
+        COALESCE(
+          (SELECT json_agg(t."tagName") FROM blog_post_tags t WHERE t."postId" = blog_posts.id),
+          '[]'::json
+        ) as tags
+      FROM blog_posts
+      LEFT JOIN blog_categories c ON blog_posts."categoryId" = c.id
+      LEFT JOIN users u ON blog_posts."authorId" = u.id
+      WHERE blog_posts.id = ${postId}
+      LIMIT 1
+    `);
 
-    if (error) throw error;
+    const post = postQuery.rows[0];
+
     if (!post) return { success: false, error: "Post not found" };
+
+    // Parse JSON strings returned by json_build_object
+    const parsedPost = {
+      ...post,
+      category: typeof post.category === 'string' ? JSON.parse(post.category) : post.category,
+      author: typeof post.author === 'string' ? JSON.parse(post.author) : post.author,
+      tags: typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags,
+    };
 
     return {
       success: true,
-      data: {
-        ...post,
-        category: Array.isArray(post.category) ? post.category[0] : post.category,
-        author: Array.isArray(post.author) ? post.author[0] : post.author,
-        tags: (post as RawBlogPost).tags?.map((t) => t.tagName) || [],
-      },
+      data: parsedPost,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch blog post";
@@ -240,36 +233,22 @@ export async function getBlogPostByIdAction(postId: string) {
  */
 export async function getBlogCategoriesAction() {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
+    const categoriesQuery = await db.execute(sql`
+      SELECT
+        c.id,
+        c.name,
+        (SELECT count(*) FROM blog_posts bp WHERE bp."categoryId" = c.id AND bp.published = true) as count
+      FROM blog_categories c
+      ORDER BY c.name ASC
+    `);
 
-    const { data: categories, error } = await supabase
-      .from("blog_categories")
-      .select(`*`)
-      .order("name", { ascending: true });
-
-    if (error) {
-      console.error("Supabase categories error:", error);
-      throw error;
-    }
-
-    // Get post counts separately
-    const categoriesWithCount = await Promise.all(
-      (categories || []).map(async (cat) => {
-        const { count } = await supabase
-          .from("blog_posts")
-          .select("*", { count: "exact", head: true })
-          .eq("categoryId", cat.id);
-
-        return {
-          id: cat.id,
-          name: cat.name,
-          _count: {
-            posts: count || 0,
-          },
-        };
-      })
-    );
+    const categoriesWithCount = categoriesQuery.rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      _count: {
+        posts: parseInt(row.count as string || "0", 10),
+      },
+    }));
 
     return {
       success: true,
@@ -293,24 +272,18 @@ export async function createBlogPostAction(data: BlogPostInput) {
     const { isAdmin, error: adminError, supabase } = await checkAdmin();
     if (!isAdmin || !supabase) return { success: false, error: adminError };
 
-    const { data: post, error } = await supabase
-      .from("blog_posts")
-      .insert({
-        title: data.title,
-        slug: data.slug,
-        excerpt: data.excerpt,
-        content: data.content,
-        categoryId: data.categoryId,
-        authorId: data.authorId,
-        imageUrl: data.imageUrl,
-        published: data.published || false,
-        featured: data.featured || false,
-        publishedAt: data.published ? new Date().toISOString() : null,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
+    const [post] = await db.insert(blogPosts).values({
+      title: data.title,
+      slug: data.slug,
+      excerpt: data.excerpt,
+      content: data.content,
+      categoryId: data.categoryId,
+      authorId: data.authorId,
+      imageUrl: data.imageUrl,
+      published: data.published || false,
+      featured: data.featured || false,
+      publishedAt: data.published ? new Date() : null,
+    }).returning();
 
     // Add tags if provided
     if (data.tags && data.tags.length > 0) {
@@ -318,7 +291,7 @@ export async function createBlogPostAction(data: BlogPostInput) {
         postId: post.id,
         tagName: tagName,
       }));
-      await supabase.from("blog_post_tags").insert(tagsToInsert);
+      await db.insert(blogPostTags).values(tagsToInsert);
     }
 
     revalidatePath("/admin/blog");
@@ -352,7 +325,7 @@ export async function updateBlogPostAction(
     const { isAdmin, error: adminError, supabase } = await checkAdmin();
     if (!isAdmin || !supabase) return { success: false, error: adminError };
 
-    const updateData: Partial<Record<string, string | boolean | null>> = {};
+    const updateData: Partial<typeof blogPosts.$inferInsert> = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
@@ -361,28 +334,24 @@ export async function updateBlogPostAction(
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
     if (data.published !== undefined) {
       updateData.published = data.published;
-      if (data.published) updateData.publishedAt = new Date().toISOString();
+      if (data.published) updateData.publishedAt = new Date();
     }
     if (data.featured !== undefined) updateData.featured = data.featured;
 
-    const { data: post, error } = await supabase
-      .from("blog_posts")
-      .update(updateData)
-      .eq("id", postId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const [post] = await db.update(blogPosts)
+      .set(updateData)
+      .where(eq(blogPosts.id, postId))
+      .returning();
 
     // Update tags if provided
     if (data.tags) {
-      await supabase.from("blog_post_tags").delete().eq("postId", postId);
+      await db.delete(blogPostTags).where(eq(blogPostTags.postId, postId));
       if (data.tags.length > 0) {
         const tagsToInsert = data.tags.map((tagName) => ({
           postId: postId,
           tagName: tagName,
         }));
-        await supabase.from("blog_post_tags").insert(tagsToInsert);
+        await db.insert(blogPostTags).values(tagsToInsert);
       }
     }
 
@@ -411,15 +380,7 @@ export async function deleteBlogPostAction(postId: string) {
     const { isAdmin, error: adminError, supabase } = await checkAdmin();
     if (!isAdmin || !supabase) return { success: false, error: adminError };
 
-    // Delete tags first (cascade should handle this, but being explicit)
-    await supabase.from("blog_post_tags").delete().eq("postId", postId);
-    
-    const { error } = await supabase
-      .from("blog_posts")
-      .delete()
-      .eq("id", postId);
-
-    if (error) throw error;
+    await db.delete(blogPosts).where(eq(blogPosts.id, postId));
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");

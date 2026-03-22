@@ -20,8 +20,10 @@ export function BlogContent({ content }: BlogContentProps) {
           <ListTag key={`list-${elements.length}`} className="space-y-2 my-6 ml-4">
             {listItems.map((item, i) => (
               <li key={i} className="text-neutral-300 text-lg font-medium flex items-start gap-3">
-                {listType === "ul" && (
+                {listType === "ul" ? (
                   <span className="w-1.5 h-1.5 rounded-full bg-neon mt-2.5 flex-shrink-0" />
+                ) : (
+                  <span className="text-neon font-black mt-0.5 flex-shrink-0 min-w-[1.5rem]">{i + 1}.</span>
                 )}
                 <span dangerouslySetInnerHTML={{ __html: parseInline(item) }} />
               </li>
@@ -44,11 +46,16 @@ export function BlogContent({ content }: BlogContentProps) {
     };
 
     const sanitizeUrl = (url: string): string => {
-      const trimmed = url.trim().toLowerCase();
-      if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:')) {
+      const trimmed = url.trim();
+      // Only allow http(s) and relative URLs
+      if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/') || trimmed.startsWith('#')) {
+        return trimmed;
+      }
+      // Block javascript:, data:, vbscript:, and anything else
+      if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
         return '#';
       }
-      return url;
+      return trimmed;
     };
 
     const parseInline = (text: string): string => {
