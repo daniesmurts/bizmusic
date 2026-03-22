@@ -2,6 +2,9 @@
 
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardDataAction } from "@/lib/actions/dashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Music,
   MapPin,
@@ -14,9 +17,28 @@ import {
   ArrowRight
 } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { FeaturedMusic } from "@/components/FeaturedMusic";
 
 export default function Dashboard() {
   const { user } = useAuth();
+
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ["dashboard-data"],
+    queryFn: async () => {
+      const result = await getDashboardDataAction();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+  });
+
+  const stats = dashboardData?.stats || {
+    locationCount: 0,
+    trackCount: 0,
+    licenseStatus: "—"
+  };
+
+  const locations = dashboardData?.locations || [];
 
   return (
     <div className="space-y-12 animate-fade-in">
@@ -47,7 +69,9 @@ export default function Dashboard() {
             <MapPin className="text-neon w-6 h-6" />
           </div>
           <div>
-            <div className="text-4xl font-black text-white leading-none mb-1">1</div>
+            <div className="text-4xl font-black text-white leading-none mb-1">
+              {isLoading ? <Skeleton className="h-10 w-12 bg-white/5" /> : stats.locationCount}
+            </div>
             <div className="text-neutral-500 font-bold uppercase tracking-widest text-xs">Активные локации</div>
           </div>
         </div>
@@ -56,7 +80,9 @@ export default function Dashboard() {
             <Music className="text-blue-500 w-6 h-6" />
           </div>
           <div>
-            <div className="text-4xl font-black text-white leading-none mb-1">128</div>
+            <div className="text-4xl font-black text-white leading-none mb-1">
+              {isLoading ? <Skeleton className="h-10 w-20 bg-white/5" /> : stats.trackCount}
+            </div>
             <div className="text-neutral-500 font-bold uppercase tracking-widest text-xs">Треков в плейлистах</div>
           </div>
         </div>
@@ -65,7 +91,12 @@ export default function Dashboard() {
             <ShieldCheck className="text-orange-500 w-6 h-6" />
           </div>
           <div>
-            <div className="text-4xl font-black text-white leading-none mb-1 text-orange-500">Active</div>
+            <div className={cn(
+               "text-2xl font-black uppercase tracking-tight leading-none mb-1",
+               stats.licenseStatus === 'ACTIVE' ? 'text-neon' : 'text-orange-500'
+            )}>
+              {isLoading ? <Skeleton className="h-8 w-24 bg-white/5" /> : stats.licenseStatus}
+            </div>
             <div className="text-neutral-500 font-bold uppercase tracking-widest text-xs">Статус лицензии</div>
           </div>
         </div>
@@ -78,42 +109,60 @@ export default function Dashboard() {
           <Link href="#" className="text-neon text-[10px] font-black uppercase tracking-widest hover:underline underline-offset-4">Посмотреть все</Link>
         </div>
         
-        <div className="glass-dark border border-white/10 rounded-[2.5rem] overflow-hidden">
-          <div className="p-8 flex items-center justify-between border-b border-white/5 group hover:bg-white/5 transition-colors cursor-pointer">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-neutral-900 rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform">
-                <Music className="text-neon/40 w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="text-xl font-black uppercase tracking-tight text-white mb-1">Кафе "Весна"</h3>
-                <p className="text-neutral-500 text-sm font-medium">ул. Большая Садовая, Ростов-на-Дону</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-12">
-              <div className="hidden md:block">
-                <div className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] mb-1">Текущий плейлист</div>
-                <div className="text-white font-black text-sm uppercase">Morning Jazz Lounge</div>
-              </div>
-              <Button size="icon" className="bg-neon/10 border border-neon/20 text-neon rounded-full hover:bg-neon hover:text-black">
-                <Play className="w-4 h-4 fill-current ml-0.5" />
-              </Button>
-            </div>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2].map(i => (
+              <div key={i} className="h-24 glass-dark rounded-[2rem] animate-pulse" />
+            ))}
           </div>
-          
-          <div className="bg-white/5 p-4 flex items-center justify-center gap-8">
-             <div className="flex items-center gap-2 text-neutral-500">
-               <BarChart3 className="w-4 h-4" />
-               <span className="text-xs font-bold uppercase tracking-widest">Аналитика доступна</span>
-             </div>
-             <div className="flex items-center gap-2 text-neutral-500">
-               <CreditCard className="w-4 h-4" />
-               <span className="text-xs font-bold uppercase tracking-widest">Следующая оплата: —</span>
-             </div>
+        ) : locations.length > 0 ? (
+          <div className="glass-dark border border-white/10 rounded-[2.5rem] overflow-hidden">
+            {locations.map((loc: any) => (
+              <div key={loc.id} className="p-8 flex items-center justify-between border-b border-white/5 group hover:bg-white/5 transition-colors cursor-pointer">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-neutral-900 rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform">
+                    <Music className="text-neon/40 w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tight text-white mb-1">{loc.name}</h3>
+                    <p className="text-neutral-500 text-sm font-medium">{loc.address}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-12">
+                  <div className="hidden md:block">
+                    <div className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] mb-1">Статус</div>
+                    <div className="text-white font-black text-sm uppercase">Онлайн</div>
+                  </div>
+                  <Button size="icon" className="bg-neon/10 border border-neon/20 text-neon rounded-full hover:bg-neon hover:text-black">
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        ) : (
+          <div className="glass-dark border border-white/10 p-12 rounded-[2.5rem] text-center space-y-4">
+             <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto">
+               <MapPin className="text-neutral-500 w-8 h-8" />
+             </div>
+             <p className="text-neutral-400 font-medium">У вас пока нет добавленных локаций.</p>
+             <Button className="bg-neon/10 border border-neon/20 text-neon hover:bg-neon hover:text-black rounded-xl">
+               Добавить первую точку
+             </Button>
+          </div>
+        )}
       </section>
 
-      {/* Quick Links to new pages */}
+      {/* Featured Music */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+          <h2 className="text-xl font-black uppercase tracking-tighter">Рекомендации <span className="text-neon">месяца</span></h2>
+          <p className="text-neutral-500 text-[10px] font-black uppercase tracking-widest italic">Подборка от редакции</p>
+        </div>
+        <FeaturedMusic />
+      </section>
+
+      {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
          <Link href="/dashboard/player" className="glass-dark border border-white/10 p-10 rounded-[2.5rem] space-y-6 relative overflow-hidden group">
            <div className="relative z-10 space-y-4">

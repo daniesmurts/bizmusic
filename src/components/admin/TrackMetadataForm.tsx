@@ -23,6 +23,7 @@ interface TrackMetadataFormProps {
     moodTags: string[];
     energyLevel: number;
     isExplicit: boolean;
+    isFeatured: boolean;
   }) => void;
   onCancel: () => void;
   initialData?: {
@@ -34,6 +35,7 @@ interface TrackMetadataFormProps {
     moodTags: string[];
     energyLevel?: number | null;
     isExplicit?: boolean;
+    isFeatured?: boolean;
   };
 }
 
@@ -88,6 +90,7 @@ export const TrackMetadataForm = ({
   const [moodTags, setMoodTags] = useState<string[]>(initialData?.moodTags || []);
   const [energyLevel, setEnergyLevel] = useState(initialData?.energyLevel || 5);
   const [isExplicit, setIsExplicit] = useState(initialData?.isExplicit || false);
+  const [isFeatured, setIsFeatured] = useState(initialData?.isFeatured || false);
   const [customTag, setCustomTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -130,6 +133,7 @@ export const TrackMetadataForm = ({
       moodTags,
       energyLevel,
       isExplicit,
+      isFeatured,
     });
   };
 
@@ -375,7 +379,7 @@ export const TrackMetadataForm = ({
         </div>
       </div>
 
-      {/* Explicit Content */}
+
       <div className="flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
         <div>
           <p className="text-white font-black uppercase tracking-tight">
@@ -388,6 +392,22 @@ export const TrackMetadataForm = ({
         <Switch
           checked={isExplicit}
           onCheckedChange={setIsExplicit}
+          className="data-[state=checked]:bg-neon"
+        />
+      </div>
+
+      <div className="flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+        <div>
+          <p className="text-white font-black uppercase tracking-tight">
+            Рекомендуемый трек
+          </p>
+          <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest mt-1">
+            Появляется на главной странице (Featured)
+          </p>
+        </div>
+        <Switch
+          checked={isFeatured}
+          onCheckedChange={setIsFeatured}
           className="data-[state=checked]:bg-neon"
         />
       </div>

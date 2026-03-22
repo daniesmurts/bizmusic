@@ -10,9 +10,11 @@ import {
   Play,
   Heart,
   ExternalLink,
-  CreditCard
+  CreditCard,
+  Star
 } from "lucide-react";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
+import { FeaturedMusic } from "@/components/FeaturedMusic";
 
 export default function Home() {
   const { setTrack } = usePlayerStore();
@@ -32,7 +34,7 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-24 pb-20">
       {/* Hero Section */}
-      <section className="relative h-[80vh] flex items-center px-12 overflow-hidden rounded-[3rem] mx-6">
+      <section className="relative min-h-[80vh] flex items-center px-6 md:px-12 py-20 overflow-hidden rounded-[2rem] md:rounded-[3rem] mx-4 md:mx-6">
         <Image
           src="/images/hero.png"
           alt="Hero Background"
@@ -48,17 +50,17 @@ export default function Home() {
             <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">Новое поколение звука</span>
           </div>
           
-          <h1 className="text-7xl md:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-white">
+          <h1 className="text-4xl sm:text-6xl md:text-8xl font-black uppercase tracking-tighter leading-[0.9] md:leading-[0.85] text-white">
             Атмосфера <br />
             <span className="text-neon outline-text">вашего успеха</span>
           </h1>
           
-          <p className="text-xl text-neutral-300 font-medium leading-relaxed max-w-xl">
+          <p className="text-lg md:text-xl text-neutral-300 font-medium leading-relaxed max-w-xl">
             Легальное музыкальное оформление для бизнеса. <br />
-            Без РАО и ВОИС. В одно касание.
+            100% уверенность. Полная безопасность. В одно касание.
           </p>
 
-          <div className="flex flex-wrap gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Link href="/register">
               <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-10 py-8 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                 Начать бесплатно
@@ -74,11 +76,11 @@ export default function Home() {
       </section>
 
       {/* Featured Products */}
-      <section className="px-12 space-y-12">
+      <section className="px-6 md:px-12 space-y-12">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <h2 className="text-5xl font-black uppercase tracking-tighter">Наши <span className="text-neon">Продукты</span></h2>
-            <p className="text-neutral-500 font-bold uppercase tracking-widest text-sm">Комплексные решения для вашего бизнеса</p>
+            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">Наши <span className="text-neon">Продукты</span></h2>
+            <p className="text-neutral-500 font-bold uppercase tracking-widest text-xs md:text-sm">Комплексные решения для вашего бизнеса</p>
           </div>
           <Link href="/products">
             <Button variant="ghost" className="text-neon font-black uppercase tracking-widest group">
@@ -147,42 +149,44 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Featured Music Section */}
+      <section className="px-6 md:px-12 space-y-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-neutral-500">
+              <Star className="w-4 h-4 text-neon fill-neon" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Бесплатный доступ • Featured</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none">
+              <span className="text-neon underline decoration-neon/20 underline-offset-8">Послушайте</span> <br />
+              прямо сейчас
+            </h2>
+          </div>
+          <p className="text-neutral-500 font-bold uppercase tracking-widest text-xs max-w-xs md:text-right">
+            Эти треки доступны для всех пользователей без авторизации
+          </p>
+        </div>
+
+        <FeaturedMusic />
+      </section>
+
       {/* Compliance & Features */}
-      <section className="px-12">
-        <div className="glass-dark border border-white/10 rounded-[3.5rem] p-16 relative overflow-hidden">
+      <section className="px-6 md:px-12">
+        <div className="glass-dark border border-white/10 rounded-[2rem] md:rounded-[3.5rem] p-8 md:p-16 relative overflow-hidden">
           <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-neon/10 blur-[120px] rounded-full" />
           
           <div className="relative z-10 grid md:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
-              <h2 className="text-6xl font-black uppercase tracking-tighter leading-[0.9]">
-                Ваша <span className="text-neon underline decoration-neon/30 underline-offset-8">защита</span> <br />
+              <h2 className="text-3xl md:text-6xl font-black uppercase tracking-tighter leading-[0.9]">
+                Ваша <span className="text-neon underline decoration-neon/30 underline-offset-8">защита</span> <br className="hidden md:block" />
                 наша работа
               </h2>
               <p className="text-neutral-400 text-lg leading-relaxed font-medium">
-                Мы берем на себя все юридические риски. Прямые договора с правообладателями позволяют вам не платить в РАО и ВОИС.
+                Полная юридическая безопасность и безупречное качество звука. <br className="hidden md:block" />
+                Мы берем на себя все заботы о правах, гарантируя вам спокойствие и легальную атмосферу.
               </p>
-              <div className="grid grid-cols-2 gap-6 pt-4">
-                <div className="space-y-4">
-                  <div className="w-14 h-14 bg-neon/10 border border-neon/20 rounded-2xl flex items-center justify-center">
-                    <ShieldCheck className="w-7 h-7 text-neon" />
-                  </div>
-                  <div>
-                    <h4 className="font-black uppercase tracking-tighter text-white">152-ФЗ (Данные)</h4>
-                    <p className="text-neutral-500 text-sm font-medium leading-tight">Сервера Yandex Cloud в РФ</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center">
-                    <CreditCard className="w-7 h-7 text-neutral-300" />
-                  </div>
-                  <div>
-                    <h4 className="font-black uppercase tracking-tighter text-white">54-ФЗ (Платежи)</h4>
-                    <p className="text-neutral-500 text-sm font-medium leading-tight">Чеки через YooKassa</p>
-                  </div>
-                </div>
-              </div>
             </div>
-            <div className="relative h-[500px] rounded-3xl overflow-hidden border border-white/10">
+            <div className="relative h-[300px] md:h-[500px] rounded-3xl overflow-hidden border border-white/10">
               <Image 
                 src="/images/mood-2.png" 
                 alt="Compliance" 
