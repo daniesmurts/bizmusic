@@ -202,7 +202,11 @@ export async function getBlogCategoriesAction() {
     const categories = await db.query.blogCategories.findMany({
       orderBy: [asc(blogCategories.name)],
       with: {
-        posts: true,
+        posts: {
+          columns: {
+            id: true,
+          },
+        },
       },
     });
 

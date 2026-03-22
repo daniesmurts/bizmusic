@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { businesses, licenses, users, locations } from "@/db/schema";
-import { eq, desc, inArray, sql, and } from "drizzle-orm";
+import { eq, desc, inArray, and } from "drizzle-orm";
 import { generateLicensePDF } from "@/lib/license-generator";
 import { supabaseAdmin } from "@/lib/supabase-storage";
 import { revalidatePath } from "next/cache";

@@ -1,14 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { playlists, playlistTracks, businesses, tracks } from "@/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { playlists, playlistTracks, tracks, type ScheduleConfig } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export interface PlaylistInput {
   name: string;
   businessId?: string;
-  scheduleConfig?: any; // Drizzle handles jsonb as any by default or specific type
+  scheduleConfig?: ScheduleConfig;
 }
 
 /**
@@ -36,14 +36,14 @@ export async function getPlaylistsAction(businessId?: string) {
     });
 
     // Remap to match previous structure with _count
-    const playlistsWithCount = playlistsList.map(p => ({
+    const mappedPlaylists = playlistsList.map((p) => ({
       ...p,
       _count: { tracks: p.tracks.length }
     }));
 
     return {
       success: true,
-      data: playlistsWithCount,
+      data: mappedPlaylists,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch playlists";

@@ -9,13 +9,14 @@ The blog articles are now stored in the database and can be edited via the admin
 First, push the blog schema to your database:
 
 ```bash
-npx prisma db push
+npx drizzle-kit push
 ```
 
 Or run a named migration:
 
 ```bash
-npx prisma migrate dev --name add_blog_models
+npx drizzle-kit generate
+npx drizzle-kit push
 ```
 
 ### Step 2: Seed demo articles

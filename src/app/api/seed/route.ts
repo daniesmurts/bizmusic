@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, businesses } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { businesses } from "@/db/schema";
 
 export async function GET() {
   // This endpoint is only available in development

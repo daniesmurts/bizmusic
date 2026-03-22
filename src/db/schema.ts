@@ -1,5 +1,21 @@
-import { pgTable, text, integer, boolean, timestamp, jsonb, pgEnum, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, jsonb, pgEnum, uniqueIndex, index, doublePrecision } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+
+// DB Types
+export interface ScheduleTimeSlot {
+  start: string;
+  end: string;
+}
+
+export interface ScheduleConfig {
+  monday?: ScheduleTimeSlot[];
+  tuesday?: ScheduleTimeSlot[];
+  wednesday?: ScheduleTimeSlot[];
+  thursday?: ScheduleTimeSlot[];
+  friday?: ScheduleTimeSlot[];
+  saturday?: ScheduleTimeSlot[];
+  sunday?: ScheduleTimeSlot[];
+}
 
 // Enums - keep them as lowercase for DB if they were created that way, but Prisma usually keeps them as defined
 export const roleEnum = pgEnum("role", ["ADMIN", "BUSINESS_OWNER", "STAFF"]);
@@ -14,7 +30,7 @@ export const users = pgTable("users", {
   termsAccepted: boolean("termsAccepted").default(false).notNull(),
   termsAcceptedAt: timestamp("termsAcceptedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
 // Businesses Table
@@ -40,7 +56,7 @@ export const businesses = pgTable("businesses", {
   rebillId: text("rebillId"),
   currentPlanSlug: text("currentPlanSlug"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
 // Locations Table
@@ -51,7 +67,7 @@ export const locations = pgTable("locations", {
   address: text("address").notNull(),
   deviceId: text("deviceId").unique(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
 // Tracks Table
@@ -63,12 +79,12 @@ export const tracks = pgTable("tracks", {
   duration: integer("duration").notNull(),
   bpm: integer("bpm"),
   genre: text("genre").default("Unknown"),
-  moodTags: text("moodTags").array().notNull(),
+  moodTags: jsonb("moodTags").$type<string[]>().$defaultFn(() => []).notNull(),
   isExplicit: boolean("isExplicit").default(false).notNull(),
   isFeatured: boolean("isFeatured").default(false).notNull(),
   energyLevel: integer("energyLevel"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
 // Playlists Table
@@ -76,9 +92,9 @@ export const playlists = pgTable("playlists", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   businessId: text("businessId").references(() => businesses.id),
   name: text("name").notNull(),
-  scheduleConfig: jsonb("scheduleConfig"),
+  scheduleConfig: jsonb("scheduleConfig").$type<ScheduleConfig>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
 // PlaylistTracks Join Table
@@ -88,7 +104,7 @@ export const playlistTracks = pgTable("playlist_tracks", {
   trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
   position: integer("position").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 }, (t) => ({
   playlistTrackUnique: uniqueIndex("playlist_track_unique").on(t.playlistId, t.trackId),
   playlistPositionIndex: index("playlist_position_idx").on(t.playlistId, t.position),
@@ -113,7 +129,7 @@ export const licenses = pgTable("licenses", {
   expiresAt: timestamp("expiresAt").notNull(),
   validFrom: timestamp("validFrom").notNull(),
   validTo: timestamp("validTo").notNull(),
-  totalCost: integer("totalCost").default(0).notNull(),
+  totalCost: doublePrecision("totalCost").default(0).notNull(),
   pdfUrl: text("pdfUrl").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -138,7 +154,7 @@ export const blogPosts = pgTable("blog_posts", {
   views: integer("views").default(0).notNull(),
   publishedAt: timestamp("publishedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 }, (t) => ({
   slugIdx: index("blog_post_slug_idx").on(t.slug),
   categoryIdx: index("blog_post_category_idx").on(t.categoryId),
@@ -166,7 +182,7 @@ export const payments = pgTable("payments", {
   rebillId: text("rebillId"),
   errorCode: text("errorCode"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
 // RELATIONS

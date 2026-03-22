@@ -15,6 +15,24 @@ export async function GET() {
 
     const business = await db.query.businesses.findFirst({
       where: eq(businesses.userId, user.id),
+      columns: {
+        id: true,
+        inn: true,
+        ogrn: true,
+        kpp: true,
+        legalName: true,
+        address: true,
+        phone: true,
+        contactPerson: true,
+        businessType: true,
+        businessCategory: true,
+        subscriptionStatus: true,
+        subscriptionExpiresAt: true,
+        trialEndsAt: true,
+        currentPlanSlug: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       with: {
         licenses: {
           orderBy: [desc(licenses.issuedAt)],
