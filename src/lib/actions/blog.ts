@@ -26,6 +26,26 @@ async function checkAdmin() {
   return { isAdmin: true, user, supabase };
 }
 
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  imageUrl: string;
+  published: boolean;
+  featured: boolean;
+  views: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  categoryId: string;
+  authorId: string;
+  category: { id: string; name: string };
+  author: { id: string; email: string };
+  tags: string[];
+}
+
 export interface BlogPostInput {
   title: string;
   slug: string;
@@ -105,10 +125,10 @@ export async function getBlogPostsAction(filters?: {
       category: typeof row.category === 'string' ? JSON.parse(row.category) : row.category,
       author: typeof row.author === 'string' ? JSON.parse(row.author) : row.author,
       tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags,
-    }));
+    })) as BlogPost[];
 
     return {
-      success: true,
+      success: true as const,
       data: mappedData,
     };
   } catch (error: unknown) {
@@ -159,17 +179,17 @@ export async function getBlogPostBySlugAction(slug: string) {
       category: typeof post.category === 'string' ? JSON.parse(post.category) : post.category,
       author: typeof post.author === 'string' ? JSON.parse(post.author) : post.author,
       tags: typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags,
-    };
+    } as BlogPost;
 
     return {
-      success: true,
+      success: true as const,
       data: parsedPost,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch blog post";
     console.error("Get blog post by slug error:", error);
     return {
-      success: false,
+      success: false as const,
       error: message,
     };
   }
@@ -212,17 +232,17 @@ export async function getBlogPostByIdAction(postId: string) {
       category: typeof post.category === 'string' ? JSON.parse(post.category) : post.category,
       author: typeof post.author === 'string' ? JSON.parse(post.author) : post.author,
       tags: typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags,
-    };
+    } as BlogPost;
 
     return {
-      success: true,
+      success: true as const,
       data: parsedPost,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch blog post";
     console.error("Get blog post error:", error);
     return {
-      success: false,
+      success: false as const,
       error: message,
     };
   }

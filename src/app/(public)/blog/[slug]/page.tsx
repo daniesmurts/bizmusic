@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getBlogPostBySlugAction, getBlogPostsAction } from "@/lib/actions/blog";
+import { getBlogPostBySlugAction, getBlogPostsAction, type BlogPost } from "@/lib/actions/blog";
 import BlogPostClient from "./BlogPostClient";
 
 interface PageProps {
@@ -37,25 +37,25 @@ export default async function BlogPostPage({ params }: PageProps) {
     notFound();
   }
 
-  const raw = result.data;
+  const raw: BlogPost = result.data;
 
   const post = {
-    id: raw.id as string,
-    title: raw.title as string,
-    slug: raw.slug as string,
-    excerpt: raw.excerpt as string,
-    content: raw.content as string,
-    imageUrl: raw.imageUrl as string,
+    id: raw.id,
+    title: raw.title,
+    slug: raw.slug,
+    excerpt: raw.excerpt,
+    content: raw.content,
+    imageUrl: raw.imageUrl,
     publishedAt: raw.publishedAt ? String(raw.publishedAt) : null,
-    views: (raw.views as number) || 0,
-    tags: (raw.tags as string[]) || [],
-    readTime: Math.max(3, Math.ceil(((raw.content as string) || "").split(" ").length / 200)),
-    category: { name: (raw.category as any)?.name || "Блог" },
+    views: raw.views || 0,
+    tags: raw.tags || [],
+    readTime: Math.max(3, Math.ceil((raw.content || "").split(" ").length / 200)),
+    category: { name: raw.category?.name || "Блог" },
     author: {
-      name: (raw.author as any)?.email?.split("@")[0] || "Автор",
+      name: raw.author?.email?.split("@")[0] || "Автор",
       avatar: "/images/author-1.png",
-      role: (raw.category as any)?.name || "Блог",
-      bio: `Официальный аккаунт команды ${(raw.category as any)?.name || "BizMusic"}. Мы делимся новостями, обновлениями и важной информацией.`,
+      role: raw.category?.name || "Блог",
+      bio: `Официальный аккаунт команды ${raw.category?.name || "BizMusic"}. Мы делимся новостями, обновлениями и важной информацией.`,
     },
   };
 
@@ -63,7 +63,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   let relatedPosts: { id: string; title: string; slug: string; imageUrl: string; readTime: number }[] = [];
   try {
     const relatedResult = await getBlogPostsAction({
-      categoryId: raw.categoryId as string,
+      categoryId: raw.categoryId,
       published: true,
       limit: 4,
     });

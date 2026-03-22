@@ -1,7 +1,20 @@
+import type { Metadata } from "next";
 import { getBlogPostsAction, getBlogCategoriesAction } from "@/lib/actions/blog";
 import BlogClient from "./BlogClient";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Блог | Бизнес Музыка",
+  description:
+    "Новости, обновления и полезные статьи о легальном музыкальном оформлении для бизнеса.",
+  openGraph: {
+    title: "Блог | Бизнес Музыка",
+    description:
+      "Новости и статьи о легальном музыкальном лицензировании для бизнеса в России.",
+    type: "website",
+  },
+};
 
 interface BlogPostSummary {
   id: string;
