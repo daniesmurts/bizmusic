@@ -50,6 +50,9 @@ function createPool(): Pool {
   return newPool;
 }
 
+let _prodPool: Pool | undefined;
+let _prodDb: NodePgDatabase<typeof schema> | undefined;
+
 function getDb(): NodePgDatabase<typeof schema> {
   if (process.env.NODE_ENV !== "production") {
     if (!global.pgPool) {
@@ -60,11 +63,11 @@ function getDb(): NodePgDatabase<typeof schema> {
   }
 
   // Production: module-level singleton (no HMR to worry about)
-  if (!module.exports._prodDb) {
-    const pool = createPool();
-    module.exports._prodDb = drizzle(pool, { schema: schemaObj });
+  if (!_prodDb) {
+    _prodPool = createPool();
+    _prodDb = drizzle(_prodPool, { schema: schemaObj });
   }
-  return module.exports._prodDb;
+  return _prodDb;
 }
 
 export const db = new Proxy({} as NodePgDatabase<typeof schema>, {
