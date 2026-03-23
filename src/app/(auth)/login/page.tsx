@@ -29,8 +29,16 @@ export default function Login() {
     });
 
     if (loginError) {
+      console.error("Login Error Details:", {
+        message: loginError.message,
+        status: loginError.status,
+        name: loginError.name
+      });
+
       if (loginError.message === "Invalid login credentials") {
         setError("Неверный email или пароль");
+      } else if (loginError.message === "Email not confirmed") {
+        setError("Email не подтвержден. Пожалуйста, проверьте вашу почту.");
       } else {
         setError(loginError.message);
       }
@@ -38,7 +46,7 @@ export default function Login() {
       return;
     }
 
-    router.push("/");
+    router.push("/dashboard");
     router.refresh();
   };
 
@@ -80,7 +88,7 @@ export default function Login() {
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-neutral-500">Пароль</Label>
-              <Link href="#" className="text-xs font-black uppercase tracking-widest text-neon/60 hover:text-neon transition-colors font-black">
+              <Link href="/forgot-password" data-id="forgot-password-link" className="text-xs font-black uppercase tracking-widest text-neon/60 hover:text-neon transition-colors font-black">
                 Забыли?
               </Link>
             </div>

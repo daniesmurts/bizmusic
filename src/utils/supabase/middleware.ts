@@ -91,7 +91,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Auth routes: redirect to dashboard if already authenticated
-  if ((request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register')) && user) {
+  // Note: /reset-password is excluded because the Supabase recovery flow
+  // requires an active session to call updateUser({ password })
+  const authRoutes = ['/login', '/register', '/forgot-password']
+  if (authRoutes.some(route => request.nextUrl.pathname.startsWith(route)) && user) {
     return redirectWithCookies('/dashboard')
   }
 

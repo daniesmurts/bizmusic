@@ -1,8 +1,9 @@
 import { tbank } from "@/lib/payments/tbank";
 import { db } from "@/db";
-import { payments, businesses } from "@/db/schema";
+import { payments, businesses, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { sendEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -67,7 +68,42 @@ export async function POST(req: Request) {
         .where(eq(businesses.id, payment.businessId));
 
       // TODO: Auto-generate license PDF via generateLicenseAction
-      // TODO: Send activation email notification
+
+      // Send activation email notification
+      try {
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, payment.business.userId),
+        });
+        if (user?.email) {
+          const trialEndFormatted = trialEndsAt.toLocaleDateString("ru-RU", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
+          await sendEmail({
+            to: user.email,
+            subject: "Подписка активирована — BizMusic",
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #333;">Подписка активирована!</h1>
+                <p>Здравствуйте!</p>
+                <p>Ваш платёж успешно обработан. Пробный период активен до <strong>${trialEndFormatted}</strong>.</p>
+                <p>Теперь вам доступен полный функционал платформы BizMusic для легального музыкального оформления вашего заведения.</p>
+                <p style="margin-top: 24px;">
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://bizmusic.ru'}/dashboard" 
+                     style="background: #c6f135; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                    Перейти в кабинет
+                  </a>
+                </p>
+                <p style="color: #999; font-size: 12px; margin-top: 32px;">© BizMusic — легальная музыка для бизнеса</p>
+              </div>
+            `,
+          });
+        }
+      } catch (emailError) {
+        // Don't fail the webhook if email sending fails
+        console.error("[Webhook] Failed to send activation email:", emailError);
+      }
     }
 
     // T-Bank requires 'OK' response to acknowledge notification
