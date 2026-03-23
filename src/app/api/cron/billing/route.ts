@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { businesses, payments } from "@/db/schema";
+import { businesses, payments, users } from "@/db/schema";
 import { eq, and, lte, isNotNull, desc } from "drizzle-orm";
 import { tbank } from "@/lib/payments/tbank";
 import { PLANS } from "@/lib/payments/plans";
+import { sendEmail } from "@/lib/email";
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,52 @@ export async function GET(req: Request) {
         const safeCustomerKey = business.userId.replace(/-/g, "").substring(0, 36);
 
         const priceToCharge = business.billingInterval === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+        
+        // --- NEW: Handle scheduled cancellation ---
+        if (business.cancelAtPeriodEnd) {
+          console.log(`[Cron] Business ${business.id} has cancelAtPeriodEnd set. Expiring subscription.`);
+          await db.update(businesses)
+            .set({
+              subscriptionStatus: "EXPIRED",
+              cancelAtPeriodEnd: false,
+              updatedAt: new Date()
+            })
+            .where(eq(businesses.id, business.id));
+          
+          results.push({ businessId: business.id, status: "expired_on_request" });
+
+          // Send expiration email
+          try {
+            const owner = await db.query.users.findFirst({ where: eq(users.id, business.userId) });
+            if (owner?.email) {
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
+              await sendEmail({
+                to: owner.email,
+                subject: "Подписка завершена — BizMusic",
+                html: `
+                  <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h1 style="color: #333;">Подписка завершена</h1>
+                    <p>Здравствуйте!</p>
+                    <p>Ваша подписка BizMusic завершена, как вы и запланировали. Доступ к музыкальным каталогам приостановлен.</p>
+                    <p>Если вы хотите возобновить подписку, вы можете сделать это в любой момент.</p>
+                    <p style="margin-top: 24px;">
+                      <a href="${appUrl}/dashboard/subscription"
+                         style="background: #c6f135; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                        Возобновить подписку
+                      </a>
+                    </p>
+                    <p style="color: #999; font-size: 12px; margin-top: 32px;">© BizMusic — легальная музыка для бизнеса</p>
+                  </div>
+                `,
+              });
+            }
+          } catch (emailError) {
+            console.error("[Cron] Failed to send expiration email:", emailError);
+          }
+
+          continue; // Skip initialization and charging
+        }
+        // ------------------------------------------
 
         // A. Initialize the recurring payment
         const initResult = await tbank.init({
@@ -96,6 +143,36 @@ export async function GET(req: Request) {
             .where(eq(businesses.id, business.id));
 
           results.push({ businessId: business.id, status: "renewed" });
+
+          // Send renewal confirmation email
+          try {
+            const owner = await db.query.users.findFirst({ where: eq(users.id, business.userId) });
+            if (owner?.email) {
+              const nextExpiryFormatted = nextExpiration.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+              const amountFormatted = (priceToCharge / 100).toLocaleString("ru-RU");
+              await sendEmail({
+                to: owner.email,
+                subject: "Подписка продлена — BizMusic",
+                html: `
+                  <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h1 style="color: #333;">Подписка продлена!</h1>
+                    <p>Здравствуйте!</p>
+                    <p>Мы успешно списали <strong>${amountFormatted} ₽</strong> за продление подписки <strong>${plan.name}</strong>.</p>
+                    <p>Следующая дата продления: <strong>${nextExpiryFormatted}</strong>.</p>
+                    <p style="margin-top: 24px;">
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://bizmuzik.ru'}/dashboard"
+                         style="background: #c6f135; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                        Перейти в кабинет
+                      </a>
+                    </p>
+                    <p style="color: #999; font-size: 12px; margin-top: 32px;">© BizMusic — легальная музыка для бизнеса</p>
+                  </div>
+                `,
+              });
+            }
+          } catch (emailError) {
+            console.error("[Cron] Failed to send renewal email:", emailError);
+          }
         } else {
           // Failure: Check how many recent consecutive failures before locking out
           const recentFailures = await db.query.payments.findMany({
@@ -116,9 +193,69 @@ export async function GET(req: Request) {
               })
               .where(eq(businesses.id, business.id));
             results.push({ businessId: business.id, status: "expired", error: `${MAX_BILLING_RETRIES} consecutive failures` });
+
+            // Send subscription expired due to payment failure email
+            try {
+              const owner = await db.query.users.findFirst({ where: eq(users.id, business.userId) });
+              if (owner?.email) {
+                const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
+                await sendEmail({
+                  to: owner.email,
+                  subject: "Подписка приостановлена — требуется действие",
+                  html: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h1 style="color: #e53e3e;">Подписка приостановлена</h1>
+                      <p>Здравствуйте!</p>
+                      <p>Нам не удалось списать средства за продление подписки после ${MAX_BILLING_RETRIES} попыток. Доступ к сервису приостановлен.</p>
+                      <p>Пожалуйста, обновите платёжные данные, чтобы восстановить доступ.</p>
+                      <p style="margin-top: 24px;">
+                        <a href="${appUrl}/dashboard/subscription"
+                           style="background: #e53e3e; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                          Обновить способ оплаты
+                        </a>
+                      </p>
+                      <p style="color: #999; font-size: 12px; margin-top: 32px;">© BizMusic — легальная музыка для бизнеса</p>
+                    </div>
+                  `,
+                });
+              }
+            } catch (emailError) {
+              console.error("[Cron] Failed to send expiration email:", emailError);
+            }
           } else {
             // Not enough failures yet — leave ACTIVE for next cron retry
             results.push({ businessId: business.id, status: "retry_pending", error: chargeResult.Message });
+
+            // Send payment failure warning on first failure only
+            if (recentFailures.length === 1) {
+              try {
+                const owner = await db.query.users.findFirst({ where: eq(users.id, business.userId) });
+                if (owner?.email) {
+                  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
+                  await sendEmail({
+                    to: owner.email,
+                    subject: "Ошибка оплаты — проверьте карту",
+                    html: `
+                      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h1 style="color: #dd6b20;">Не удалось списать средства</h1>
+                        <p>Здравствуйте!</p>
+                        <p>При попытке продлить вашу подписку произошла ошибка списания. Мы повторим попытку автоматически.</p>
+                        <p>Пожалуйста, убедитесь, что на карте достаточно средств, или обновите платёжные данные.</p>
+                        <p style="margin-top: 24px;">
+                          <a href="${appUrl}/dashboard/subscription"
+                             style="background: #dd6b20; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                            Проверить подписку
+                          </a>
+                        </p>
+                        <p style="color: #999; font-size: 12px; margin-top: 32px;">© BizMusic — легальная музыка для бизнеса</p>
+                      </div>
+                    `,
+                  });
+                }
+              } catch (emailError) {
+                console.error("[Cron] Failed to send retry warning email:", emailError);
+              }
+            }
           }
         }
 

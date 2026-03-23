@@ -64,6 +64,7 @@ export async function POST(req: Request) {
           trialEndsAt: trialEndsAt,
           subscriptionExpiresAt: trialEndsAt,
           subscriptionStatus: "ACTIVE",
+          cancelAtPeriodEnd: false,
         })
         .where(eq(businesses.id, payment.businessId));
 

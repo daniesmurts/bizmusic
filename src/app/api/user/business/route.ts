@@ -30,6 +30,7 @@ export async function GET() {
         subscriptionExpiresAt: true,
         trialEndsAt: true,
         currentPlanSlug: true,
+        cancelAtPeriodEnd: true,
         createdAt: true,
         updatedAt: true,
       },

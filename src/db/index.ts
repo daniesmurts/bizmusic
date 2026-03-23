@@ -9,6 +9,10 @@ if (process.env.NODE_ENV !== "production") {
 
 // Use Supabase transaction pooler (port 6543) for better connection management
 // If DATABASE_URL uses port 5432 (session mode), consider switching to port 6543
+if (!process.env.DATABASE_URL) {
+  console.error("[DB] ❌ DATABASE_URL is not set. All database queries will fail.");
+}
+
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === "production" ? true : { rejectUnauthorized: false },

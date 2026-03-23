@@ -3,10 +3,13 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/dashboard'
+
+  // Use NEXT_PUBLIC_SITE_URL to avoid Docker's internal 0.0.0.0:8080 origin
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bizmuzik.ru'
 
   if (code) {
     const cookieStore = await cookies()
@@ -29,10 +32,10 @@ export async function GET(request: Request) {
     )
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${baseUrl}${next}`)
     }
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  return NextResponse.redirect(`${baseUrl}/auth/auth-code-error`)
 }
