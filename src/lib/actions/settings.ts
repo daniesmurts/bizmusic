@@ -159,6 +159,16 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
       corrAccount: data.corrAccount || null,
     };
     
+    if (data.inn) {
+      const innCheck = await db.query.businesses.findFirst({
+        where: eq(businesses.inn, data.inn),
+        columns: { id: true, userId: true }
+      });
+      if (innCheck && innCheck.userId !== user.id) {
+        return { success: false, error: "Бизнес с таким ИНН уже зарегистрирован." };
+      }
+    }
+
     if (!existingBusiness) {
       // Create new business profile
       const [newBusiness] = await db.insert(businesses)

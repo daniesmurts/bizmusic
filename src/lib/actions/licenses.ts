@@ -188,8 +188,16 @@ export async function submitContractAction(formData: ContractFormData) {
       dbUser = updatedUser;
     }
 
-    // Upsert business record using the real user ID
-    // Using onConflictDoUpdate to ensure atomicity and prevent race conditions
+    // Security Check: prevent hijacking an existing business by INN
+    const existingInnBusiness = await db.query.businesses.findFirst({
+      where: eq(businesses.inn, formData.inn)
+    });
+
+    if (existingInnBusiness && existingInnBusiness.userId !== dbUser.id) {
+      return { success: false, error: "Бизнес с таким ИНН уже зарегистрирован другим пользователем." };
+    }
+
+    // Upsert business record for the verified user
     const [business] = await db.insert(businesses).values({
       userId: dbUser.id,
       inn: formData.inn,
@@ -202,7 +210,6 @@ export async function submitContractAction(formData: ContractFormData) {
     .onConflictDoUpdate({
       target: businesses.inn,
       set: {
-        userId: dbUser.id,
         ogrn: formData.ogrn,
         kpp: formData.kpp,
         legalName: formData.legalName,

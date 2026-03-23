@@ -2,13 +2,47 @@
 
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Calendar, ShieldCheck, ArrowRight } from "lucide-react";
+import { CheckCircle2, Calendar, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { getPaymentStatus } from "@/lib/actions/payments";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const [verified, setVerified] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!orderId) {
+      setVerified(false);
+      return;
+    }
+    getPaymentStatus(orderId).then((status) => {
+      setVerified(status === "CONFIRMED" || status === "AUTHORIZED");
+    }).catch(() => setVerified(false));
+  }, [orderId]);
+
+  if (verified === null) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-10 h-10 text-neon animate-spin" />
+      </div>
+    );
+  }
+
+  if (!verified) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8 px-6">
+        <h2 className="text-4xl font-black uppercase tracking-tighter">Платеж <span className="text-neutral-500">не подтвержден</span></h2>
+        <p className="text-neutral-400 max-w-md">Мы пока не получили подтверждение оплаты. Подождите пару минут или вернитесь к подписке.</p>
+        <Link href="/dashboard/subscription">
+          <Button className="bg-white text-black rounded-2xl px-10 h-14 font-black uppercase tracking-widest">
+            Назад к подписке
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   // Calculate trial end date (today + 14 days)
   const trialEndDate = new Date();

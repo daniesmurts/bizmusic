@@ -41,7 +41,10 @@ export default function Dashboard() {
   const locations = dashboardData?.locations || [];
 
   return (
-    <div className="space-y-12 animate-fade-in">
+    <div className="space-y-12 pb-20 relative z-0 min-h-screen animate-fade-in">
+      <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-neon/15 rounded-full blur-[150px] pointer-events-none -z-10" />
+      <div className="fixed top-[20%] right-[-5%] w-[600px] h-[600px] bg-blue-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
+      <div className="fixed bottom-[-10%] left-[10%] w-[800px] h-[800px] bg-purple-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div className="space-y-1">
