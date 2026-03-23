@@ -30,7 +30,11 @@ export const Player = () => {
     progress, 
     setProgress,
     nextTrack,
-    prevTrack 
+    prevTrack: storePrevTrack,
+    isShuffle,
+    toggleShuffle,
+    repeatMode,
+    setRepeatMode,
   } = usePlayerStore();
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -72,6 +76,20 @@ export const Player = () => {
     audioRef.current.volume = isMuted ? 0 : volume;
   }, [volume, isMuted]);
 
+  // Listen for seek events from DashboardPlayer
+  useEffect(() => {
+    const handleSeekEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ progress: number }>;
+      if (audioRef.current && audioRef.current.duration) {
+        const newTime = (customEvent.detail.progress / 100) * audioRef.current.duration;
+        audioRef.current.currentTime = newTime;
+        setProgress(customEvent.detail.progress);
+      }
+    };
+    window.addEventListener('player-seek', handleSeekEvent);
+    return () => window.removeEventListener('player-seek', handleSeekEvent);
+  }, [setProgress]);
+
   const handleTimeUpdate = () => {
     if (!audioRef.current) return;
     const currentTime = audioRef.current.currentTime;
@@ -91,6 +109,16 @@ export const Player = () => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handlePrevTrack = () => {
+    if (audioRef.current && audioRef.current.currentTime > 3) {
+      // If more than 3 seconds in, restart current track
+      audioRef.current.currentTime = 0;
+      setProgress(0);
+    } else {
+      storePrevTrack();
+    }
   };
 
   const handleSliderChange = (val: number[]) => {
@@ -148,14 +176,19 @@ export const Player = () => {
         {/* Controls */}
         <div className="flex flex-col items-center gap-2 flex-1 max-w-xl">
           <div className="flex items-center gap-6">
-            <Button variant="ghost" size="icon" className="text-neutral-500 hover:text-white transition-colors h-8 w-8">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`transition-colors h-8 w-8 ${isShuffle ? 'text-neon' : 'text-neutral-500 hover:text-white'}`}
+              onClick={toggleShuffle}
+            >
               <Shuffle className="w-4 h-4" />
             </Button>
             <Button 
               variant="ghost" 
               size="icon" 
               className="text-white hover:text-neon transition-colors h-10 w-10 p-0"
-              onClick={prevTrack}
+              onClick={handlePrevTrack}
             >
               <SkipBack className="w-6 h-6 fill-current" />
             </Button>
@@ -173,8 +206,14 @@ export const Player = () => {
             >
               <SkipForward className="w-6 h-6 fill-current" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-neutral-500 hover:text-white transition-colors h-8 w-8">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`transition-colors h-8 w-8 ${repeatMode !== 'off' ? 'text-neon' : 'text-neutral-500 hover:text-white'}`}
+              onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
+            >
               <Repeat className="w-4 h-4" />
+              {repeatMode === 'one' && <span className="absolute text-[8px] font-black">1</span>}
             </Button>
           </div>
           

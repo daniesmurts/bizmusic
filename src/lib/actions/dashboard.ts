@@ -31,8 +31,6 @@ export async function getDashboardDataAction() {
       }
     });
 
-    console.log(`[DashboardData] UserId: ${user.id}, Business Found: ${!!business}, Status: ${business?.subscriptionStatus}`);
-
     if (!business) {
       return {
         success: true,

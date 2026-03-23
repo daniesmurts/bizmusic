@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { playlists, playlistTracks, tracks, type ScheduleConfig } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getDownloadSignedUrl, getTrackPublicUrl } from "@/lib/supabase-storage";
+import { createClient } from "@/utils/supabase/server";
 
 export interface PlaylistInput {
   name: string;
@@ -85,9 +87,45 @@ export async function getPlaylistByIdAction(playlistId: string) {
       };
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    // Sign all track URLs securely
+    const mappedTracks = await Promise.all(
+      playlist.tracks.map(async (t) => {
+        const track = t.track;
+        const isFullUrl = track.fileUrl.startsWith('http');
+        const fileName = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
+        
+        const fallbackUrl = (isFullUrl || !supabaseUrl)
+          ? track.fileUrl 
+          : getTrackPublicUrl(fileName);
+
+        let streamUrl: string | undefined = undefined;
+        try {
+          if (!isFullUrl && supabaseUrl) {
+            streamUrl = await getDownloadSignedUrl(fileName, 3600);
+          }
+        } catch (err) {
+          console.error(`Failed to sign URL for playlist track ${track.id}:`, err);
+        }
+
+        return {
+          ...t,
+          track: {
+            ...track,
+            fileUrl: fallbackUrl,
+            streamUrl,
+          }
+        };
+      })
+    );
+
     return {
       success: true,
-      data: playlist,
+      data: {
+        ...playlist,
+        tracks: mappedTracks
+      },
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch playlist";
@@ -104,6 +142,10 @@ export async function getPlaylistByIdAction(playlistId: string) {
  */
 export async function createPlaylistAction(data: PlaylistInput) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
     const [playlist] = await db.insert(playlists).values({
       name: data.name,
       businessId: data.businessId,
@@ -134,6 +176,10 @@ export async function updatePlaylistAction(
   data: Partial<PlaylistInput>
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
     const [playlist] = await db.update(playlists)
       .set({
         name: data.name,
@@ -166,6 +212,10 @@ export async function updatePlaylistTracksAction(
   trackIds: string[]
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
     // We use a transaction to ensure atomic update of the playlist tracks
     await db.transaction(async (tx) => {
       // 1. Delete all existing tracks for this playlist
@@ -208,6 +258,10 @@ export async function updatePlaylistTracksAction(
  */
 export async function deletePlaylistAction(playlistId: string) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
     await db.delete(playlists).where(eq(playlists.id, playlistId));
 
     revalidatePath("/admin/content");
