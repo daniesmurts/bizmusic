@@ -3,8 +3,23 @@ const https = require('https');
 module.exports.handler = async function(event, context) {
     console.log("Cron triggered! Calling https://bizmuzik.ru/api/cron/billing");
     
+    const CRON_SECRET = process.env.CRON_SECRET;
+    if (!CRON_SECRET) {
+        console.error("CRON_SECRET env var is not set!");
+        return { statusCode: 500, body: "CRON_SECRET not configured" };
+    }
+
+    const options = {
+        hostname: 'bizmuzik.ru',
+        path: '/api/cron/billing',
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${CRON_SECRET}`,
+        },
+    };
+
     return new Promise((resolve, reject) => {
-        https.get('https://bizmuzik.ru/api/cron/billing', (res) => {
+        const req = https.request(options, (res) => {
             let data = '';
             res.on('data', (chunk) => {
                 data += chunk;
@@ -17,9 +32,11 @@ module.exports.handler = async function(event, context) {
                     body: data 
                 });
             });
-        }).on('error', (e) => {
-            console.error(`Error HTTP GET: ${e.message}`);
+        });
+        req.on('error', (e) => {
+            console.error(`Error HTTP request: ${e.message}`);
             reject(e);
         });
+        req.end();
     });
 };
