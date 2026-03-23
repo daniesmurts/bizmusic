@@ -10,10 +10,13 @@ import { type EmailOtpType } from '@supabase/supabase-js'
  * URL format: /auth/confirm?token_hash=XXX&type=recovery&next=/reset-password
  */
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
   const next = searchParams.get('next') ?? '/dashboard'
+
+  // Use NEXT_PUBLIC_SITE_URL to avoid Docker's internal 0.0.0.0:8080 origin
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bizmuzik.ru'
 
   if (token_hash && type) {
     const cookieStore = await cookies()
@@ -41,11 +44,11 @@ export async function GET(request: Request) {
     })
 
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${baseUrl}${next}`)
     }
 
     console.error('[auth/confirm] OTP verification failed:', error.message)
   }
 
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  return NextResponse.redirect(`${baseUrl}/auth/auth-code-error`)
 }
