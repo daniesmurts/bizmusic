@@ -11,13 +11,14 @@ import { toast } from "sonner";
 export const FeaturedMusic = () => {
   const { currentTrack, isPlaying, setTrack, togglePlay } = usePlayerStore();
 
-  const { data: featuredTracks, isLoading } = useQuery({
+  const { data: featuredTracks, isLoading, isError } = useQuery({
     queryKey: ["featured-tracks"],
     queryFn: async () => {
       const result = await getFeaturedTracksAction();
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
+    retry: 1,
   });
 
   const handlePlayPause = (track: any) => {
@@ -46,6 +47,11 @@ export const FeaturedMusic = () => {
         ))}
       </div>
     );
+  }
+
+  if (isError) {
+    console.error("[FeaturedMusic] Failed to load tracks — check server logs for details");
+    return null;
   }
 
   if (!featuredTracks || featuredTracks.length === 0) {

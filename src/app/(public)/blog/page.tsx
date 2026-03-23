@@ -50,9 +50,11 @@ export default async function BlogPage() {
 
     if (postsResult?.success && postsResult?.data) {
       initialPosts = postsResult.data;
+    } else if (!postsResult?.success) {
+      console.error("[Blog] ❌ Posts fetch failed:", postsResult?.error || "Unknown error — check DATABASE_URL");
     }
   } catch (err: unknown) {
-    console.error("Blog page posts error:", err instanceof Error ? err.message : err);
+    console.error("[Blog] ❌ Posts fetch threw:", err instanceof Error ? err.message : err);
   }
 
   try {
@@ -63,9 +65,11 @@ export default async function BlogPage() {
         name: cat.name || "Категория",
         count: cat._count?.posts || 0,
       }));
+    } else if (!categoriesResult?.success) {
+      console.error("[Blog] ❌ Categories fetch failed:", categoriesResult?.error || "Unknown error");
     }
   } catch (err: unknown) {
-    console.error("Blog page categories error:", err instanceof Error ? err.message : err);
+    console.error("[Blog] ❌ Categories fetch threw:", err instanceof Error ? err.message : err);
   }
 
   const totalCount = fetchedCategories.reduce((sum, cat) => sum + cat.count, 0);

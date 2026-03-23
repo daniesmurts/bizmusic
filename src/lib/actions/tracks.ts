@@ -322,10 +322,10 @@ export async function getFeaturedTracksAction() {
     const needsConfiguration = featuredTracks.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
     
     if (needsConfiguration) {
-      console.error("[Tracks] NEXT_PUBLIC_SUPABASE_URL is not set; cannot construct fallback URLs for featured tracks");
+      console.error("[Tracks] ❌ NEXT_PUBLIC_SUPABASE_URL is not set — cannot generate audio URLs. Was it passed as --build-arg during docker build?");
       return {
         success: false,
-        error: "Server configuration is incomplete.",
+        error: "Ошибка конфигурации сервера. Свяжитесь с поддержкой.",
       };
     }
 

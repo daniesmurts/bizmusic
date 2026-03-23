@@ -57,6 +57,7 @@ export const businesses = pgTable("businesses", {
   rebillId: text("rebillId"),
   currentPlanSlug: text("currentPlanSlug"),
   billingInterval: billingIntervalEnum("billingInterval").default("monthly").notNull(),
+  cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });

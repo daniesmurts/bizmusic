@@ -24,6 +24,7 @@ ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
 
 # Build the app
 ENV NEXT_TELEMETRY_DISABLED 1
+RUN node scripts/validate-env.mjs
 RUN npm run build
 
 # Stage 3: Runner

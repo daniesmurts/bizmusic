@@ -14,7 +14,7 @@ import {
   TrendingUp,
   Crown
 } from "lucide-react";
-import { startFreeTrial } from "@/lib/actions/payments";
+import { startFreeTrial, cancelSubscription, reactivateSubscription } from "@/lib/actions/payments";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -27,6 +27,7 @@ interface BusinessData {
   currentPlanSlug: string | null;
   trialEndsAt: string | null;
   subscriptionExpiresAt: string | null;
+  cancelAtPeriodEnd: boolean;
 }
 
 export default function SubscriptionPage() {
@@ -74,6 +75,48 @@ export default function SubscriptionPage() {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to start trial";
       toast.error(message);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!businessData?.id) return;
+    
+    if (!confirm("Вы уверены, что хотите отменить подписку? Она останется активной до конца оплаченного периода, но не будет продлена автоматически.")) {
+      return;
+    }
+
+    setLoading("cancelling");
+    try {
+      const result = await cancelSubscription(businessData.id);
+      if (result.success) {
+        toast.success("Автопродление отключено");
+        setBusinessData(prev => prev ? { ...prev, cancelAtPeriodEnd: true } : null);
+      } else {
+        toast.error(result.error || "Не удалось отменить подписку");
+      }
+    } catch (error: unknown) {
+      toast.error("Произошла ошибка при отмене");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    if (!businessData?.id) return;
+
+    setLoading("reactivating");
+    try {
+      const result = await reactivateSubscription(businessData.id);
+      if (result.success) {
+        toast.success("Автопродление возобновлено");
+        setBusinessData(prev => prev ? { ...prev, cancelAtPeriodEnd: false } : null);
+      } else {
+        toast.error(result.error || "Не удалось возобновить подписку");
+      }
+    } catch (error: unknown) {
+      toast.error("Произошла ошибка при возобновлении");
     } finally {
       setLoading(null);
     }
@@ -146,12 +189,40 @@ export default function SubscriptionPage() {
             </div>
             <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs max-w-sm leading-relaxed">
               {businessData?.subscriptionStatus === 'ACTIVE' 
-                ? 'Ваше пространство под защитой. Вы имеете полный доступ к музыкальным каталогам и юридической гарантии.'
+                ? (businessData.cancelAtPeriodEnd 
+                    ? `Ваша подписка активна до ${new Date(businessData.subscriptionExpiresAt!).toLocaleDateString('ru-RU')}, после чего она будет аннулирована.`
+                    : 'Ваше пространство под защитой. Вы имеете полный доступ к музыкальным каталогам и юридической гарантии.')
                 : 'Ваш аккаунт находится в бесплатном режиме. Выберите тариф, чтобы активировать 14-дневный пробный период (требуется привязка карты).'}
             </p>
           </div>
 
           <div className="flex flex-col items-end gap-4">
+             {businessData?.subscriptionStatus === 'ACTIVE' && !businessData.cancelAtPeriodEnd && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelSubscription}
+                  disabled={loading === "cancelling"}
+                  className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-black uppercase text-[10px] tracking-widest h-10 px-6 rounded-xl"
+                >
+                  {loading === "cancelling" ? "Отмена..." : "Отменить подписку"}
+                </Button>
+             )}
+             {businessData?.subscriptionStatus === 'ACTIVE' && businessData?.cancelAtPeriodEnd && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400">
+                    <RotateCcw className="w-4 h-4" />
+                    Автопродление отключено
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleReactivateSubscription}
+                    disabled={loading === "reactivating"}
+                    className="border-neon/50 text-neon hover:bg-neon/10 font-black uppercase text-[10px] tracking-widest h-10 px-6 rounded-xl"
+                  >
+                    {loading === "reactivating" ? "Восстановление..." : "Возобновить"}
+                  </Button>
+                </div>
+             )}
              <div className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-neutral-300">
                 <Sparkles className="w-4 h-4 text-neon" />
                 Все функции доступны 14 дней бесплатно
