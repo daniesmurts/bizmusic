@@ -15,7 +15,7 @@ if (!process.env.DATABASE_URL) {
 
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? true : { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: false },
   max: 3, // Small pool — enough for concurrent requests without exhausting Supabase
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds (was 5s — too aggressive)
   connectionTimeoutMillis: 10000, // Timeout after 10 seconds
