@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { tracks, playLogs } from "@/db/schema";
+import { tracks, playLogs, businesses, users } from "@/db/schema";
 import { eq, or, ilike, sql, desc, and, arrayContains, SQL } from "drizzle-orm";
 import {
   getUploadSignedUrl,
@@ -10,6 +10,7 @@ import {
   deleteFile,
   getTrackPublicUrl,
 } from "@/lib/supabase-storage";
+import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export interface TrackInput {
@@ -199,7 +200,27 @@ export async function getTracksAction(filters?: {
   offset?: number;
 }) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let isRestricted = true;
+    if (user) {
+      const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id) });
+      if (dbUser?.role === "ADMIN") {
+        isRestricted = false;
+      } else {
+        const business = await db.query.businesses.findFirst({ where: eq(businesses.userId, user.id) });
+        if (business && business.subscriptionStatus === "ACTIVE") {
+          isRestricted = false;
+        }
+      }
+    }
+
     const conditions: SQL[] = [];
+
+    if (isRestricted) {
+      conditions.push(eq(tracks.isFeatured, true));
+    }
 
     if (filters?.search) {
       const safeSearch = escapeLike(filters.search);
@@ -357,6 +378,22 @@ export async function getFeaturedTracksAction() {
  */
 export async function getTrackByIdAction(trackId: string) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let isRestricted = true;
+    if (user) {
+      const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id) });
+      if (dbUser?.role === "ADMIN") {
+        isRestricted = false;
+      } else {
+        const business = await db.query.businesses.findFirst({ where: eq(businesses.userId, user.id) });
+        if (business && business.subscriptionStatus === "ACTIVE") {
+          isRestricted = false;
+        }
+      }
+    }
+
     const trackData = await db.query.tracks.findFirst({
       where: eq(tracks.id, trackId),
       with: {
@@ -368,6 +405,13 @@ export async function getTrackByIdAction(trackId: string) {
       return {
         success: false,
         error: "Track not found",
+      };
+    }
+
+    if (isRestricted && !trackData.isFeatured) {
+      return {
+        success: false,
+        error: "Требуется активная подписка для доступа к этому треку",
       };
     }
 

@@ -21,12 +21,21 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
 
+interface BusinessData {
+  id: string;
+  subscriptionStatus: string;
+  currentPlanSlug: string | null;
+  trialEndsAt: string | null;
+  subscriptionExpiresAt: string | null;
+}
+
 export default function SubscriptionPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
-  const [businessData, setBusinessData] = useState<any>(null);
+  const [businessData, setBusinessData] = useState<BusinessData | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
+  const [isYearly, setIsYearly] = useState(false);
 
   useEffect(() => {
     async function fetchBusiness() {
@@ -56,9 +65,11 @@ export default function SubscriptionPage() {
     
     setLoading(planSlug);
     try {
-      const result = await startFreeTrial(businessData.id, planSlug);
-      if (result.paymentUrl) {
+      const result = await startFreeTrial(businessData.id, planSlug, isYearly ? "yearly" : "monthly");
+      if (result.success && result.paymentUrl) {
         router.push(result.paymentUrl);
+      } else if (!result.success) {
+        toast.error(result.error || "Не удалось создать платеж");
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to start trial";
@@ -72,7 +83,8 @@ export default function SubscriptionPage() {
     {
       name: "Бизнес",
       slug: "business",
-      price: "990 ₽",
+      price: isYearly ? "8 400 ₽" : "990 ₽",
+      priceValue: isYearly ? 8400 : 990,
       description: "Все для вашего пространства",
       icon: Music,
       color: "blue"
@@ -80,7 +92,8 @@ export default function SubscriptionPage() {
     {
       name: "Контент",
       slug: "content",
-      price: "1 490 ₽",
+      price: isYearly ? "12 000 ₽" : "1 490 ₽",
+      priceValue: isYearly ? 12000 : 1490,
       description: "Для видео и соцсетей",
       icon: TrendingUp,
       color: "neon",
@@ -89,7 +102,8 @@ export default function SubscriptionPage() {
     {
       name: "Бизнес +",
       slug: "business-plus",
-      price: "4 990 ₽",
+      price: isYearly ? "48 000 ₽" : "4 990 ₽",
+      priceValue: isYearly ? 48000 : 4990,
       description: "Сети и агентства",
       icon: Crown,
       color: "purple"
@@ -97,14 +111,23 @@ export default function SubscriptionPage() {
   ];
 
   return (
-    <div className="space-y-12 pb-20">
+    <div className="space-y-12 pb-20 relative z-0 min-h-screen">
+      {/* Background gradients for depth */}
+      <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-neon/15 rounded-full blur-[150px] pointer-events-none -z-10" />
+      <div className="fixed top-[20%] right-[-5%] w-[600px] h-[600px] bg-purple-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
+      <div className="fixed bottom-[-10%] left-[10%] w-[800px] h-[800px] bg-blue-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
+
       {/* Header */}
       <div className="flex items-end justify-between px-2">
         <div className="space-y-1">
           <h2 className="text-4xl font-black uppercase tracking-tighter">Ваша <span className="text-neon">Подписка</span></h2>
           <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Управление тарифами и 14-дневный пробный период</p>
         </div>
-        <Button variant="ghost" className="text-neutral-400 hover:text-white font-black uppercase text-xs tracking-widest gap-2">
+        <Button 
+          variant="ghost" 
+          onClick={() => router.push('/dashboard/subscription/history')}
+          className="text-neutral-400 hover:text-white font-black uppercase text-xs tracking-widest gap-2"
+        >
           <Receipt className="w-4 h-4" /> История платежей
         </Button>
       </div>
@@ -117,10 +140,14 @@ export default function SubscriptionPage() {
           <div className="space-y-6">
             <div className="space-y-2">
               <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">Статус аккаунта</span>
-              <h3 className="text-6xl font-black uppercase tracking-tighter text-white">БЕСПЛАТНО</h3>
+              <h3 className="text-6xl font-black uppercase tracking-tighter text-white">
+                {businessData?.subscriptionStatus === 'ACTIVE' ? 'Активирован' : 'БЕСПЛАТНО'}
+              </h3>
             </div>
-            <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs max-w-sm">
-              Ваш аккаунт находится в бесплатном режиме. Выберите тариф, чтобы активировать 14-дневный пробный период (требуется привязка карты).
+            <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs max-w-sm leading-relaxed">
+              {businessData?.subscriptionStatus === 'ACTIVE' 
+                ? 'Ваше пространство под защитой. Вы имеете полный доступ к музыкальным каталогам и юридической гарантии.'
+                : 'Ваш аккаунт находится в бесплатном режиме. Выберите тариф, чтобы активировать 14-дневный пробный период (требуется привязка карты).'}
             </p>
           </div>
 
@@ -131,6 +158,27 @@ export default function SubscriptionPage() {
              </div>
           </div>
         </div>
+      </div>
+
+      {/* Toggle */}
+      <div className="flex justify-center items-center gap-4 py-4 z-20 relative">
+        <span className={cn("text-xs font-black uppercase tracking-widest transition-colors", !isYearly ? "text-white" : "text-neutral-500")}>Месяц</span>
+        
+        <button 
+          onClick={() => setIsYearly(!isYearly)}
+          className="relative inline-flex h-8 w-16 items-center rounded-full bg-white/10 transition-colors focus:outline-none hover:bg-white/20"
+        >
+          <span 
+            className={cn(
+              "inline-block h-6 w-6 transform rounded-full bg-neon transition-transform duration-300 ease-in-out shadow-[0_0_10px_rgba(92,243,135,0.5)]",
+              isYearly ? "translate-x-9" : "translate-x-1"
+            )}
+          />
+        </button>
+        
+        <span className={cn("text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2", isYearly ? "text-white" : "text-neutral-500")}>
+          Год <span className="text-[9px] bg-neon/20 text-neon px-2 py-1 rounded-full">-20% скидка</span>
+        </span>
       </div>
 
       {/* Plans Section */}
@@ -152,20 +200,24 @@ export default function SubscriptionPage() {
                 <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest">{tier.description}</p>
               </div>
               <div className="pt-2">
-                 <div className="text-4xl font-black">{tier.price} <span className="text-xs text-neutral-500 font-bold lowercase">/ мес</span></div>
+                 <div className="text-4xl font-black">{tier.price} <span className="text-xs text-neutral-500 font-bold lowercase">/ {isYearly ? "год" : "мес"}</span></div>
                  <p className="text-neon text-[10px] font-black uppercase tracking-widest mt-1">14 дней бесплатно</p>
               </div>
             </div>
 
             <Button 
                 onClick={() => handleStartTrial(tier.slug)}
-                disabled={loading !== null}
+                disabled={loading !== null || (businessData?.subscriptionStatus === 'ACTIVE' && businessData?.currentPlanSlug === tier.slug)}
                 className={cn(
                   "mt-auto h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-transform hover:scale-[1.02]",
                   tier.popular ? "bg-neon text-black" : "bg-white/10 text-white hover:bg-white/20"
                 )}
             >
-              {loading === tier.slug ? "Обработка..." : "Активировать Trial"}
+              {businessData?.subscriptionStatus === 'ACTIVE' && businessData?.currentPlanSlug === tier.slug 
+                ? "Текущий тариф" 
+                : businessData?.subscriptionStatus === 'ACTIVE'
+                ? (tier.priceValue > (PLANS_UI.find(p => p.slug === businessData?.currentPlanSlug)?.priceValue || 0) ? "Улучшить тариф" : "Понизить тариф")
+                : loading === tier.slug ? "Обработка..." : "Активировать Trial"}
             </Button>
           </div>
         ))}

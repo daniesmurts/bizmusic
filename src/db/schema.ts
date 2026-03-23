@@ -20,6 +20,7 @@ export interface ScheduleConfig {
 // Enums - keep them as lowercase for DB if they were created that way, but Prisma usually keeps them as defined
 export const roleEnum = pgEnum("role", ["ADMIN", "BUSINESS_OWNER", "STAFF"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["INACTIVE", "ACTIVE", "EXPIRED"]);
+export const billingIntervalEnum = pgEnum("billing_interval", ["monthly", "yearly"]);
 
 // Users Table
 export const users = pgTable("users", {
@@ -55,6 +56,7 @@ export const businesses = pgTable("businesses", {
   trialEndsAt: timestamp("trialEndsAt"),
   rebillId: text("rebillId"),
   currentPlanSlug: text("currentPlanSlug"),
+  billingInterval: billingIntervalEnum("billingInterval").default("monthly").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });

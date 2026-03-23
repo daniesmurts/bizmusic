@@ -120,7 +120,15 @@ export class TBankClient {
   checkNotificationToken(notification: NotificationData): boolean {
     const { Token, ...params } = notification;
     const expectedToken = this.generateToken(params);
-    return Token === expectedToken;
+    // Use timing-safe comparison to prevent timing attacks
+    try {
+      return crypto.timingSafeEqual(
+        Buffer.from(Token),
+        Buffer.from(expectedToken)
+      );
+    } catch {
+      return false;
+    }
   }
 }
 

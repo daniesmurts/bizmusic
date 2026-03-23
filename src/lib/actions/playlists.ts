@@ -1,11 +1,25 @@
 "use server";
 
 import { db } from "@/db";
-import { playlists, playlistTracks, tracks, type ScheduleConfig } from "@/db/schema";
+import { playlists, playlistTracks, tracks, businesses, users, type ScheduleConfig } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDownloadSignedUrl, getTrackPublicUrl } from "@/lib/supabase-storage";
 import { createClient } from "@/utils/supabase/server";
+
+async function checkRestrictedAccess() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { isRestricted: true, user: null };
+  
+  const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id) });
+  if (dbUser?.role === "ADMIN") return { isRestricted: false, user };
+  
+  const business = await db.query.businesses.findFirst({ where: eq(businesses.userId, user.id) });
+  if (business && business.subscriptionStatus === "ACTIVE") return { isRestricted: false, user, business };
+  
+  return { isRestricted: true, user, business };
+}
 
 export interface PlaylistInput {
   name: string;
@@ -18,6 +32,11 @@ export interface PlaylistInput {
  */
 export async function getPlaylistsAction(businessId?: string) {
   try {
+    const { isRestricted } = await checkRestrictedAccess();
+    if (isRestricted) {
+      return { success: true, data: [] };
+    }
+
     const playlistsList = await db.query.playlists.findMany({
       where: businessId ? eq(playlists.businessId, businessId) : undefined,
       with: {
@@ -62,6 +81,11 @@ export async function getPlaylistsAction(businessId?: string) {
  */
 export async function getPlaylistByIdAction(playlistId: string) {
   try {
+    const { isRestricted } = await checkRestrictedAccess();
+    if (isRestricted) {
+      return { success: false, error: "Для доступа требуется активная подписка" };
+    }
+
     const playlist = await db.query.playlists.findFirst({
       where: eq(playlists.id, playlistId),
       with: {
@@ -142,13 +166,12 @@ export async function getPlaylistByIdAction(playlistId: string) {
  */
 export async function createPlaylistAction(data: PlaylistInput) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false, error: "Unauthorized" };
+    const { isRestricted, user, business } = await checkRestrictedAccess();
+    if (isRestricted || !user) return { success: false, error: "Для создания плейлистов нужна активная подписка" };
 
     const [playlist] = await db.insert(playlists).values({
       name: data.name,
-      businessId: data.businessId,
+      businessId: data.businessId || business?.id,
       scheduleConfig: data.scheduleConfig,
     }).returning();
 
@@ -176,9 +199,8 @@ export async function updatePlaylistAction(
   data: Partial<PlaylistInput>
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false, error: "Unauthorized" };
+    const { isRestricted } = await checkRestrictedAccess();
+    if (isRestricted) return { success: false, error: "Недостаточно прав для редактирования" };
 
     const [playlist] = await db.update(playlists)
       .set({
@@ -212,9 +234,8 @@ export async function updatePlaylistTracksAction(
   trackIds: string[]
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false, error: "Unauthorized" };
+    const { isRestricted } = await checkRestrictedAccess();
+    if (isRestricted) return { success: false, error: "Недостаточно прав для редактирования параметров" };
 
     // We use a transaction to ensure atomic update of the playlist tracks
     await db.transaction(async (tx) => {
@@ -258,9 +279,8 @@ export async function updatePlaylistTracksAction(
  */
 export async function deletePlaylistAction(playlistId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false, error: "Unauthorized" };
+    const { isRestricted } = await checkRestrictedAccess();
+    if (isRestricted) return { success: false, error: "Недостаточно прав" };
 
     await db.delete(playlists).where(eq(playlists.id, playlistId));
 
@@ -284,6 +304,9 @@ export async function deletePlaylistAction(playlistId: string) {
  */
 export async function getTracksForPlaylistAction() {
   try {
+    const { isRestricted } = await checkRestrictedAccess();
+    if (isRestricted) return { success: true, data: [] };
+
     const tracksList = await db.select({
       id: tracks.id,
       title: tracks.title,
