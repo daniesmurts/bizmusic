@@ -66,23 +66,25 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
       return { success: false, error: initResult.Message || initResult.Details || "Ошибка инициализации платежа" };
     }
 
-    // Create payment record in DB
-    await db.insert(payments).values({
-      businessId,
-      amount: 100,
-      status: "NEW",
-      orderId: orderId,
-      tbankPaymentId: initResult.PaymentId,
-      recurrent: true,
-    });
+    // Create payment record and update business plan in a single transaction
+    await db.transaction(async (tx) => {
+      await tx.insert(payments).values({
+        businessId,
+        amount: 100,
+        status: "NEW",
+        orderId: orderId,
+        tbankPaymentId: initResult.PaymentId,
+        recurrent: true,
+      });
 
-    // Store selected plan/interval for the webhook to activate on confirmation
-    await db.update(businesses)
-      .set({ 
-        currentPlanSlug: planSlug,
-        billingInterval: interval,
-      })
-      .where(eq(businesses.id, businessId));
+      // Store selected plan/interval for the webhook to activate on confirmation
+      await tx.update(businesses)
+        .set({ 
+          currentPlanSlug: planSlug,
+          billingInterval: interval,
+        })
+        .where(eq(businesses.id, businessId));
+    });
 
     return { 
       success: true, 

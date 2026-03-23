@@ -87,8 +87,22 @@ export async function updateUserPasswordAction(currentPassword: string, newPassw
     
     if (!user) throw new Error("Not authenticated");
     
+    if (!currentPassword) {
+      return { success: false, error: "Введите текущий пароль" };
+    }
+    
     if (!newPassword || newPassword.length < 8) {
-      return { success: false, error: "Password must be at least 8 characters" };
+      return { success: false, error: "Пароль должен быть не менее 8 символов" };
+    }
+    
+    // Verify current password by attempting sign-in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email!,
+      password: currentPassword,
+    });
+    
+    if (signInError) {
+      return { success: false, error: "Неверный текущий пароль" };
     }
     
     const { error } = await supabase.auth.updateUser({
@@ -99,7 +113,7 @@ export async function updateUserPasswordAction(currentPassword: string, newPassw
     
     return {
       success: true,
-      message: "Password updated successfully",
+      message: "Пароль успешно обновлён",
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to update password";
