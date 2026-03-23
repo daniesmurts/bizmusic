@@ -34,6 +34,13 @@ function getFileNameFromUrl(fileUrl: string): string {
 }
 
 /**
+ * Escape special LIKE/ILIKE characters to prevent injection.
+ */
+function escapeLike(value: string): string {
+  return value.replace(/[%_\\]/g, '\\$&');
+}
+
+/**
  * Generate a signed upload URL for a track
  */
 export async function generateUploadUrlAction(
@@ -195,10 +202,11 @@ export async function getTracksAction(filters?: {
     const conditions: SQL[] = [];
 
     if (filters?.search) {
+      const safeSearch = escapeLike(filters.search);
       conditions.push(
         or(
-          ilike(tracks.title, `%${filters.search}%`),
-          ilike(tracks.artist, `%${filters.search}%`)
+          ilike(tracks.title, `%${safeSearch}%`),
+          ilike(tracks.artist, `%${safeSearch}%`)
         ) as SQL
       );
     }
@@ -277,14 +285,11 @@ export async function getTracksAction(filters?: {
  */
 export async function getFeaturedTracksAction() {
   try {
-    console.log("Fetching featured tracks...");
     const featuredTracks = await db.query.tracks.findMany({
       where: eq(tracks.isFeatured, true),
       orderBy: [desc(tracks.createdAt)],
       limit: 6,
     });
-
-    console.log(`Found ${featuredTracks.length} featured tracks`);
 
     if (featuredTracks.length === 0) {
       return { success: true, data: [] };

@@ -57,8 +57,18 @@ export async function logPlayAction(trackId: string, businessId?: string, locati
  */
 export async function getPlayLogsAction(limit: number = 50) {
   try {
+    const { createClient } = await import("@/utils/supabase/server");
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const safeLimit = Math.max(1, Math.min(Math.floor(limit), 200));
+
     const logs = await db.query.playLogs.findMany({
-      limit: limit,
+      limit: safeLimit,
       orderBy: [desc(playLogs.playedAt)],
       with: {
         track: {
