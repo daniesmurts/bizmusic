@@ -94,19 +94,25 @@ export default function HomeClient() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
           {[
             {
               title: "Музыка для бизнеса",
               description: "Для кафе, ритейл, офисов",
-              img: "/images/mood-1.png",
-              link: "/pricing"
+              img: "/images/business_music.png",
+              link: "/products/business-music"
             },
             {
               title: "Контент для блогеров",
               description: "Для YouTube, VK, Telegram",
               img: "/images/mood-2.png",
-              link: "/pricing"
+              link: "/products/content-creators"
+            },
+            {
+              title: "Голосовые объявления",
+              description: "Аудиореклама и информирование",
+              img: "/images/voice_announcements.png",
+              link: "/products/voice-announcements"
             },
             {
               title: "White Label",
@@ -139,7 +145,7 @@ export default function HomeClient() {
                 <div className="absolute inset-x-8 bottom-8">
                   <div className="space-y-4">
                     <div className="space-y-1">
-                      <h3 className="text-3xl font-black uppercase leading-none text-white">{item.title}</h3>
+                      <h3 className="text-2xl xl:text-3xl font-black uppercase leading-none text-white">{item.title}</h3>
                       <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs">{item.description}</p>
                     </div>
                     <div className="flex items-center gap-3 text-neon font-black uppercase tracking-widest text-sm">

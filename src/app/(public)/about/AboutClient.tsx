@@ -92,20 +92,14 @@ const contactInfo = [
   {
     icon: Mail,
     title: "Email",
-    value: "daniel@boadtech.com",
+    value: "info@boadtech.com",
     href: "mailto:daniel@boadtech.com",
   },
   {
     icon: Phone,
     title: "Телефон",
-    value: "+7 (999) 123-45-67",
-    href: "tel:+79991234567",
-  },
-  {
-    icon: MapPin,
-    title: "Адрес",
-    value: "г. Казань, Республика Татарстан",
-    href: "#",
+    value: "+7 (987) 065-59-63",
+    href: "tel:79870655963",
   },
 ];
 
@@ -176,8 +170,8 @@ export default function AboutClient() {
           </h1>
 
           <p className="text-xl text-neutral-400 font-medium max-w-3xl mx-auto leading-relaxed">
-            Мы делаем легальную музыку доступной для каждого бизнеса. 
-            Прямые лицензии от правообладателей, полная защита от РАО и ВОИС, 
+            Мы делаем легальную музыку доступной для каждого бизнеса.
+            Прямые лицензии от правообладателей, полная защита от РАО и ВОИС,
             и музыка, которая создаёт атмосферу вашего успеха.
           </p>
         </div>
@@ -354,32 +348,6 @@ export default function AboutClient() {
                   })}
                 </div>
 
-                {/* Working Hours */}
-                <div className="pt-6 border-t border-white/5">
-                  <h4 className="text-xl font-black uppercase tracking-tight text-white mb-4">
-                    Режим работы
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-neutral-400 text-sm font-medium">
-                        Понедельник - Пятница
-                      </span>
-                      <span className="text-white font-bold">9:00 - 18:00</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-neutral-400 text-sm font-medium">
-                        Суббота
-                      </span>
-                      <span className="text-white font-bold">10:00 - 15:00</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-neutral-400 text-sm font-medium">
-                        Воскресенье
-                      </span>
-                      <span className="text-neon font-bold">Выходной</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -442,7 +410,7 @@ export default function AboutClient() {
                     <label className="text-white font-black uppercase tracking-widest text-xs mb-2 block">
                       Тема
                     </label>
-                    <select 
+                    <select
                       value={formData.topic}
                       onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
                       className="w-full bg-white/[0.02] border border-white/10 text-white rounded-2xl h-14 px-6 focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all outline-none"
@@ -539,7 +507,7 @@ export default function AboutClient() {
               Готовы <span className="text-neon">начать?</span>
             </h2>
             <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">
-              Присоединяйтесь к сотням довольных клиентов и обеспечьте свой бизнес 
+              Присоединяйтесь к сотням довольных клиентов и обеспечьте свой бизнес
               легальной музыкой уже сегодня.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
