@@ -21,13 +21,32 @@ import { cn } from "@/lib/utils";
 
 const products = [
   {
+    name: "Голосовые объявления",
+    slug: "voice-announcements",
+    description: "Автоматическая аудиореклама и информирование",
+    longDescription:
+      "Увеличивайте продажи и информируйте клиентов без участия персонала. Идеально для анонса акций, специальных предложений и навигации в помещении.",
+    icon: Mic2,
+    image: "/images/voice_announcements.png",
+    features: [
+      "AI-генерация голоса за 30 сек",
+      "Профессиональные дикторы",
+      "Умное планирование ротации",
+      "Автоматическая громкость",
+      "Готовые шаблоны акций",
+      "5 правок для AI тарифа",
+    ],
+    color: "neon",
+    link: "/products/voice-announcements",
+  },
+  {
     name: "Музыка для бизнеса",
     slug: "business-music",
     description: "Профессиональное музыкальное оформление для физических пространств",
     longDescription:
       "Идеально для кафе, ресторанов, ритейла, офисов, салонов красоты, фитнес-центров и отелей. 100% легальная музыка, защищающая от претензий РАО и ВОИС.",
     icon: Music,
-    image: "/images/mood-1.png",
+    image: "/images/business_music.png",
     features: [
       "Публичное исполнение (ст. 1243 ГК РФ)",
       "Безлимитные точки вещания",
@@ -37,7 +56,7 @@ const products = [
       "Лицензионный сертификат",
     ],
     color: "neon",
-    link: "/pricing",
+    link: "/products/business-music",
   },
   {
     name: "Контент для блогеров",
@@ -56,7 +75,7 @@ const products = [
       "Атрибуция не требуется",
     ],
     color: "purple",
-    link: "/pricing",
+    link: "/products/content-creators",
   },
   {
     name: "Радио для ритейла",
@@ -83,7 +102,7 @@ const products = [
     description: "Музыка для подкастов и аудиоконтента",
     longDescription:
       "Уникальные треки для интро, аутро и фоновой музыки в подкастах. Все права очищены для монетизации на всех платформах.",
-    icon: Mic2,
+    icon: Headphones,
     image: "/images/mood-1.png",
     features: [
       "Интро и аутро",
