@@ -26,6 +26,16 @@ const nextConfig: NextConfig = {
       ],
     },
   ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'waootzqqtjyungakvoua.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
 };
 
 export default pwaConfig(nextConfig);

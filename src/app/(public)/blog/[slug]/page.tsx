@@ -52,10 +52,10 @@ export default async function BlogPostPage({ params }: PageProps) {
     readTime: Math.max(3, Math.ceil((raw.content || "").split(" ").length / 200)),
     category: { name: raw.category?.name || "Блог" },
     author: {
-      name: raw.author?.email?.split("@")[0] || "Автор",
-      avatar: "/images/author-1.png",
-      role: raw.category?.name || "Блог",
-      bio: `Официальный аккаунт команды ${raw.category?.name || "BizMusic"}. Мы делимся новостями, обновлениями и важной информацией.`,
+      name: "Админ",
+      avatar: "", // Removed broken image
+      role: "BizMusic Team",
+      bio: `Официальный аккаунт команды BizMusic. Мы делимся новостями, обновлениями и важной информацией.`,
     },
   };
 

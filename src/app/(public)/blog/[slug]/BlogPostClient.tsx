@@ -91,8 +91,16 @@ export default function BlogPostClient({ post, relatedPosts }: BlogPostClientPro
   };
 
   return (
-    <div className="pb-20">
-      {/* Back Button */}
+    <div className="pb-20 relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-neon/15 blur-[150px] rounded-full -mr-96 -mt-96 pointer-events-none z-0" />
+      <div className="absolute top-1/2 left-0 w-[800px] h-[800px] bg-purple-500/10 blur-[150px] rounded-full -ml-32 pointer-events-none z-0" />
+      <div className="absolute top-3/4 right-0 w-[600px] h-[600px] bg-teal-500/10 blur-[150px] rounded-full -mr-32 pointer-events-none z-0" />
+      <div className="absolute bottom-0 left-0 w-[900px] h-[900px] bg-blue-500/10 blur-[150px] rounded-full -ml-64 pointer-events-none z-0" />
+      
+      {/* Content wrapper */}
+      <div className="relative z-10">
+        {/* Back Button */}
       <div className="px-6 pt-6">
         <Link href="/blog">
           <Button
@@ -140,13 +148,17 @@ export default function BlogPostClient({ post, relatedPosts }: BlogPostClientPro
           {/* Author & Actions */}
           <div className="flex items-center justify-between pt-8 border-t border-white/5">
             <div className="flex items-center gap-4">
-              <div className="relative w-12 h-12 rounded-full bg-neon/20 border border-neon/20 overflow-hidden">
-                <Image
-                  src={post.author.avatar}
-                  alt={post.author.name}
-                  fill
-                  className="object-cover"
-                />
+              <div className="relative w-12 h-12 rounded-full bg-neon/10 border border-neon/20 flex items-center justify-center">
+                {post.author.avatar ? (
+                  <Image
+                    src={post.author.avatar}
+                    alt={post.author.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-black text-neon">А</span>
+                )}
               </div>
               <div>
                 <p className="text-white font-black uppercase tracking-tight">
@@ -254,13 +266,17 @@ export default function BlogPostClient({ post, relatedPosts }: BlogPostClientPro
       <section className="px-6 mt-12">
         <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[3rem] p-10">
           <div className="flex flex-col md:flex-row items-start gap-6">
-            <div className="relative w-20 h-20 rounded-full bg-neon/20 border border-neon/20 overflow-hidden flex-shrink-0">
-              <Image
-                src={post.author.avatar}
-                alt={post.author.name}
-                fill
-                className="object-cover"
-              />
+            <div className="relative w-20 h-20 rounded-full bg-neon/10 border border-neon/20 flex items-center justify-center flex-shrink-0">
+              {post.author.avatar ? (
+                <Image
+                  src={post.author.avatar}
+                  alt={post.author.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <span className="text-3xl font-black text-neon">А</span>
+              )}
             </div>
             <div className="flex-1 space-y-4">
               <div>
@@ -323,6 +339,7 @@ export default function BlogPostClient({ post, relatedPosts }: BlogPostClientPro
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }

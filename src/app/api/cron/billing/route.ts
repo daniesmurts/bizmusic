@@ -95,6 +95,15 @@ export async function GET(req: Request) {
         }
         // ------------------------------------------
 
+        // Fetch user email for Receipt
+        const owner = await db.query.users.findFirst({
+          where: eq(users.id, business.userId),
+        });
+
+        if (!owner?.email) {
+          throw new Error(`Owner email not found for business ${business.id}`);
+        }
+
         // A. Initialize the recurring payment
         const initResult = await tbank.init({
           Amount: priceToCharge,
@@ -102,6 +111,21 @@ export async function GET(req: Request) {
           Description: `Продление подписки - ${plan.name} (${business.billingInterval === "yearly" ? "Год" : "Месяц"})`,
           Recurrent: 'Y',
           CustomerKey: safeCustomerKey,
+          Receipt: {
+            Email: owner.email,
+            Taxation: 'usn_income_outcome',
+            Items: [
+              {
+                Name: `Продление подписки - ${plan.name} (${business.billingInterval === "yearly" ? "Год" : "Месяц"})`,
+                Price: priceToCharge,
+                Quantity: 1,
+                Amount: priceToCharge,
+                Tax: 'none',
+                PaymentMethod: 'full_prepayment',
+                PaymentObject: 'service'
+              }
+            ]
+          }
         });
 
         if (!initResult.Success || !initResult.PaymentId) {
@@ -146,7 +170,6 @@ export async function GET(req: Request) {
 
           // Send renewal confirmation email
           try {
-            const owner = await db.query.users.findFirst({ where: eq(users.id, business.userId) });
             if (owner?.email) {
               const nextExpiryFormatted = nextExpiration.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
               const amountFormatted = (priceToCharge / 100).toLocaleString("ru-RU");
@@ -174,15 +197,21 @@ export async function GET(req: Request) {
             console.error("[Cron] Failed to send renewal email:", emailError);
           }
         } else {
-          // Failure: Check how many recent consecutive failures before locking out
-          const recentFailures = await db.query.payments.findMany({
-            where: and(
-              eq(payments.businessId, business.id),
-              eq(payments.status, "REJECTED")
-            ),
+          // Failure: Count consecutive recent failures (stop at first non-REJECTED)
+          const recentPayments = await db.query.payments.findMany({
+            where: eq(payments.businessId, business.id),
             orderBy: [desc(payments.createdAt)],
-            limit: MAX_BILLING_RETRIES,
+            limit: MAX_BILLING_RETRIES + 1,
           });
+          let consecutiveFailures = 0;
+          for (const p of recentPayments) {
+            if (p.status === "REJECTED") {
+              consecutiveFailures++;
+            } else {
+              break;
+            }
+          }
+          const recentFailures = { length: consecutiveFailures };
 
           if (recentFailures.length >= MAX_BILLING_RETRIES) {
             // Too many consecutive failures — expire the subscription
@@ -196,7 +225,6 @@ export async function GET(req: Request) {
 
             // Send subscription expired due to payment failure email
             try {
-              const owner = await db.query.users.findFirst({ where: eq(users.id, business.userId) });
               if (owner?.email) {
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
                 await sendEmail({
@@ -229,7 +257,6 @@ export async function GET(req: Request) {
             // Send payment failure warning on first failure only
             if (recentFailures.length === 1) {
               try {
-                const owner = await db.query.users.findFirst({ where: eq(users.id, business.userId) });
                 if (owner?.email) {
                   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
                   await sendEmail({

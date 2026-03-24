@@ -57,7 +57,7 @@ export default function AdminBlogPage() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [showUnpublished, setShowUnpublished] = useState(false);
+  const [showUnpublished, setShowUnpublished] = useState(true);
 
   // Fetch blog posts (no published filter — admin sees all)
   const { data: postsData } = useQuery({

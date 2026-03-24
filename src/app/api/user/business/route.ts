@@ -31,6 +31,8 @@ export async function GET() {
         trialEndsAt: true,
         currentPlanSlug: true,
         cancelAtPeriodEnd: true,
+        cardMask: true,
+        cardExpiry: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -17,6 +17,23 @@ interface InitResponse {
   PaymentURL?: string;
 }
 
+export interface ReceiptItem {
+  Name: string;
+  Price: number;
+  Quantity: number;
+  Amount: number;
+  Tax: 'none' | 'vat0' | 'vat10' | 'vat20' | 'vat110' | 'vat120';
+  PaymentMethod?: 'full_prepayment' | 'prepayment' | 'advance' | 'full_payment' | 'partial_payment' | 'credit' | 'credit_payment';
+  PaymentObject?: 'commodity' | 'excise' | 'job' | 'service' | 'gambling_bet' | 'gambling_prize' | 'lottery' | 'lottery_prize' | 'intellectual_activity' | 'payment' | 'agent_commission' | 'composite' | 'another';
+}
+
+export interface Receipt {
+  Email?: string;
+  Phone?: string;
+  Taxation: 'osn' | 'usn_income' | 'usn_income_outcome' | 'envd' | 'esn' | 'patent';
+  Items: ReceiptItem[];
+}
+
 interface NotificationData {
   TerminalKey: string;
   OrderId: string;
@@ -63,6 +80,7 @@ export class TBankClient {
     SuccessURL?: string;
     FailURL?: string;
     DATA?: Record<string, string>;
+    Receipt?: Receipt;
   }): Promise<InitResponse> {
     const body: Record<string, unknown> = {
       TerminalKey: this.terminalKey,

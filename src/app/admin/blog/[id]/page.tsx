@@ -20,6 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { slugify } from "@/lib/slug-utils";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import {
   getBlogPostByIdAction,
   createBlogPostAction,
@@ -51,6 +53,8 @@ export default function AdminBlogEditorPage() {
   const [newTag, setNewTag] = useState("");
   const [published, setPublished] = useState(false);
   const [featured, setFeatured] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // Fetch post if editing
   const { data: postData } = useQuery({
@@ -62,6 +66,8 @@ export default function AdminBlogEditorPage() {
       return result.data;
     },
     enabled: isEdit,
+    refetchOnWindowFocus: false,
+    staleTime: 300000, // 5 minutes
   });
 
   // Fetch categories
@@ -74,9 +80,9 @@ export default function AdminBlogEditorPage() {
     },
   });
 
-  // Load post data when editing
+  // Load post data when editing - only once
   useEffect(() => {
-    if (postData) {
+    if (postData && !isDataLoaded) {
       setTitle(postData.title);
       setSlug(postData.slug);
       setExcerpt(postData.excerpt);
@@ -86,8 +92,9 @@ export default function AdminBlogEditorPage() {
       setTags(postData.tags || []);
       setPublished(postData.published);
       setFeatured(postData.featured);
+      setIsDataLoaded(true);
     }
-  }, [postData]);
+  }, [postData, isDataLoaded]);
 
   // Create/Update mutation
   const saveMutation = useMutation({
@@ -119,7 +126,7 @@ export default function AdminBlogEditorPage() {
     },
   });
 
-  const handleSave = () => {
+  const handleSave = (publishOverride?: boolean) => {
     if (!title.trim()) {
       toast.error("Введите название статьи");
       return;
@@ -140,6 +147,9 @@ export default function AdminBlogEditorPage() {
       toast.error("Выберите категорию");
       return;
     }
+    
+    // Determine the published status based on current state or override
+    const finalPublished = publishOverride !== undefined ? publishOverride : published;
 
     saveMutation.mutate({
       title,
@@ -148,7 +158,7 @@ export default function AdminBlogEditorPage() {
       content,
       categoryId,
       imageUrl: imageUrl || "/images/mood-1.png",
-      published,
+      published: finalPublished,
       featured,
       tags,
     });
@@ -173,13 +183,7 @@ export default function AdminBlogEditorPage() {
   };
 
   const generateSlug = () => {
-    const generated = title
-      .toLowerCase()
-      .replace(/[^а-яёa-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .trim();
-    setSlug(generated);
+    setSlug(slugify(title));
   };
 
   const categories = categoriesData || [];
@@ -201,22 +205,59 @@ export default function AdminBlogEditorPage() {
         </div>
 
         <div className="flex gap-4">
-          <Link href="/admin/blog">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2"
+          >
+            <X className="w-5 h-5" />
+            Отмена
+          </Button>
+          
+          {/* Secondary Action: Save as Draft or Revert */}
+          {!published && isEdit && (
             <Button
               variant="outline"
-              className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2"
+              onClick={() => handleSave(false)}
+              disabled={saveMutation.isPending || isUploadingImage}
+              className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2 disabled:opacity-50"
             >
-              <X className="w-5 h-5" />
-              Отмена
+              <Save className="w-5 h-5" />
+              {saveMutation.isPending ? "Сохранение..." : "Сохранить черновик"}
             </Button>
-          </Link>
+          )}
+
+          {published && (
+             <Button
+                variant="outline"
+                onClick={() => {
+                    handleSave(false);
+                }}
+                disabled={saveMutation.isPending || isUploadingImage}
+                className="bg-white/5 border-white/10 text-orange-400 hover:bg-orange-500/10 rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2 disabled:opacity-50"
+             >
+                <EyeOff className="w-5 h-5" />
+                В черновики
+             </Button>
+          )}
+
+          {/* Primary Action: Publish or Update */}
           <Button
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 h-14 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)] gap-3 disabled:opacity-50"
+            onClick={() => {
+                handleSave(published ? undefined : true);
+            }}
+            disabled={saveMutation.isPending || isUploadingImage}
+            className={cn(
+                "rounded-2xl px-8 h-14 font-black uppercase tracking-widest shadow-lg gap-3 transition-all hover:scale-105 disabled:opacity-50",
+                published 
+                    ? "bg-white text-black hover:bg-neutral-200" 
+                    : "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+            )}
           >
-            <Save className="w-5 h-5" />
-            {saveMutation.isPending ? "Сохранение..." : "Сохранить"}
+            {published ? <Save className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {saveMutation.isPending 
+                ? "Загрузка..." 
+                : (published ? "Обновить" : "Опубликовать")}
           </Button>
         </div>
       </div>
@@ -250,7 +291,7 @@ export default function AdminBlogEditorPage() {
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
                   placeholder="kak-legalno-ispolzovat-muzyku"
-                  className="pl-12 bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6 font-mono"
+                  className="pl-12 pr-6 bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 font-mono"
                 />
               </div>
             </div>
@@ -305,12 +346,12 @@ export default function AdminBlogEditorPage() {
                 )}
                 <div>
                   <p className="text-white font-black uppercase tracking-tight text-sm">
-                    {published ? "Опубликовано" : "Черновик"}
+                    {published ? "Опубликовано" : "Черновик (не видно всем)"}
                   </p>
                   <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest">
                     {published
-                      ? "Видно всем"
-                      : "Видно только вам"}
+                      ? "Доступно на сайте"
+                      : "Только в панели управления"}
                   </p>
                 </div>
               </div>
@@ -365,27 +406,14 @@ export default function AdminBlogEditorPage() {
             </select>
           </div>
 
-          {/* Image URL */}
-          <div className="glass-dark border border-white/5 rounded-[2rem] p-6 space-y-4">
-            <h3 className="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-neutral-400" />
-              Обложка
-            </h3>
-            <Input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="/images/mood-1.png"
-              className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6 font-mono text-sm"
+          {/* Image Upload */}
+          <div className="glass-dark border border-white/5 rounded-[2rem] p-6">
+            <ImageUpload 
+              label="Обложка статьи"
+              defaultValue={imageUrl}
+              onUploadComplete={(url) => setImageUrl(url)}
+              onUploadingChange={setIsUploadingImage}
             />
-            {imageUrl && (
-              <div className="relative h-32 rounded-xl overflow-hidden border border-white/10">
-                <img
-                  src={imageUrl}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
           </div>
 
           {/* Tags */}
