@@ -12,8 +12,9 @@ import {
 import Link from "next/link";
 import { ArtistProfileClient } from "@/components/ArtistProfileClient";
 
-export default async function ArtistProfilePage({ params }: { params: { slug: string } }) {
-  const result = await getArtistBySlugAction(params.slug);
+export default async function ArtistProfilePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const result = await getArtistBySlugAction(slug);
 
   if (!result.success || !result.data) {
     notFound();
