@@ -8,16 +8,19 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { X, Plus, Music2, Zap, Tag } from "lucide-react";
+import { X, Plus, Music2, Zap, Tag, User } from "lucide-react";
 import { toast } from "sonner";
+import { AdminArtist } from "@/types/admin";
 
 interface TrackMetadataFormProps {
   fileName: string;
   fileUrl: string;
   duration: number;
+  artists?: AdminArtist[];
   onSubmit: (data: {
     title: string;
     artist: string;
+    artistId?: string;
     bpm?: number;
     genre: string;
     moodTags: string[];
@@ -30,6 +33,7 @@ interface TrackMetadataFormProps {
     id?: string;
     title: string;
     artist: string;
+    artistId?: string | null;
     bpm?: number | null;
     genre?: string | null;
     moodTags: string[];
@@ -79,12 +83,14 @@ export const TrackMetadataForm = ({
   fileName,
   fileUrl,
   duration,
+  artists = [],
   onSubmit,
   onCancel,
   initialData,
 }: TrackMetadataFormProps) => {
   const [title, setTitle] = useState(initialData?.title || "");
   const [artist, setArtist] = useState(initialData?.artist || "");
+  const [artistId, setArtistId] = useState<string | undefined>(initialData?.artistId || undefined);
   const [bpm, setBpm] = useState(initialData?.bpm?.toString() || "");
   const [genre, setGenre] = useState(initialData?.genre || "Unknown");
   const [moodTags, setMoodTags] = useState<string[]>(initialData?.moodTags || []);
@@ -93,24 +99,25 @@ export const TrackMetadataForm = ({
   const [isFeatured, setIsFeatured] = useState(initialData?.isFeatured || false);
   const [customTag, setCustomTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showArtistDropdown, setShowArtistDropdown] = useState(false);
+
+  const filteredArtists = artists.filter(a => 
+    a.name.toLowerCase().includes(artist.toLowerCase())
+  );
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
     if (!title.trim()) {
       newErrors.title = "Название обязательно";
-    } else if (title.length < 2) {
-      newErrors.title = "Минимум 2 символа";
     }
 
     if (!artist.trim()) {
       newErrors.artist = "Исполнитель обязателен";
-    } else if (artist.length < 2) {
-      newErrors.artist = "Минимум 2 символа";
     }
 
     if (bpm && (isNaN(Number(bpm)) || Number(bpm) < 30 || Number(bpm) > 300)) {
-      newErrors.bpm = "BPM должен быть между 30 и 300";
+      newErrors.bpm = "BPM должен быть между 30 and 300";
     }
 
     setErrors(newErrors);
@@ -128,6 +135,7 @@ export const TrackMetadataForm = ({
     onSubmit({
       title,
       artist,
+      artistId,
       bpm: bpm ? Number(bpm) : undefined,
       genre,
       moodTags,
@@ -210,22 +218,77 @@ export const TrackMetadataForm = ({
           )}
         </div>
 
-        <div>
+        <div className="relative">
           <Label className="text-white font-black uppercase tracking-widest text-xs">
             Исполнитель *
           </Label>
-          <Input
-            value={artist}
-            onChange={(e) => setArtist(e.target.value)}
-            placeholder="Например: Easy Listening"
-            className={cn(
-              "mt-2 bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6",
-              "focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all",
-              errors.artist && "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
+          <div className="relative mt-2">
+            <Input
+              value={artist}
+              onChange={(e) => {
+                setArtist(e.target.value);
+                setArtistId(undefined);
+                setShowArtistDropdown(true);
+              }}
+              onFocus={() => setShowArtistDropdown(true)}
+              placeholder="Например: Easy Listening"
+              className={cn(
+                "bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6 pr-12",
+                "focus:border-neon focus:ring-1 focus:ring-neon/20 transition-all",
+                errors.artist && "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
+              )}
+            />
+            {artistId && (
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                <Badge className="bg-neon/10 border-neon/20 text-neon rounded-full px-2 py-0.5 text-[8px] font-black uppercase">
+                  Привязан
+                </Badge>
+              </div>
             )}
-          />
+            
+            {showArtistDropdown && filteredArtists.length > 0 && (
+              <div className="absolute z-50 left-0 right-0 mt-2 p-2 bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                {filteredArtists.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => {
+                      setArtist(a.name);
+                      setArtistId(a.id);
+                      setShowArtistDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-left transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex-shrink-0">
+                      {a.imageUrl ? (
+                        <img src={a.imageUrl} alt={a.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <User className="w-4 h-4 text-neutral-600" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-white group-hover:text-neon transition-colors">
+                        {a.name}
+                      </p>
+                      <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
+                        {a._count?.tracks || 0} треков
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {errors.artist && (
             <p className="mt-2 text-xs font-bold text-red-400">{errors.artist}</p>
+          )}
+          {showArtistDropdown && (
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setShowArtistDropdown(false)} 
+            />
           )}
         </div>
 

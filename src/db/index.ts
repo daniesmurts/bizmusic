@@ -38,7 +38,7 @@ declare global {
   var db: NodePgDatabase<typeof schema> | undefined;
 }
 
-const schemaObj = { ...schema };
+// No need for a separate schemaObj, pass schema directly to drizzle
 
 function createPool(): Pool {
   const newPool = new Pool(poolConfig);
@@ -69,15 +69,16 @@ function getDb(): NodePgDatabase<typeof schema> {
   if (process.env.NODE_ENV !== "production") {
     if (!global.pgPool) {
       global.pgPool = createPool();
-      global.db = drizzle(global.pgPool, { schema: schemaObj });
     }
-    return global.db!;
+    // Always recreate drizzle instance with latest schema in dev to pick up HMR changes
+    global.db = drizzle(global.pgPool, { schema });
+    return global.db;
   }
 
   // Production: module-level singleton (no HMR to worry about)
   if (!_prodDb) {
     _prodPool = createPool();
-    _prodDb = drizzle(_prodPool, { schema: schemaObj });
+    _prodDb = drizzle(_prodPool, { schema });
   }
   return _prodDb;
 }

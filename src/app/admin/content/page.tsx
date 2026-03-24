@@ -2,12 +2,17 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Music, ListMusic, Plus, Upload, Save, X } from "lucide-react";
+import { Music, ListMusic, Plus, Upload, Save, X, Library } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TrackUploader } from "@/components/admin/TrackUploader";
 import { TrackMetadataForm } from "@/components/admin/TrackMetadataForm";
 import { TrackTable } from "@/components/admin/TrackTable";
 import { PlaylistEditor } from "@/components/admin/PlaylistEditor";
+import { AlbumTable } from "@/components/admin/AlbumTable";
+import { AlbumEditor } from "@/components/admin/AlbumEditor";
+import { ArtistTable } from "@/components/admin/ArtistTable";
+import { ArtistEditor } from "@/components/admin/ArtistEditor";
+import { Users } from "lucide-react";
 import {
   getTracksAction,
   createTrackAction,
@@ -21,12 +26,24 @@ import {
   deletePlaylistAction,
   updatePlaylistTracksAction,
 } from "@/lib/actions/playlists";
+import {
+  getAlbumsAction,
+  createAlbumAction,
+  updateAlbumAction,
+  deleteAlbumAction,
+} from "@/lib/actions/albums";
+import {
+  getArtistsAction,
+  createArtistAction,
+  updateArtistAction,
+  deleteArtistAction,
+} from "@/lib/actions/artists";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { AdminTrack, AdminPlaylist } from "@/types/admin";
+import { AdminTrack, AdminPlaylist, AlbumWithTracks, AdminArtist } from "@/types/admin";
 import { usePlayerStore } from "@/store/usePlayerStore";
 
-type ContentView = "tracks" | "playlists";
+type ContentView = "tracks" | "playlists" | "albums" | "artists";
 
 export default function AdminContentPage() {
   const queryClient = useQueryClient();
@@ -40,9 +57,14 @@ export default function AdminContentPage() {
     window.addEventListener('track-played', handleTrackPlayed);
     return () => window.removeEventListener('track-played', handleTrackPlayed);
   }, [queryClient]);
+
   const [currentView, setCurrentView] = useState<ContentView>("tracks");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingTrack, setEditingTrack] = useState<AdminTrack | null>(null);
+  const [editingAlbum, setEditingAlbum] = useState<AlbumWithTracks | null>(null);
+  const [showAlbumEditor, setShowAlbumEditor] = useState(false);
+  const [editingArtist, setEditingArtist] = useState<AdminArtist | null>(null);
+  const [showArtistEditor, setShowArtistEditor] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{
     fileName: string;
     url: string;
@@ -66,10 +88,28 @@ export default function AdminContentPage() {
     queryKey: ["admin-playlists"],
     queryFn: async () => {
       const result = await getPlaylistsAction();
-      if (!result.success) {
-        throw new Error(result.error);
-      }
+      if (!result.success) throw new Error(result.error);
       return result.data as AdminPlaylist[];
+    },
+  });
+
+  // Fetch albums
+  const { data: albumsData } = useQuery({
+    queryKey: ["admin-albums"],
+    queryFn: async () => {
+      const result = await getAlbumsAction();
+      if (!result.success) throw new Error(result.error);
+      return result.data as AlbumWithTracks[];
+    },
+  });
+
+  // Fetch artists
+  const { data: artistsData } = useQuery({
+    queryKey: ["admin-artists"],
+    queryFn: async () => {
+      const result = await getArtistsAction();
+      if (!result.success) throw new Error(result.error);
+      return result.data as AdminArtist[];
     },
   });
 
@@ -163,22 +203,98 @@ export default function AdminContentPage() {
       toast.error(error.message);
     },
   });
-  
+
   // Update playlist tracks mutation
   const updatePlaylistTracksMutation = useMutation({
     mutationFn: async ({ playlistId, trackIds }: { playlistId: string; trackIds: string[] }) => {
       const result = await updatePlaylistTracksAction(playlistId, trackIds);
-      if (!result.success) {
-        throw new Error(result.error);
-      }
+      if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-playlists"] });
       toast.success("Состав плейлиста сохранен!");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  // Album Mutations
+  const createAlbumMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const result = await createAlbumAction(data);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-albums"] });
+      toast.success("Альбом успешно создан!");
+      setShowAlbumEditor(false);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+
+  const updateAlbumMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const result = await updateAlbumAction(id, data);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-albums"] });
+      toast.success("Альбом обновлен!");
+      setEditingAlbum(null);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+
+  const deleteAlbumMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await deleteAlbumAction(id);
+      if (!result.success) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-albums"] });
+      toast.success("Альбом удален");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+  const createArtistMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const result = await createArtistAction(data);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-artists"] });
+      toast.success("Артист успешно добавлен!");
+      setShowArtistEditor(false);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+
+  const updateArtistMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const result = await updateArtistAction(id, data);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-artists"] });
+      toast.success("Профиль артиста обновлен!");
+      setEditingArtist(null);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+
+  const deleteArtistMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await deleteArtistAction(id);
+      if (!result.success) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-artists"] });
+      toast.success("Профиль артиста удален");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 
   const handleUploadComplete = useCallback(
@@ -208,7 +324,7 @@ export default function AdminContentPage() {
     } else if (uploadedFile) {
       createTrackMutation.mutate({
         ...formData,
-        fileUrl: uploadedFile.url, // Store the full public URL
+        fileUrl: uploadedFile.url,
         fileName: uploadedFile.fileName,
         duration: Math.round(uploadedFile.duration),
       });
@@ -258,6 +374,8 @@ export default function AdminContentPage() {
 
   const tracks: AdminTrack[] = tracksData || [];
   const playlists: AdminPlaylist[] = playlistsData || [];
+  const albums: AlbumWithTracks[] = albumsData || [];
+  const artists: AdminArtist[] = artistsData || [];
 
   return (
     <div className="space-y-12">
@@ -270,6 +388,20 @@ export default function AdminContentPage() {
                 <Music className="w-4 h-4 text-neon" />
                 <span className="text-[10px] font-black uppercase tracking-widest">
                   Медиатека • Управление контентом
+                </span>
+              </>
+            ) : currentView === "albums" ? (
+              <>
+                <Library className="w-4 h-4 text-neon" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Альбомы • Коллекции
+                </span>
+              </>
+            ) : currentView === "artists" ? (
+              <>
+                <Users className="w-4 h-4 text-neon" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Артисты • Профили
                 </span>
               </>
             ) : (
@@ -287,6 +419,20 @@ export default function AdminContentPage() {
                 Музыкальная <br />
                 <span className="text-neon underline decoration-neon/20 underline-offset-8">
                   Библиотека
+                </span>
+              </>
+            ) : currentView === "albums" ? (
+              <>
+                Музыкальные <br />
+                <span className="text-neon underline decoration-neon/20 underline-offset-8">
+                  Альбомы
+                </span>
+              </>
+            ) : currentView === "artists" ? (
+              <>
+                Каталог <br />
+                <span className="text-neon underline decoration-neon/20 underline-offset-8">
+                  Артистов
                 </span>
               </>
             ) : (
@@ -316,6 +462,18 @@ export default function AdminContentPage() {
               Треки
             </button>
             <button
+              onClick={() => setCurrentView("albums")}
+              className={cn(
+                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                currentView === "albums"
+                  ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+                  : "text-neutral-400 hover:text-white"
+              )}
+            >
+              <Library className="w-4 h-4" />
+              Альбомы
+            </button>
+            <button
               onClick={() => setCurrentView("playlists")}
               className={cn(
                 "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
@@ -327,15 +485,47 @@ export default function AdminContentPage() {
               <ListMusic className="w-4 h-4" />
               Плейлисты
             </button>
+            <button
+              onClick={() => setCurrentView("artists")}
+              className={cn(
+                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                currentView === "artists"
+                  ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+                  : "text-neutral-400 hover:text-white"
+              )}
+            >
+              <Users className="w-4 h-4" />
+              Артисты
+            </button>
           </div>
 
           {currentView === "tracks" && (
             <Button
               onClick={() => setShowUploadModal(true)}
-              className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 h-14 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)] gap-3"
+              className="bg-neon text-black hover:bg-neon/90 hover:scale-102 transition-all duration-300 rounded-xl px-6 h-11 text-xs font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.2)] hover:shadow-[0_0_30px_rgba(92,243,135,0.4)] gap-2 group"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
               Добавить трек
+            </Button>
+          )}
+
+          {currentView === "albums" && !showAlbumEditor && !editingAlbum && (
+            <Button
+              onClick={() => setShowAlbumEditor(true)}
+              className="bg-neon text-black hover:bg-neon/90 hover:scale-102 transition-all duration-300 rounded-xl px-6 h-11 text-xs font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.2)] hover:shadow-[0_0_30px_rgba(92,243,135,0.4)] gap-2 group"
+            >
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
+              Создать альбом
+            </Button>
+          )}
+
+          {currentView === "artists" && !showArtistEditor && !editingArtist && (
+            <Button
+              onClick={() => setShowArtistEditor(true)}
+              className="bg-neon text-black hover:bg-neon/90 hover:scale-102 transition-all duration-300 rounded-xl px-6 h-11 text-xs font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.2)] hover:shadow-[0_0_30px_rgba(92,243,135,0.4)] gap-2 group"
+            >
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
+              Новый артист
             </Button>
           )}
         </div>
@@ -394,7 +584,6 @@ export default function AdminContentPage() {
             </div>
           </div>
 
-          {/* Track Table */}
           <TrackTable
             tracks={tracks}
             onEdit={handleEditTrack}
@@ -403,6 +592,118 @@ export default function AdminContentPage() {
             onToggleFeatured={handleToggleFeatured}
           />
         </>
+      ) : currentView === "albums" ? (
+        <div className="space-y-12">
+           {(showAlbumEditor || editingAlbum) ? (
+             <AlbumEditor 
+                tracks={tracks}
+                artists={artists}
+                initialData={editingAlbum}
+                isPending={createAlbumMutation.isPending || updateAlbumMutation.isPending}
+                onSubmit={(data) => {
+                  if (editingAlbum) {
+                    updateAlbumMutation.mutate({ id: editingAlbum.id, data });
+                  } else {
+                    createAlbumMutation.mutate(data);
+                  }
+                }}
+                onCancel={() => {
+                  setShowAlbumEditor(false);
+                  setEditingAlbum(null);
+                }}
+             />
+           ) : (
+              <>
+                {/* Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="glass-dark border border-white/5 rounded-2xl p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Всего альбомов</p>
+                    <p className="text-4xl font-black text-white">{albums.length}</p>
+                  </div>
+                  <div className="glass-dark border border-white/5 rounded-2xl p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Треков в альбомах</p>
+                    <p className="text-4xl font-black text-neon">{albums.reduce((sum, a) => sum + (a.tracks?.length || 0), 0)}</p>
+                  </div>
+                  <div className="glass-dark border border-white/5 rounded-2xl p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Без обложки</p>
+                    <p className="text-4xl font-black text-amber-400">{albums.filter(a => !a.coverUrl).length}</p>
+                  </div>
+                  <div className="glass-dark border border-white/5 rounded-2xl p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Последний релиз</p>
+                    <p className="text-xl font-black text-blue-400 truncate">
+                      {albums[0]?.title || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <AlbumTable 
+                  albums={albums} 
+                  onEdit={setEditingAlbum}
+                  onDelete={(id) => deleteAlbumMutation.mutate(id)}
+                  onPlay={(album) => {
+                    if (album.tracks && album.tracks.length > 0) {
+                      handlePlayTrack(album.tracks[0]);
+                    }
+                  }}
+                />
+              </>
+           )}
+        </div>
+      ) : currentView === "artists" ? (
+        <div className="space-y-12">
+           {(showArtistEditor || editingArtist) ? (
+             <ArtistEditor 
+                initialData={editingArtist}
+                isPending={createArtistMutation.isPending || updateArtistMutation.isPending}
+                onSubmit={(data) => {
+                  if (editingArtist) {
+                    updateArtistMutation.mutate({ id: editingArtist.id, data });
+                  } else {
+                    createArtistMutation.mutate(data);
+                  }
+                }}
+                onCancel={() => {
+                  setShowArtistEditor(false);
+                  setEditingArtist(null);
+                }}
+             />
+           ) : (
+              <>
+                {/* Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="glass-dark border border-white/5 rounded-2xl p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Всего артистов</p>
+                    <p className="text-4xl font-black text-white">{artists.length}</p>
+                  </div>
+                  <div className="glass-dark border border-white/5 rounded-2xl p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Звезды (Featured)</p>
+                    <p className="text-4xl font-black text-amber-400">{artists.filter(a => a.isFeatured).length}</p>
+                  </div>
+                  <div className="glass-dark border border-white/5 rounded-2xl p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Общее число треков</p>
+                    <p className="text-4xl font-black text-neon">{artists.reduce((sum, a) => sum + (a._count?.tracks || 0), 0)}</p>
+                  </div>
+                  <div className="glass-dark border border-white/5 rounded-2xl p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Новых за месяц</p>
+                    <p className="text-4xl font-black text-purple-400">
+                      {artists.filter(a => {
+                         const monthAgo = new Date();
+                         monthAgo.setMonth(monthAgo.getMonth() - 1);
+                         return a.createdAt && new Date(a.createdAt) > monthAgo;
+                      }).length}
+                    </p>
+                  </div>
+                </div>
+
+                <ArtistTable 
+                  artists={artists} 
+                  onEdit={setEditingArtist}
+                  onDelete={(id) => deleteArtistMutation.mutate(id)}
+                  onViewProfile={(slug) => window.open(`/artists/${slug}`, '_blank')}
+                />
+              </>
+           )}
+        </div>
       ) : (
         <PlaylistEditor
           tracks={tracks}
@@ -418,7 +719,6 @@ export default function AdminContentPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="glass-dark border border-white/10 rounded-[3rem] p-8 md:p-12 relative">
-              {/* Close Button */}
               <button
                 onClick={() => {
                   setShowUploadModal(false);
@@ -429,7 +729,6 @@ export default function AdminContentPage() {
                 <X className="w-5 h-5 text-neutral-400 group-hover:text-white" />
               </button>
 
-              {/* Header */}
               <div className="mb-8">
                 <div className="flex items-center gap-3 text-neutral-500 mb-4">
                   <Upload className="w-4 h-4 text-neon" />
@@ -442,7 +741,6 @@ export default function AdminContentPage() {
                 </h2>
               </div>
 
-              {/* Content */}
               {!uploadedFile ? (
                 <TrackUploader onUploadComplete={handleUploadComplete} />
               ) : (
@@ -450,6 +748,7 @@ export default function AdminContentPage() {
                   fileName={uploadedFile.fileName}
                   fileUrl={uploadedFile.url}
                   duration={uploadedFile.duration}
+                  artists={artists}
                   onSubmit={handleSaveTrack}
                   onCancel={() => {
                     setShowUploadModal(false);
@@ -458,7 +757,6 @@ export default function AdminContentPage() {
                 />
               )}
 
-              {/* Loading State */}
               {(createTrackMutation.isPending || updateTrackMutation.isPending) && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-[3rem] flex items-center justify-center">
                   <div className="flex flex-col items-center gap-4">
@@ -479,7 +777,6 @@ export default function AdminContentPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="glass-dark border border-white/10 rounded-[3rem] p-8 md:p-12 relative">
-              {/* Close Button */}
               <button
                 onClick={() => setEditingTrack(null)}
                 className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors group"
@@ -487,7 +784,6 @@ export default function AdminContentPage() {
                 <X className="w-5 h-5 text-neutral-400 group-hover:text-white" />
               </button>
 
-              {/* Header */}
               <div className="mb-8">
                 <div className="flex items-center gap-3 text-neutral-500 mb-4">
                   <Save className="w-4 h-4 text-neon" />
@@ -500,17 +796,16 @@ export default function AdminContentPage() {
                 </h2>
               </div>
 
-              {/* Form */}
               <TrackMetadataForm
                 fileName={editingTrack.fileUrl}
                 fileUrl={editingTrack.streamUrl || editingTrack.fileUrl}
                 duration={editingTrack.duration}
+                artists={artists}
                 onSubmit={handleSaveTrack}
                 onCancel={() => setEditingTrack(null)}
                 initialData={editingTrack}
               />
 
-              {/* Loading State */}
               {updateTrackMutation.isPending && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-[3rem] flex items-center justify-center">
                   <div className="flex flex-col items-center gap-4">

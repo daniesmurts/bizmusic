@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { tracks, playLogs, businesses, users } from "@/db/schema";
-import { eq, or, ilike, sql, desc, and, arrayContains, SQL } from "drizzle-orm";
+import { tracks, playLogs, businesses, users, artists } from "@/db/schema";
+import { eq, or, ilike, sql, desc, and, arrayContains, SQL, inArray } from "drizzle-orm";
 import {
   getUploadSignedUrl,
   generateUniqueFileName,
@@ -25,6 +25,7 @@ export interface TrackInput {
   genre?: string;
   fileUrl: string;
   fileName: string;
+  artistId?: string;
 }
 
 /**
@@ -84,6 +85,7 @@ export async function createTrackAction(data: TrackInput) {
       isExplicit: data.isExplicit || false,
       isFeatured: data.isFeatured || false,
       energyLevel: data.energyLevel,
+      artistId: data.artistId,
     }).returning();
 
     revalidatePath("/admin/content");
@@ -122,6 +124,7 @@ export async function updateTrackAction(
     if (data.isFeatured !== undefined) updateData.isFeatured = data.isFeatured;
     if (data.genre !== undefined) updateData.genre = data.genre;
     if (data.fileUrl !== undefined) updateData.fileUrl = data.fileUrl;
+    if (data.artistId !== undefined) updateData.artistId = data.artistId;
 
     const [track] = await db.update(tracks)
       .set(updateData)
@@ -239,19 +242,22 @@ export async function getTracksAction(filters?: {
     const tracksList = await db
       .select({
         track: tracks,
+        artistProfile: artists,
         playLogsCount: sql<number>`cast(count(${playLogs.id}) as int)`,
       })
       .from(tracks)
       .leftJoin(playLogs, eq(playLogs.trackId, tracks.id))
+      .leftJoin(artists, eq(tracks.artistId, artists.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .groupBy(tracks.id)
+      .groupBy(tracks.id, artists.id)
       .orderBy(desc(tracks.createdAt))
       .limit(filters?.limit || 100)
       .offset(filters?.offset || 0);
 
     // Remap to match previous return structure with _count
-    const tracksWithCount = tracksList.map(({ track, playLogsCount }) => ({
+    const tracksWithCount = tracksList.map(({ track, artistProfile, playLogsCount }) => ({
       ...track,
+      artistProfile: artistProfile || null,
       _count: { playLogs: playLogsCount || 0 }
     }));
 
@@ -306,6 +312,9 @@ export async function getTracksAction(filters?: {
  */
 export async function getFeaturedTracksAction() {
   try {
+    // Note: Do NOT use `with: { artist: true }` — the `artist` relation name
+    // conflicts with the `artist` text column, causing the string value to be
+    // overwritten by the relation object at runtime.
     const featuredTracks = await db.query.tracks.findMany({
       where: eq(tracks.isFeatured, true),
       orderBy: [desc(tracks.createdAt)],
@@ -315,6 +324,13 @@ export async function getFeaturedTracksAction() {
     if (featuredTracks.length === 0) {
       return { success: true, data: [] };
     }
+
+    // Fetch linked artist profiles separately to avoid the naming conflict
+    const artistIds = [...new Set(featuredTracks.filter(t => t.artistId).map(t => t.artistId!))];
+    const artistProfiles = artistIds.length > 0
+      ? await db.query.artists.findMany({ where: inArray(artists.id, artistIds) })
+      : [];
+    const artistMap = new Map(artistProfiles.map(a => [a.id, a]));
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     
@@ -346,6 +362,7 @@ export async function getFeaturedTracksAction() {
  
           return {
             ...track,
+            artistProfile: track.artistId ? artistMap.get(track.artistId) ?? null : null,
             fileUrl: fallbackUrl,
             streamUrl,
           };
@@ -354,6 +371,7 @@ export async function getFeaturedTracksAction() {
           console.error(`[Tracks] Critical: Failed to generate signed URL for track ${track.id} (${track.title}):`, errMsg);
           return {
             ...track,
+            artistProfile: track.artistId ? artistMap.get(track.artistId) ?? null : null,
             fileUrl: fallbackUrl,
           };
         }
@@ -399,6 +417,7 @@ export async function getTrackByIdAction(trackId: string) {
       where: eq(tracks.id, trackId),
       with: {
         playLogs: true,
+        artist: true,
       },
     });
 

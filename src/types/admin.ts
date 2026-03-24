@@ -12,11 +12,34 @@ export interface AdminTrack {
   isExplicit: boolean;
   isFeatured: boolean;
   energyLevel?: number | null;
+  artistId?: string | null;
+  artistProfile?: AdminArtist | null;
   createdAt?: Date;
   updatedAt?: Date;
   streamUrl?: string;
   _count?: {
     playLogs: number;
+  };
+}
+
+export interface AdminArtist {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl?: string | null;
+  bio?: string | null;
+  isFeatured: boolean;
+  externalLinks: {
+    spotify?: string;
+    vk?: string;
+    appleMusic?: string;
+    website?: string;
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
+  _count?: {
+    tracks: number;
+    albums: number;
   };
 }
 
@@ -64,4 +87,18 @@ export interface AdminPlayLog {
   location?: {
     name: string;
   } | null;
+}
+
+export interface AlbumWithTracks {
+  id: string;
+  title: string;
+  artist: string;
+  artistId?: string | null;
+  artistProfile?: AdminArtist | null;
+  coverUrl?: string | null;
+  description?: string | null;
+  releaseDate?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  tracks?: AdminTrack[];
 }
