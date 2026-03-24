@@ -41,7 +41,7 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
 
       // Convert to File for upload
       const ext = picture.format.includes("png") ? "png" : "jpg";
-      const coverBlob = new Blob([picture.data], { type: picture.format });
+      const coverBlob = new Blob([new Uint8Array(picture.data)], { type: picture.format });
       const coverFileName = `cover_${Date.now()}.${ext}`;
 
       // Get presigned URL for image upload
