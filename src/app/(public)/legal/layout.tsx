@@ -26,7 +26,7 @@ export default function LegalLayout({
     <div className="min-h-screen bg-black text-white selection:bg-neon selection:text-black">
       <Navbar />
       
-      <div className="max-w-7xl mx-auto px-6 py-20 lg:py-32 grid lg:grid-cols-[300px_1fr] gap-16">
+      <div className="max-w-7xl mx-auto px-6 py-12 md:py-20 lg:py-32 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-12 lg:gap-16">
         {/* Sidebar Navigation */}
         <aside className="space-y-8">
           <div className="space-y-4">
@@ -34,7 +34,7 @@ export default function LegalLayout({
                <Home className="w-4 h-4" />
                <span className="text-[10px] font-black uppercase tracking-widest">На главную</span>
              </Link>
-             <h1 className="text-4xl font-black uppercase tracking-tighter leading-none">Правовая <br /><span className="text-neon">информация</span></h1>
+              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none">Правовая <br /><span className="text-neon">информация</span></h1>
           </div>
 
           <nav className="flex flex-col gap-2">
@@ -47,38 +47,38 @@ export default function LegalLayout({
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 group",
+                    "flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all duration-300 group",
                     isActive 
                       ? "bg-neon/10 border-neon/20 text-neon shadow-[0_0_20px_rgba(92,243,135,0.05)]" 
                       : "border-white/5 text-neutral-400 hover:border-white/10 hover:text-white hover:bg-white/5"
                   )}
                 >
-                  <div className="flex items-center gap-4">
-                    <Icon className={cn("w-5 h-5", isActive ? "text-neon" : "text-neutral-600 group-hover:text-white")} />
-                    <span className="text-xs font-black uppercase tracking-widest">{link.name}</span>
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <Icon className={cn("w-4 h-4 md:w-5 md:h-5", isActive ? "text-neon" : "text-neutral-600 group-hover:text-white")} />
+                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest leading-tight">{link.name}</span>
                   </div>
-                  {isActive && <ChevronRight className="w-4 h-4 opacity-50" />}
+                  {isActive && <ChevronRight className="w-4 h-4 opacity-50 hidden md:block" />}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="p-8 glass-dark border border-white/10 rounded-[2rem] space-y-4">
+          <div className="p-6 md:p-8 glass-dark border border-white/10 rounded-[2rem] space-y-4">
              <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Правовой статус</h4>
-             <p className="text-xs text-neutral-400 leading-relaxed font-medium">
+             <p className="text-[11px] text-neutral-400 leading-relaxed font-medium">
                Используя сервис, вы соглашаетесь с условиями публичной оферты и политикой обработки персональных данных в соответствии с 152-ФЗ.
              </p>
           </div>
         </aside>
 
         {/* Content Area */}
-        <main className="bg-white/[0.02] border border-white/5 rounded-[3rem] p-8 md:p-16 lg:p-20 relative overflow-hidden">
+        <main className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-16 lg:p-20 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-20 bg-neon/5 blur-[120px] rounded-full -mr-20 -mt-20 pointer-events-none" />
           <div className="relative z-10 prose prose-invert prose-neutral max-w-none 
             prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black
-            prose-p:text-neutral-400 prose-p:leading-relaxed prose-p:text-lg
+            prose-p:text-neutral-400 prose-p:leading-relaxed prose-p:text-base md:prose-p:text-lg
             prose-strong:text-white prose-strong:font-black
-            prose-li:text-neutral-400
+            prose-li:text-neutral-400 prose-li:text-base md:prose-li:text-lg
             prose-hr:border-white/5">
             {children}
           </div>

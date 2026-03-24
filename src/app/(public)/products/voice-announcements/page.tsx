@@ -24,22 +24,37 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { usePlayerStore, Track } from "@/store/usePlayerStore";
 
 export default function VoiceAnnouncementsPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const { setTrack } = usePlayerStore();
 
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
   };
 
+  const handlePlayDemo = () => {
+    const demoTrack: Track = {
+      id: `demo-voice-${Date.now()}`,
+      title: "Voice Demo",
+      artist: "Бизнес Музыка",
+      fileUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      duration: 372,
+      cover_url: "/images/voice_announcements.png",
+    };
+
+    setTrack(demoTrack);
+  };
+
   return (
-    <div className="flex flex-col gap-24 pb-20 animate-fade-in relative z-0">
+    <div className="flex flex-col gap-16 md:gap-24 pb-20 animate-fade-in relative z-0">
       {/* Dynamic Backgrounds */}
       <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-neon/15 rounded-full blur-[150px] pointer-events-none -z-10" />
       <div className="fixed bottom-[-10%] right-[10%] w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[150px] pointer-events-none -z-10" />
 
       {/* Hero Section */}
-      <section className="relative min-h-[70vh] flex items-center px-6 md:px-12 py-20 overflow-hidden rounded-[3.5rem] mx-4 md:mx-6 border border-white/5 bg-black/40 backdrop-blur-xl">
+      <section className="relative min-h-[70vh] flex items-center px-6 md:px-12 py-12 md:py-20 overflow-hidden rounded-[2.5rem] md:rounded-[3.5rem] mx-4 md:mx-6 border border-white/5 bg-black/40 backdrop-blur-xl">
         <Image
           src="/images/voice_announcements.png"
           alt="Voice Announcements"
@@ -56,7 +71,7 @@ export default function VoiceAnnouncementsPage() {
           </div>
           
           <div className="space-y-4">
-            <h1 className="text-5xl sm:text-7xl md:text-8xl font-black uppercase tracking-tighter leading-[0.9] text-white">
+            <h1 className="text-4xl sm:text-7xl md:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.9] text-white">
               Голосовые <br />
               <span className="text-neon outline-text">объявления</span>
             </h1>
@@ -67,12 +82,12 @@ export default function VoiceAnnouncementsPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-6">
-            <Link href="/register">
-              <Button className="bg-neon text-black hover:scale-105 transition-all rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+            <Link href="/register" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-all rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                 Создать объявление за 99 ₽
               </Button>
             </Link>
-            <Button variant="outline" className="border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest gap-2">
+            <Button onClick={handlePlayDemo} variant="outline" className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest gap-2">
               <Play className="w-5 h-5 fill-current" /> Послушать примеры
             </Button>
           </div>
@@ -180,9 +195,9 @@ export default function VoiceAnnouncementsPage() {
           <p className="text-neutral-500 font-bold uppercase tracking-widest text-sm">Выберите решение под ваши задачи</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {/* AI Studio */}
-          <div className="p-12 glass-dark border border-white/10 rounded-[3.5rem] relative overflow-hidden group hover:border-neon transition-all duration-500">
+          <div className="p-8 md:p-12 glass-dark border border-white/10 rounded-[2.5rem] md:rounded-[3.5rem] relative overflow-hidden group hover:border-neon transition-all duration-500">
             <div className="absolute top-0 right-0 p-24 bg-neon/10 blur-[120px] rounded-full opacity-50 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10 space-y-10">
               <div className="space-y-2">
@@ -220,7 +235,7 @@ export default function VoiceAnnouncementsPage() {
           </div>
 
           {/* Professional */}
-          <div className="p-12 glass-dark border border-white/10 rounded-[3.5rem] relative overflow-hidden group hover:border-blue-500/50 transition-all duration-500">
+          <div className="p-8 md:p-12 glass-dark border border-white/10 rounded-[2.5rem] md:rounded-[3.5rem] relative overflow-hidden group hover:border-blue-500/50 transition-all duration-500">
             <div className="absolute top-0 right-0 p-24 bg-blue-500/10 blur-[120px] rounded-full opacity-50 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10 space-y-10">
               <div className="space-y-2">
@@ -328,7 +343,8 @@ export default function VoiceAnnouncementsPage() {
           </div>
           
           <div className="glass-dark border border-white/10 rounded-[2.5rem] overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="overflow-x-auto hidden md:block">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/5 font-black uppercase tracking-widest text-[10px] text-neutral-400">
@@ -341,10 +357,10 @@ export default function VoiceAnnouncementsPage() {
                   {[
                     { label: "Цена", ai: "99 ₽/объявление", pro: "от 990 ₽/объявление" },
                     { label: "Голос", ai: "AI (нейросеть)", pro: "Живой диктор" },
-                    { label: "Срок", ai: "30 секунд", pro: "24-48 часов" },
+                    { label: "Срок", ai: "Мгновенно", pro: "24-48 часов" },
                     { label: "Шаблоны", ai: "10+ готовых", pro: "Индивидуально" },
                     { label: "Музыка", ai: "—", pro: "Включена" },
-                    { label: "Правки", ai: "5 правок", pro: "2 правки" },
+                    { label: "Правки", ai: "5 правок", pro: "2 правок" },
                     { label: "Эксклюзивность", ai: "Да", pro: "Да" },
                   ].map((row, i) => (
                     <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
@@ -353,21 +369,33 @@ export default function VoiceAnnouncementsPage() {
                       <td className="px-8 py-5 text-white">{row.pro}</td>
                     </tr>
                   ))}
-                  <tr className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-8 py-5 text-neutral-400 font-bold uppercase tracking-tight">Для брендинга</td>
-                    <td className="px-8 py-5">
-                      <div className="w-6 h-6 rounded-full bg-neon/10 flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-neon" />
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="w-6 h-6 rounded-full bg-neon/10 flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-neon" />
-                      </div>
-                    </td>
-                  </tr>
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Comparison Cards */}
+            <div className="md:hidden divide-y divide-white/5">
+              {[
+                { label: "Цена", ai: "99 ₽", pro: "от 990 ₽" },
+                { label: "Голос", ai: "AI (нейросеть)", pro: "Живой диктор" },
+                { label: "Срок", ai: "Мгновенно", pro: "24-48ч" },
+                { label: "Правки", ai: "5 правок", pro: "2 правки" },
+                { label: "Эксклюзивно", ai: "Да", pro: "Да" },
+              ].map((row, i) => (
+                <div key={i} className="p-6 space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-neutral-500">{row.label}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <div className="text-[9px] font-bold text-neon uppercase">AI Студия</div>
+                      <div className="text-white font-bold">{row.ai}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-[9px] font-bold text-blue-500 uppercase">Профи</div>
+                      <div className="text-white font-bold">{row.pro}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -421,7 +449,7 @@ export default function VoiceAnnouncementsPage() {
             >
               <button 
                 onClick={() => toggleFaq(i)}
-                className="w-full px-8 py-8 flex items-center justify-between gap-4 text-left"
+                className="w-full px-6 py-6 md:px-8 md:py-8 flex items-center justify-between gap-4 text-left"
               >
                 <span className={cn(
                   "text-lg md:text-xl font-black uppercase tracking-tight transition-colors duration-300",
@@ -471,23 +499,23 @@ export default function VoiceAnnouncementsPage() {
 
       {/* CTA Bottom */}
       <section className="px-6 py-12">
-        <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[3rem] p-16 text-center relative overflow-hidden">
+        <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-16 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-neon/5 opacity-50" />
           <div className="relative z-10 space-y-8">
-            <h2 className="text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white">
               Готовы <span className="text-neon underline decoration-neon/20 underline-offset-8">начать?</span>
             </h2>
             <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">
               Увеличьте продажи вашего бизнеса уже сегодня с помощью автоматических голосовых объявлений.
             </p>
-            <div className="flex flex-wrap justify-center gap-6">
-              <Link href="/register">
-                <Button className="bg-neon text-black hover:scale-105 transition-all rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+            <div className="flex flex-col sm:flex-row justify-center gap-6">
+              <Link href="/register" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-all rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                   Попробовать бесплатно
                 </Button>
               </Link>
-              <Link href="/contact">
-                <Button variant="outline" className="border-white/20 text-white rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest hover:bg-white/5 transition-all">
+              <Link href="/about#contact" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto border-white/20 text-white rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest hover:bg-white/5 transition-all">
                   Консультация
                 </Button>
               </Link>

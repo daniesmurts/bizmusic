@@ -38,9 +38,9 @@ export default function BusinessMusicPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white selection:bg-neon/30 selection:text-neon overflow-x-hidden">
+    <div className="flex flex-col gap-16 md:gap-24 min-h-screen bg-black text-white selection:bg-neon/30 selection:text-neon overflow-x-hidden pb-20">
       {/* Hero Section */}
-      <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden py-20 px-6">
         <Image
           src="/images/business_music.png"
           alt="Business Music Hero"
@@ -55,24 +55,24 @@ export default function BusinessMusicPage() {
             Профессиональное аудио-оформление
           </Badge>
           
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter leading-[0.85] text-white">
+          <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
             Музыка для <span className="text-neon outline-text">бизнеса</span>
           </h1>
           
-          <p className="text-2xl md:text-3xl text-neutral-300 font-medium max-w-4xl mx-auto leading-tight">
+          <p className="text-lg md:text-2xl text-neutral-300 font-medium max-w-4xl mx-auto leading-relaxed">
             Легально. Безопасно. Под ключ. Идеально для кафе, ресторанов, ритейла, офисов и фитнес-центров.
           </p>
           
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-4">
-            <Link href="/register">
-              <Button className="h-16 px-10 bg-neon text-black hover:scale-105 transition-all text-lg font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
+            <Link href="/register" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto h-16 px-10 bg-neon text-black hover:scale-105 transition-all text-lg font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                 Попробовать 14 дней бесплатно
               </Button>
             </Link>
-            <Link href="/images/sample-license.pdf" target="_blank">
-              <Button variant="outline" className="h-16 px-10 border-white/20 text-white hover:bg-white/5 transition-all text-lg font-black uppercase tracking-widest rounded-2xl backdrop-blur-md">
+            <Link href="/legal/public-offer" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto h-16 px-10 border-white/20 text-white hover:bg-white/5 transition-all text-lg font-black uppercase tracking-widest rounded-2xl backdrop-blur-md">
                 <Download className="w-5 h-5 mr-3" />
-                Скачать пример лицензии
+                Открыть лицензионную оферту
               </Button>
             </Link>
           </div>
@@ -97,41 +97,41 @@ export default function BusinessMusicPage() {
             <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter text-white leading-[0.9]">
               Почему это важно <br /><span className="text-neon">для вашего бизнеса?</span>
             </h2>
-            <div className="space-y-6">
-              <div className="p-8 rounded-[2rem] bg-red-500/5 border border-red-500/10 space-y-4">
-                <h3 className="text-xl font-black uppercase text-red-500">Проблема</h3>
-                <p className="text-neutral-400 leading-relaxed font-medium">
+            <div className="space-y-4 md:space-y-6">
+              <div className="p-6 md:p-8 rounded-[2rem] bg-red-500/5 border border-red-500/10 space-y-4">
+                <h3 className="text-lg md:text-xl font-black uppercase text-red-500">Проблема</h3>
+                <p className="text-neutral-400 leading-relaxed font-medium text-sm md:text-base">
                   По данным ФАС и судов, штрафы за нелегальное использование музыки в общественных местах достигают <span className="text-white font-bold tracking-tight">40 000 – 300 000 рублей</span> за каждую проверку. Организации РАО и ВОИС активно проверяют заведения по всей России.
                 </p>
               </div>
-              <div className="p-8 rounded-[2rem] bg-neon/5 border border-neon/10 space-y-4">
-                <h3 className="text-xl font-black uppercase text-neon">Решение БизнесМузыка</h3>
-                <p className="text-neutral-300 leading-relaxed font-medium">
+              <div className="p-6 md:p-8 rounded-[2rem] bg-neon/5 border border-neon/10 space-y-4">
+                <h3 className="text-lg md:text-xl font-black uppercase text-neon">Решение БизнесМузыка</h3>
+                <p className="text-neutral-300 leading-relaxed font-medium text-sm md:text-base">
                   Мы предоставляем прямую лицензию от правообладателя. Согласно п. 2 ст. 1243 ГК РФ, при наличии прямого договора выплаты в пользу коллективных обществ (РАО/ВОИС) <span className="text-neon font-bold">не требуются</span>.
                 </p>
               </div>
             </div>
           </div>
           
-          <div className="glass-dark border border-white/10 rounded-[3rem] p-12 space-y-10 relative overflow-hidden">
+          <div className="glass-dark border border-white/10 rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 space-y-10 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-32 bg-neon/10 blur-[120px] rounded-full -mr-32 -mt-32 pointer-events-none" />
-            <h3 className="text-2xl font-black uppercase tracking-tight text-white relative z-10">
+            <h3 className="text-2xl font-black uppercase tracking-tight text-white relative z-10 leading-tight">
               Полный пакет документов <br />для любой проверки
             </h3>
-            <div className="grid gap-6 relative z-10">
+            <div className="grid gap-6 md:gap-8 relative z-10">
               {[
                 { title: "Лицензионный договор-оферта", desc: "Юридическое основание использования" },
                 { title: "Подтверждение права (QR-код)", desc: "Для мгновенной проверки инспекторами" },
                 { title: "Логи воспроизведения", desc: "Доказательство легальности каждого трека" },
                 { title: "Закрывающие документы", desc: "УПД/Акт через систему ЭДО или кабинет" }
               ].map((doc, i) => (
-                <div key={i} className="flex gap-5 group">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-neon/10 group-hover:border-neon/30 transition-all duration-300">
-                    <CheckCircle2 className="w-6 h-6 text-neon" />
+                <div key={i} className="flex gap-4 md:gap-5 group">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-neon/10 group-hover:border-neon/30 transition-all duration-300">
+                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-neon" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-black uppercase tracking-tight text-white group-hover:text-neon transition-colors">{doc.title}</h4>
-                    <p className="text-neutral-500 text-sm font-medium">{doc.desc}</p>
+                    <h4 className="text-base md:text-lg font-black uppercase tracking-tight text-white group-hover:text-neon transition-colors leading-tight">{doc.title}</h4>
+                    <p className="text-neutral-500 text-xs md:text-sm font-medium">{doc.desc}</p>
                   </div>
                 </div>
               ))}
@@ -147,7 +147,7 @@ export default function BusinessMusicPage() {
             <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white">Возможности тарифа <span className="text-neon">«Бизнес»</span></h2>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {[
               {
                 icon: ShieldCheck,
@@ -170,12 +170,12 @@ export default function BusinessMusicPage() {
                 desc: "Настройте расписание вещания под режим работы: спокойное утро, активный обед и расслабляющий вечер."
               }
             ].map((feature, i) => (
-              <div key={i} className="glass-dark border border-white/5 p-12 rounded-[2.5rem] hover:border-white/20 transition-all duration-500 group">
-                <div className="w-16 h-16 rounded-[1.5rem] bg-white/10 flex items-center justify-center mb-8 group-hover:bg-neon group-hover:scale-110 transition-all duration-500">
-                  <feature.icon className="w-8 h-8 text-white group-hover:text-black transition-colors" />
+              <div key={i} className="glass-dark border border-white/5 p-8 md:p-12 rounded-[2rem] md:rounded-[2.5rem] hover:border-white/20 transition-all duration-500 group">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-[1.2rem] md:rounded-[1.5rem] bg-white/10 flex items-center justify-center mb-6 md:mb-8 group-hover:bg-neon group-hover:scale-110 transition-all duration-500">
+                  <feature.icon className="w-6 h-6 md:w-8 md:h-8 text-white group-hover:text-black transition-colors" />
                 </div>
-                <h3 className="text-2xl font-black uppercase tracking-tight text-white mb-4">{feature.title}</h3>
-                <p className="text-neutral-400 text-lg leading-relaxed font-medium">{feature.desc}</p>
+                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white mb-4 leading-tight">{feature.title}</h3>
+                <p className="text-neutral-400 text-base md:text-lg leading-relaxed font-medium">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -194,7 +194,8 @@ export default function BusinessMusicPage() {
           </div>
           
           <div className="glass-dark border border-white/10 rounded-[2.5rem] overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="overflow-x-auto hidden md:block">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/5 font-black uppercase tracking-widest text-[10px] text-neutral-400">
@@ -218,6 +219,22 @@ export default function BusinessMusicPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden divide-y divide-white/5">
+              {[
+                { label: "Офлайн-режим", desc: "Музыка не остановится, если пропадёт интернет. Плеер кэширует треки заранее." },
+                { label: "Без рекламы", desc: "Никаких голосовых вставок и джинглов радио. Только чистая музыка." },
+                { label: "Громкость", desc: "Ограничьте максимальную громкость, чтобы не мешать гостям." },
+                { label: "ЭДО", desc: "Все акты и лицензии в Личном кабинете." },
+                { label: "Поддержка 24/7", desc: "Помощь с настройкой по email и в мессенджерах." },
+              ].map((row, i) => (
+                <div key={i} className="p-6 space-y-2">
+                  <div className="text-neon font-black uppercase tracking-tighter text-lg">{row.label}</div>
+                  <p className="text-neutral-400 text-sm leading-relaxed font-medium">{row.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -230,7 +247,8 @@ export default function BusinessMusicPage() {
           </div>
           
           <div className="glass-dark border border-white/10 rounded-[2.5rem] overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="overflow-x-auto hidden lg:block">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/5 font-black uppercase tracking-widest text-[10px] text-neutral-400">
@@ -259,9 +277,52 @@ export default function BusinessMusicPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Pricing Cards */}
+            <div className="lg:hidden divide-y divide-white/5">
+               {[
+                 { 
+                   name: "Старт", 
+                   price: "990 ₽/мес", 
+                   color: "text-white",
+                   features: ["1 точка", "128 kbps", "Электронные док."]
+                 },
+                 { 
+                   name: "Бизнес", 
+                   price: "1 490 ₽/мес", 
+                   color: "text-neon",
+                   features: ["3 точки", "320 kbps", "ЭДО + Приоритет"]
+                 },
+                 { 
+                   name: "Сеть", 
+                   price: "2 990 ₽/мес", 
+                   color: "text-blue-500",
+                   features: ["Безлимитно", "Lossless", "Персональный менеджер"]
+                 }
+               ].map((plan, i) => (
+                 <div key={i} className="p-8 space-y-6">
+                   <div className="flex justify-between items-end">
+                     <div className="space-y-1">
+                       <h4 className={cn("text-2xl font-black uppercase tracking-tighter", plan.color)}>{plan.name}</h4>
+                       <div className="text-white text-xl font-black">{plan.price}</div>
+                     </div>
+                     <Badge variant="outline" className="opacity-50">Тариф</Badge>
+                   </div>
+                   <ul className="grid grid-cols-1 gap-2">
+                     {plan.features.map((f, j) => (
+                       <li key={j} className="flex gap-2 items-center text-neutral-400 text-sm font-medium">
+                         <div className="w-1 h-1 rounded-full bg-white/20" />
+                         {f}
+                       </li>
+                     ))}
+                   </ul>
+                 </div>
+               ))}
+            </div>
+
             <div className="p-8 bg-white/5 flex justify-center">
-              <Link href="/register">
-                <Button className="h-16 px-16 bg-neon text-black hover:scale-105 transition-all text-lg font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+              <Link href="/register" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto h-16 px-16 bg-neon text-black hover:scale-105 transition-all text-lg font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                   Выбрать тариф и начать
                 </Button>
               </Link>
@@ -277,21 +338,21 @@ export default function BusinessMusicPage() {
             <h2 className="text-4xl md:text-6xl font-black uppercase text-white tracking-tighter">Как начать <span className="text-neon outline-text">работу?</span></h2>
           </div>
           
-          <div className="grid md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
-              { icon: Zap, title: "Регистрация", desc: "Создайте аккаунт на bizmusic.ru мгновенно." },
-              { icon: ScrollText, title: "Оплата", desc: "Выберите тариф и оплатите подписку (карта, СБП, счёт)." },
-              { icon: CheckCircle2, title: "Активация", desc: "Оплата — это акцепт оферты. Доступ открывается сразу." },
-              { icon: LayoutDashboard, title: "Настройка", desc: "Добавьте точки, выберите плейлисты и включите плеер." },
+              { icon: Zap, title: "Регистрация", desc: "Создайте аккаунт мгновенно." },
+              { icon: ScrollText, title: "Оплата", desc: "Выберите тариф и оплатите подписку." },
+              { icon: CheckCircle2, title: "Активация", desc: "Оплата — это акцепт. Доступ открывается сразу." },
+              { icon: LayoutDashboard, title: "Настройка", desc: "Добавьте точки и выберите плейлисты." },
               { icon: FileText, title: "Документы", desc: "Скачайте лицензию для уголка потребителя." }
             ].map((step, i) => (
-              <div key={i} className="relative group overflow-hidden p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all">
-                <div className="absolute top-0 right-0 p-4 text-4xl font-black text-white/5 pointer-events-none">{i+1}</div>
-                <div className="w-12 h-12 rounded-xl bg-neon/10 flex items-center justify-center mb-6 group-hover:bg-neon group-hover:text-black transition-all">
-                  <step.icon className="w-6 h-6" />
+              <div key={i} className="relative group overflow-hidden p-6 md:p-8 rounded-[1.8rem] md:rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all">
+                <div className="absolute top-0 right-0 p-4 text-3xl md:text-4xl font-black text-white/5 pointer-events-none">{i+1}</div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-neon/10 flex items-center justify-center mb-6 group-hover:bg-neon group-hover:text-black transition-all">
+                  <step.icon className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
-                <h4 className="text-lg font-black uppercase text-white mb-2">{step.title}</h4>
-                <p className="text-neutral-500 text-sm font-medium leading-relaxed">{step.desc}</p>
+                <h4 className="text-base md:text-lg font-black uppercase text-white mb-2 leading-tight">{step.title}</h4>
+                <p className="text-neutral-500 text-xs md:text-sm font-medium leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -339,7 +400,7 @@ export default function BusinessMusicPage() {
               >
                 <button 
                   onClick={() => toggleFaq(i)}
-                  className="w-full px-8 py-8 flex items-center justify-between gap-4 text-left"
+                  className="w-full px-6 py-6 md:px-8 md:py-8 flex items-center justify-between gap-4 text-left"
                 >
                   <span className={cn(
                     "text-lg md:text-xl font-black uppercase tracking-tight transition-colors duration-300",
@@ -372,8 +433,8 @@ export default function BusinessMusicPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="px-6 py-24">
-        <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[3rem] p-16 text-center relative overflow-hidden">
+      <section className="px-6 py-12 md:py-24">
+        <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[2.5rem] md:rounded-[3rem] p-10 md:p-16 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-neon/5 opacity-50" />
           <div className="relative z-10 space-y-8">
             <h2 className="text-5xl lg:text-7xl font-black uppercase tracking-tighter text-white leading-none">
@@ -382,14 +443,14 @@ export default function BusinessMusicPage() {
             <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">
               Присоединяйтесь к тысячам бизнесов, которые уже перешли на легальное и качественное звучание.
             </p>
-            <div className="flex flex-wrap justify-center gap-6">
-              <Link href="/register">
-                <Button className="bg-neon text-black hover:scale-105 transition-all rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+            <div className="flex flex-col sm:flex-row justify-center gap-6">
+              <Link href="/register" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-all rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                   Начать бесплатно
                 </Button>
               </Link>
-              <Link href="/contact">
-                <Button variant="outline" className="border-white/20 text-white rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest hover:bg-white/5 transition-all">
+              <Link href="/about#contact" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto border-white/20 text-white rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest hover:bg-white/5 transition-all">
                   Связаться с нами
                 </Button>
               </Link>
