@@ -236,7 +236,6 @@ export default function AdminContentPage() {
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const result = await updateAlbumAction(id, data);
       if (!result.success) throw new Error(result.error);
-      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-albums"] });
@@ -275,7 +274,6 @@ export default function AdminContentPage() {
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const result = await updateArtistAction(id, data);
       if (!result.success) throw new Error(result.error);
-      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-artists"] });
