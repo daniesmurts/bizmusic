@@ -26,6 +26,7 @@ export interface TrackInput {
   fileUrl: string;
   fileName: string;
   artistId?: string;
+  coverUrl?: string;
 }
 
 /**
@@ -86,6 +87,7 @@ export async function createTrackAction(data: TrackInput) {
       isFeatured: data.isFeatured || false,
       energyLevel: data.energyLevel,
       artistId: data.artistId,
+      coverUrl: data.coverUrl,
     }).returning();
 
     revalidatePath("/admin/content");
@@ -125,6 +127,7 @@ export async function updateTrackAction(
     if (data.genre !== undefined) updateData.genre = data.genre;
     if (data.fileUrl !== undefined) updateData.fileUrl = data.fileUrl;
     if (data.artistId !== undefined) updateData.artistId = data.artistId;
+    if (data.coverUrl !== undefined) updateData.coverUrl = data.coverUrl;
 
     const [track] = await db.update(tracks)
       .set(updateData)

@@ -96,6 +96,7 @@ export const tracks = pgTable("tracks", {
   artistId: text("artistId").references(() => artists.id),
   albumId: text("albumId").references(() => albums.id),
   trackNumber: integer("trackNumber"),
+  coverUrl: text("coverUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });

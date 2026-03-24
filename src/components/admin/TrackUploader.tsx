@@ -2,14 +2,15 @@
 
 import { useCallback, useState, useRef, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, FileAudio, X, CheckCircle2, AlertCircle, Music } from "lucide-react";
+import { Upload, FileAudio, X, CheckCircle2, AlertCircle, Music, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import WaveSurfer from "wavesurfer.js";
 import { toast } from "sonner";
+import { parseBlob } from "music-metadata-browser";
 
 interface TrackUploaderProps {
-  onUploadComplete: (fileName: string, publicUrl: string, duration: number) => void;
+  onUploadComplete: (fileName: string, publicUrl: string, duration: number, coverUrl?: string) => void;
 }
 
 export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
@@ -22,10 +23,56 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [duration, setDuration] = useState<number>(0);
+  const [extractedCoverUrl, setExtractedCoverUrl] = useState<string | null>(null);
   
   const waveformRef = useRef<HTMLDivElement | null>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const uploadedUrlRef = useRef<string | null>(null);
+  const coverUrlRef = useRef<string | null>(null);
+
+  /**
+   * Extract embedded cover art from audio file ID3 tags and upload to storage.
+   */
+  async function extractAndUploadCoverArt(file: File): Promise<string | undefined> {
+    try {
+      const metadata = await parseBlob(file);
+      const picture = metadata.common.picture?.[0];
+      if (!picture) return undefined;
+
+      // Convert to File for upload
+      const ext = picture.format.includes("png") ? "png" : "jpg";
+      const coverBlob = new Blob([picture.data], { type: picture.format });
+      const coverFileName = `cover_${Date.now()}.${ext}`;
+
+      // Get presigned URL for image upload
+      const metaRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: coverFileName,
+          fileSize: coverBlob.size,
+          fileType: picture.format,
+          type: "image",
+        }),
+      });
+
+      if (!metaRes.ok) return undefined;
+      const { uploadUrl, publicUrl } = await metaRes.json();
+
+      // Upload the image
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", uploadUrl, false); // sync is OK for small images
+      xhr.setRequestHeader("Content-Type", picture.format);
+      xhr.send(coverBlob);
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        return publicUrl;
+      }
+    } catch (err) {
+      console.warn("[TrackUploader] Could not extract embedded cover art:", err);
+    }
+    return undefined;
+  }
 
   // Initialize wavesurfer when file is uploaded
   useEffect(() => {
@@ -54,7 +101,7 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
       ws.on("ready", () => {
         const wsDuration = ws.getDuration();
         setDuration(wsDuration);
-        onUploadComplete(uploadedFile.name, uploadedUrlRef.current!, wsDuration);
+        onUploadComplete(uploadedFile.name, uploadedUrlRef.current!, wsDuration, coverUrlRef.current || undefined);
       });
 
       ws.on("error", (err) => {
@@ -141,6 +188,13 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
       // Store the public URL for waveform visualization
       uploadedUrlRef.current = publicUrl;
 
+      // Extract embedded cover art from ID3 tags and upload
+      const embeddedCover = await extractAndUploadCoverArt(file);
+      if (embeddedCover) {
+        coverUrlRef.current = embeddedCover;
+        setExtractedCoverUrl(embeddedCover);
+      }
+
       setUploadedFile({
         name: fileName,
         url: publicUrl,
@@ -172,6 +226,8 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
     setUploadedFile(null);
     setDuration(0);
     uploadedUrlRef.current = null;
+    coverUrlRef.current = null;
+    setExtractedCoverUrl(null);
     setError(null);
     if (wavesurferRef.current) {
       wavesurferRef.current.destroy();
@@ -294,6 +350,21 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
               className="w-full rounded-xl overflow-hidden bg-white/[0.02] border border-white/5"
             />
           </div>
+
+          {/* Extracted Cover Art */}
+          {extractedCoverUrl && (
+            <div className="flex items-center gap-4 p-4 bg-neon/5 border border-neon/10 rounded-2xl">
+              <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
+                <img src={extractedCoverUrl} alt="Обложка" className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-black uppercase tracking-tight">Обложка найдена</p>
+                <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest mt-0.5">
+                  Извлечена из метаданных файла
+                </p>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="flex items-center gap-3 text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-4">

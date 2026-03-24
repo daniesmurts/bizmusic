@@ -8,15 +8,17 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { X, Plus, Music2, Zap, Tag, User } from "lucide-react";
+import { X, Plus, Music2, Zap, Tag, User, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { AdminArtist } from "@/types/admin";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 
 interface TrackMetadataFormProps {
   fileName: string;
   fileUrl: string;
   duration: number;
   artists?: AdminArtist[];
+  extractedCoverUrl?: string;
   onSubmit: (data: {
     title: string;
     artist: string;
@@ -27,6 +29,7 @@ interface TrackMetadataFormProps {
     energyLevel: number;
     isExplicit: boolean;
     isFeatured: boolean;
+    coverUrl?: string;
   }) => void;
   onCancel: () => void;
   initialData?: {
@@ -40,6 +43,7 @@ interface TrackMetadataFormProps {
     energyLevel?: number | null;
     isExplicit?: boolean;
     isFeatured?: boolean;
+    coverUrl?: string | null;
   };
 }
 
@@ -84,6 +88,7 @@ export const TrackMetadataForm = ({
   fileUrl,
   duration,
   artists = [],
+  extractedCoverUrl,
   onSubmit,
   onCancel,
   initialData,
@@ -97,6 +102,7 @@ export const TrackMetadataForm = ({
   const [energyLevel, setEnergyLevel] = useState(initialData?.energyLevel || 5);
   const [isExplicit, setIsExplicit] = useState(initialData?.isExplicit || false);
   const [isFeatured, setIsFeatured] = useState(initialData?.isFeatured || false);
+  const [coverUrl, setCoverUrl] = useState(initialData?.coverUrl || extractedCoverUrl || "");
   const [customTag, setCustomTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showArtistDropdown, setShowArtistDropdown] = useState(false);
@@ -142,6 +148,7 @@ export const TrackMetadataForm = ({
       energyLevel,
       isExplicit,
       isFeatured,
+      coverUrl: coverUrl || undefined,
     });
   };
 
@@ -196,6 +203,13 @@ export const TrackMetadataForm = ({
           </div>
         </div>
       </div>
+
+      {/* Cover Art */}
+      <ImageUpload
+        onUploadComplete={(url) => setCoverUrl(url)}
+        defaultValue={coverUrl}
+        label="Обложка трека"
+      />
 
       {/* Basic Info */}
       <div className="space-y-6">
