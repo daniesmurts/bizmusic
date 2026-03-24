@@ -174,7 +174,7 @@ export default function PricingClient() {
           </span>
         </div>
 
-        <h1 className="text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-white">
+        <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
           Тарифы <span className="text-neon">для</span> <br />
           <span className="outline-text">бизнеса</span>
         </h1>
@@ -237,9 +237,9 @@ export default function PricingClient() {
             <div
               key={tier.slug}
               className={cn(
-                "relative group p-8 rounded-[3rem] border transition-all duration-500 flex flex-col",
+                "relative group p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] border transition-all duration-500 flex flex-col",
                 tier.highlight
-                  ? "bg-neon/5 border-neon/30 shadow-[0_0_60px_rgba(92,243,135,0.15)] scale-105"
+                  ? "bg-neon/5 border-neon/30 shadow-[0_0_60px_rgba(92,243,135,0.15)] md:scale-105"
                   : "bg-white/[0.02] border-white/5 hover:border-white/10",
                 tier.popular && !tier.highlight && "border-neon/20"
               )}
@@ -348,7 +348,7 @@ export default function PricingClient() {
       {/* Comparison Table */}
       <section className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-5xl font-black uppercase tracking-tighter text-white mb-4">
+          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-4">
             Сравнение <span className="text-neon">тарифов</span>
           </h2>
           <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">
@@ -356,7 +356,8 @@ export default function PricingClient() {
           </p>
         </div>
 
-        <div className="glass-dark border border-white/5 rounded-[3rem] overflow-hidden">
+        {/* Desktop Table */}
+        <div className="hidden md:block glass-dark border border-white/5 rounded-[3rem] overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/5">
@@ -382,60 +383,15 @@ export default function PricingClient() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {[
-                {
-                  feature: "Стриминг музыки",
-                  business: true,
-                  content: true,
-                  businessPlus: true,
-                },
-                {
-                  feature: "Скачивание треков",
-                  business: false,
-                  content: true,
-                  businessPlus: true,
-                },
-                {
-                  feature: "Публичное исполнение",
-                  business: true,
-                  content: false,
-                  businessPlus: true,
-                },
-                {
-                  feature: "Синхронизация с видео",
-                  business: false,
-                  content: true,
-                  businessPlus: true,
-                },
-                {
-                  feature: "Точки вещания",
-                  business: "∞",
-                  content: "—",
-                  businessPlus: "∞",
-                },
-                {
-                  feature: "Content ID Whitelist",
-                  business: false,
-                  content: true,
-                  businessPlus: true,
-                },
-                {
-                  feature: "Приоритетная поддержка",
-                  business: false,
-                  content: false,
-                  businessPlus: true,
-                },
-                {
-                  feature: "Кастомные запросы",
-                  business: false,
-                  content: false,
-                  businessPlus: true,
-                },
-                {
-                  feature: "White-label",
-                  business: false,
-                  content: false,
-                  businessPlus: true,
-                },
+                { feature: "Стриминг музыки", business: true, content: true, businessPlus: true },
+                { feature: "Скачивание треков", business: false, content: true, businessPlus: true },
+                { feature: "Публичное исполнение", business: true, content: false, businessPlus: true },
+                { feature: "Синхронизация с видео", business: false, content: true, businessPlus: true },
+                { feature: "Точки вещания", business: "∞", content: "—", businessPlus: "∞" },
+                { feature: "Content ID Whitelist", business: false, content: true, businessPlus: true },
+                { feature: "Приоритетная поддержка", business: false, content: false, businessPlus: true },
+                { feature: "Кастомные запросы", business: false, content: false, businessPlus: true },
+                { feature: "White-label", business: false, content: false, businessPlus: true },
               ].map((row, i) => (
                 <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                   <td className="py-5 px-8 text-sm font-bold text-white">
@@ -475,12 +431,47 @@ export default function PricingClient() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden space-y-6">
+          {[
+            { feature: "Стриминг музыки", business: true, content: true, businessPlus: true },
+            { feature: "Скачивание треков", business: false, content: true, businessPlus: true },
+            { feature: "Публичное исполнение", business: true, content: false, businessPlus: true },
+            { feature: "Синхронизация с видео", business: false, content: true, businessPlus: true },
+            { feature: "Точки вещания", business: "∞", content: "—", businessPlus: "∞" },
+            { feature: "Content ID Whitelist", business: false, content: true, businessPlus: true },
+            { feature: "Приоритетная поддержка", business: false, content: false, businessPlus: true },
+            { feature: "Кастомные запросы", business: false, content: false, businessPlus: true },
+            { feature: "White-label", business: false, content: false, businessPlus: true },
+          ].map((row, i) => (
+            <div key={i} className="glass-dark border border-white/5 rounded-3xl p-6 space-y-4">
+              <h4 className="text-white font-black uppercase text-sm border-b border-white/5 pb-3">
+                {row.feature}
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-tight text-neutral-500">Бизнес</span>
+                  {row.business === true ? <Check className="w-4 h-4 text-neon" /> : row.business === false ? <X className="w-4 h-4 text-neutral-700" /> : <span className="text-xs font-bold text-white">{row.business}</span>}
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-tight text-neutral-500">Контент</span>
+                  {row.content === true ? <Check className="w-4 h-4 text-neon" /> : row.content === false ? <X className="w-4 h-4 text-neutral-700" /> : <span className="text-xs font-bold text-white">{row.content}</span>}
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-tight text-neutral-500">Бизнес +</span>
+                  {row.businessPlus === true ? <Check className="w-4 h-4 text-neon" /> : row.businessPlus === false ? <X className="w-4 h-4 text-neutral-700" /> : <span className="text-xs font-bold text-white">{row.businessPlus}</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* FAQ Section */}
       <section className="max-w-3xl mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-5xl font-black uppercase tracking-tighter text-white mb-4">
+          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-4">
             Вопросы и <span className="text-neon">ответы</span>
           </h2>
           <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">
@@ -525,23 +516,23 @@ export default function PricingClient() {
           <div className="absolute bottom-0 left-0 p-32 bg-blue-500/5 blur-[120px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
           <div className="relative z-10 space-y-8">
-            <h2 className="text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tighter text-white leading-tight">
               Готовы <span className="text-neon">начать?</span>
             </h2>
             <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">
               Зарегистрируйтесь сейчас и получите 14 дней бесплатного доступа к
               любому тарифу.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/register">
-                <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-10 h-14 font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link href="/register" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-10 h-14 font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                   Начать бесплатно
                 </Button>
               </Link>
-              <Link href="/contact">
+              <Link href="/about#contact" className="w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-10 h-14 font-black uppercase tracking-widest"
+                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-10 h-14 font-black uppercase tracking-widest"
                 >
                   Связаться с нами
                 </Button>

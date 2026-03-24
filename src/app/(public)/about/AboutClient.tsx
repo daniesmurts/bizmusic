@@ -93,7 +93,7 @@ const contactInfo = [
     icon: Mail,
     title: "Email",
     value: "info@boadtech.com",
-    href: "mailto:daniel@boadtech.com",
+    href: "mailto:info@boadtech.com",
   },
   {
     icon: Phone,
@@ -149,7 +149,7 @@ export default function AboutClient() {
     } catch (error) {
       console.error("Web3Forms Error:", error);
       setStatus("error");
-      setErrorMessage("Северная ошибка. Пожалуйста, попробуйте позже.");
+      setErrorMessage("Серверная ошибка. Пожалуйста, попробуйте позже.");
     }
   };
 
@@ -165,7 +165,7 @@ export default function AboutClient() {
             </span>
           </div>
 
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-white">
+          <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
             Бизнес <span className="text-neon">Музыка</span>
           </h1>
 
@@ -178,7 +178,7 @@ export default function AboutClient() {
       </section>
 
       {/* Stats Section */}
-      <section className="px-6">
+      <section id="contact" className="px-6 scroll-mt-32">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((stat, i) => {
@@ -186,16 +186,16 @@ export default function AboutClient() {
               return (
                 <div
                   key={i}
-                  className="group relative p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden hover:border-neon/20 transition-all duration-500"
+                  className="group relative p-6 md:p-8 bg-white/[0.02] border border-white/5 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden hover:border-neon/20 transition-all duration-500"
                 >
-                  <div className="absolute top-0 right-0 p-12 bg-neon/5 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                  <div className="absolute top-0 right-0 p-8 md:p-12 bg-neon/5 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
                   <div className="relative z-10 flex flex-col items-center gap-4 text-center">
                     <div className="w-16 h-16 rounded-2xl bg-neon/10 border border-neon/20 flex items-center justify-center">
                       <Icon className="w-8 h-8 text-neon" />
                     </div>
                     <div>
-                      <p className="text-5xl font-black text-white mb-2">
+                      <p className="text-3xl md:text-5xl font-black text-white mb-2">
                         {stat.value}
                       </p>
                       <p className="text-neutral-500 text-xs font-black uppercase tracking-widest">
@@ -214,7 +214,7 @@ export default function AboutClient() {
       <section className="px-6">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center mb-12">
-            <h2 className="text-5xl font-black uppercase tracking-tighter text-white mb-4">
+            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-4">
               Кто <span className="text-neon">мы</span>
             </h2>
             <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">
@@ -228,9 +228,9 @@ export default function AboutClient() {
               return (
                 <div
                   key={i}
-                  className="relative p-8 bg-white/[0.02] border border-white/5 rounded-[3rem] hover:border-neon/20 transition-all duration-500 group"
+                  className="relative p-6 md:p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem] md:rounded-[3rem] hover:border-neon/20 transition-all duration-500 group"
                 >
-                  <div className="absolute top-0 right-0 p-24 bg-neon/5 blur-[100px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                  <div className="absolute top-0 right-0 p-16 md:p-24 bg-neon/5 blur-[100px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
                   <div className="relative z-10 space-y-6">
                     <div className="w-16 h-16 rounded-2xl bg-neon/10 border border-neon/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -238,7 +238,7 @@ export default function AboutClient() {
                     </div>
 
                     <div className="space-y-4">
-                      <h3 className="text-2xl font-black uppercase tracking-tighter text-white">
+                      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-white">
                         {value.title}
                       </h3>
                       <p className="text-neutral-400 text-sm font-medium leading-relaxed">
@@ -256,13 +256,13 @@ export default function AboutClient() {
       {/* Achievements */}
       <section className="px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="glass-dark border border-white/10 rounded-[3rem] p-16 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-48 bg-neon/5 blur-[150px] rounded-full -mr-48 -mt-48 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 p-48 bg-blue-500/5 blur-[150px] rounded-full -ml-48 -mb-48 pointer-events-none" />
+          <div className="glass-dark border border-white/10 rounded-[2.5rem] md:rounded-[3rem] p-10 md:p-16 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-32 md:p-48 bg-neon/5 blur-[150px] rounded-full -mr-32 md:-mr-48 -mt-32 md:-mt-48 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 p-32 md:p-48 bg-blue-500/5 blur-[150px] rounded-full -ml-32 md:-ml-48 -mb-32 md:-mb-48 pointer-events-none" />
 
             <div className="relative z-10">
               <div className="text-center mb-12">
-                <h2 className="text-5xl font-black uppercase tracking-tighter text-white mb-4">
+                <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-4">
                   Почему <span className="text-neon">выбирают нас</span>
                 </h2>
                 <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">
@@ -302,7 +302,7 @@ export default function AboutClient() {
       <section className="px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-5xl font-black uppercase tracking-tighter text-white mb-4">
+            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-4">
               Свяжитесь с <span className="text-neon">нами</span>
             </h2>
             <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">
@@ -313,9 +313,9 @@ export default function AboutClient() {
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Contact Info */}
             <div className="space-y-6">
-              <div className="glass-dark border border-white/5 rounded-[3rem] p-10 space-y-8">
+              <div className="glass-dark border border-white/5 rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 space-y-8">
                 <div>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">
+                  <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter text-white mb-2 leading-tight">
                     Контактная информация
                   </h3>
                   <p className="text-neutral-400 text-sm font-medium leading-relaxed">
@@ -352,9 +352,9 @@ export default function AboutClient() {
             </div>
 
             {/* Contact Form */}
-            <div className="glass-dark border border-white/10 rounded-[3rem] p-10">
+            <div className="glass-dark border border-white/10 rounded-[2rem] md:rounded-[3rem] p-6 md:p-10">
               <div className="mb-8">
-                <h3 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">
+                <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter text-white mb-2 leading-tight">
                   Напишите нам
                 </h3>
                 <p className="text-neutral-400 text-sm font-medium leading-relaxed">
@@ -498,28 +498,28 @@ export default function AboutClient() {
 
       {/* CTA Section */}
       <section className="px-6">
-        <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[3rem] p-16 text-center relative overflow-hidden">
+        <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-32 bg-neon/5 blur-[120px] rounded-full -mr-32 -mt-32 pointer-events-none" />
           <div className="absolute bottom-0 left-0 p-32 bg-blue-500/5 blur-[120px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
           <div className="relative z-10 space-y-8">
-            <h2 className="text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tighter text-white leading-tight">
               Готовы <span className="text-neon">начать?</span>
             </h2>
             <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">
               Присоединяйтесь к сотням довольных клиентов и обеспечьте свой бизнес
               легальной музыкой уже сегодня.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/pricing">
-                <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-10 h-14 font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link href="/pricing" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-10 h-14 font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                   Выбрать тариф
                 </Button>
               </Link>
-              <Link href="/contact">
+              <Link href="#contact" className="w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-10 h-14 font-black uppercase tracking-widest"
+                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-10 h-14 font-black uppercase tracking-widest"
                 >
                   Связаться с нами
                 </Button>

@@ -94,7 +94,7 @@ const products = [
       "Управление громкостью",
     ],
     color: "blue",
-    link: "/contact",
+    link: "/about#contact",
   },
   {
     name: "Подкасты и аудио",
@@ -181,7 +181,7 @@ export default function ProductsClient() {
           </span>
         </div>
 
-        <h1 className="text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-white">
+        <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
           Наши <span className="text-neon">продукты</span>
         </h1>
 
@@ -232,9 +232,9 @@ export default function ProductsClient() {
               </div>
 
               {/* Content */}
-              <div className="p-8 space-y-6">
+              <div className="p-6 md:p-8 space-y-6">
                 <div className="space-y-3">
-                  <h3 className="text-3xl font-black uppercase tracking-tighter text-white">
+                  <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-white">
                     {product.name}
                   </h3>
                   <p className="text-neutral-400 text-sm font-bold uppercase tracking-widest">
@@ -285,27 +285,27 @@ export default function ProductsClient() {
 
       {/* CTA Section */}
       <section className="px-6">
-        <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[3rem] p-16 text-center relative overflow-hidden">
+        <div className="max-w-4xl mx-auto glass-dark border border-white/10 rounded-[2.5rem] md:rounded-[3rem] p-10 md:p-16 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-32 bg-neon/5 blur-[120px] rounded-full -mr-32 -mt-32 pointer-events-none" />
           <div className="absolute bottom-0 left-0 p-32 bg-blue-500/5 blur-[120px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
           <div className="relative z-10 space-y-8">
-            <h2 className="text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tighter text-white leading-tight">
               Нужна <span className="text-neon">помощь</span> с выбором?
             </h2>
             <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">
               Свяжитесь с нами, и мы поможем подобрать оптимальное решение для вашего бизнеса.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/contact">
-                <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-10 h-14 font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link href="/about#contact" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-10 h-14 font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                   Связаться с нами
                 </Button>
               </Link>
-              <Link href="/pricing">
+              <Link href="/pricing" className="w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-10 h-14 font-black uppercase tracking-widest"
+                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-10 h-14 font-black uppercase tracking-widest"
                 >
                   Смотреть тарифы
                 </Button>

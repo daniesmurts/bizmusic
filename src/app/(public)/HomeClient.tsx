@@ -37,7 +37,7 @@ export default function HomeClient() {
   };
 
   return (
-    <div className="flex flex-col gap-24 pb-20">
+    <div className="flex flex-col gap-16 md:gap-24 pb-20">
       {/* Hero Section */}
       <section className="relative min-h-[80vh] flex items-center px-6 md:px-12 py-20 overflow-hidden rounded-[2rem] md:rounded-[3rem] mx-4 md:mx-6">
         <Image
@@ -55,7 +55,7 @@ export default function HomeClient() {
             <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">Новое поколение звука</span>
           </div>
           
-          <h1 className="text-4xl sm:text-6xl md:text-8xl font-black uppercase tracking-tighter leading-[0.9] md:leading-[0.85] text-white">
+          <h1 className="text-4xl sm:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
             Атмосфера <br />
             <span className="text-neon outline-text">вашего успеха</span>
           </h1>
@@ -82,7 +82,7 @@ export default function HomeClient() {
 
       {/* Featured Products */}
       <section className="px-6 md:px-12 space-y-12">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
             <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">Наши <span className="text-neon">Продукты</span></h2>
             <p className="text-neutral-500 font-bold uppercase tracking-widest text-xs md:text-sm">Комплексные решения для вашего бизнеса</p>
@@ -123,7 +123,7 @@ export default function HomeClient() {
           ].map((item, i) => (
             <Link key={i} href={item.link}>
               <div
-                className="group relative h-[450px] rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-neon/20 transition-all duration-500"
+                className="group relative h-[380px] md:h-[450px] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-neon/20 transition-all duration-500"
               >
                 <Image
                   src={item.img}
@@ -133,12 +133,12 @@ export default function HomeClient() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
-                <div className="absolute top-6 right-6 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
-                  <Button size="icon" className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-neon hover:text-black transition-colors">
-                    <Heart className="w-5 h-5" />
+                <div className="absolute top-4 right-4 md:top-6 md:right-6 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                  <Button size="icon" className="w-8 h-8 md:w-10 md:h-10 bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-neon hover:text-black transition-colors">
+                    <Heart className="w-4 h-4 md:w-5 md:h-5" />
                   </Button>
-                  <Button size="icon" className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-white/20">
-                    <ExternalLink className="w-5 h-5 text-white" />
+                  <Button size="icon" className="w-8 h-8 md:w-10 md:h-10 bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-white/20">
+                    <ExternalLink className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </Button>
                 </div>
 
@@ -265,7 +265,7 @@ function FAQItem({ question, answer }: { question: string, answer: string }) {
     >
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-8 py-8 flex items-center justify-between gap-4 text-left"
+        className="w-full px-6 py-6 md:px-8 md:py-8 flex items-center justify-between gap-4 text-left"
       >
         <span className={cn(
           "text-lg md:text-xl font-black uppercase tracking-tight transition-colors duration-300",
