@@ -14,6 +14,7 @@ import {
   LogOut,
   ShieldAlert,
   BookOpen,
+  BarChart3,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ import { useRouter } from "next/navigation";
 const adminNavItems = [
   { name: "Обзор", href: "/admin", icon: LayoutDashboard },
   { name: "Медиатека", href: "/admin/content", icon: Music },
+  { name: "Аналитика", href: "/admin/analytics", icon: BarChart3 },
   { name: "Блог", href: "/admin/blog", icon: BookOpen },
   { name: "Клиенты", href: "/admin/clients", icon: Users },
   { name: "Комплаенс", href: "/admin/logs", icon: ShieldCheck },

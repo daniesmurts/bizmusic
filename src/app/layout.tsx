@@ -6,6 +6,8 @@ import { Player } from "@/components/Player";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/Providers";
 import { Navbar } from "@/components/Navbar";
+import { YandexMetrika } from "@/components/YandexMetrika";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -40,6 +42,9 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-black text-white antialiased`} suppressHydrationWarning>
         <Providers>
+          <Suspense fallback={null}>
+            <YandexMetrika tagId="108223303" />
+          </Suspense>
           <AuthProvider>
             <Navbar />
             <main className="pt-24">

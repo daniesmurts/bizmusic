@@ -21,6 +21,7 @@ export interface ScheduleConfig {
 export const roleEnum = pgEnum("role", ["ADMIN", "BUSINESS_OWNER", "STAFF"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["INACTIVE", "ACTIVE", "EXPIRED"]);
 export const billingIntervalEnum = pgEnum("billing_interval", ["monthly", "yearly"]);
+export const userTypeEnum = pgEnum("user_type", ["BUSINESS", "CREATOR"]);
 
 // Users Table
 export const users = pgTable("users", {
@@ -28,6 +29,8 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("passwordHash").notNull(),
   role: roleEnum("role").default("BUSINESS_OWNER").notNull(),
+  userType: userTypeEnum("userType").default("BUSINESS").notNull(),
+  phone: text("phone"),
   termsAccepted: boolean("termsAccepted").default(false).notNull(),
   termsAcceptedAt: timestamp("termsAcceptedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -88,6 +91,8 @@ export const tracks = pgTable("tracks", {
   isExplicit: boolean("isExplicit").default(false).notNull(),
   isFeatured: boolean("isFeatured").default(false).notNull(),
   energyLevel: integer("energyLevel"),
+  downloadsCount: integer("downloadsCount").default(0).notNull(),
+  sharesCount: integer("sharesCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
