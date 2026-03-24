@@ -93,6 +93,40 @@ export const tracks = pgTable("tracks", {
   energyLevel: integer("energyLevel"),
   downloadsCount: integer("downloadsCount").default(0).notNull(),
   sharesCount: integer("sharesCount").default(0).notNull(),
+  artistId: text("artistId").references(() => artists.id),
+  albumId: text("albumId").references(() => albums.id),
+  trackNumber: integer("trackNumber"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+});
+
+// Albums Table
+export const albums = pgTable("albums", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  artist: text("artist").notNull(),
+  artistId: text("artistId").references(() => artists.id),
+  coverUrl: text("coverUrl"),
+  description: text("description"),
+  releaseDate: timestamp("releaseDate"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+});
+
+// Artists Table
+export const artists = pgTable("artists", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  imageUrl: text("imageUrl"),
+  bio: text("bio"),
+  isFeatured: boolean("isFeatured").default(false).notNull(),
+  externalLinks: jsonb("externalLinks").$type<{
+    spotify?: string;
+    vk?: string;
+    appleMusic?: string;
+    website?: string;
+  }>().default({}).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
@@ -215,9 +249,21 @@ export const locationsRelations = relations(locations, ({ one, many }) => ({
   playLogs: many(playLogs),
 }));
 
-export const tracksRelations = relations(tracks, ({ many }) => ({
+export const tracksRelations = relations(tracks, ({ one, many }) => ({
+  artist: one(artists, { fields: [tracks.artistId], references: [artists.id] }),
+  album: one(albums, { fields: [tracks.albumId], references: [albums.id] }),
   playLogs: many(playLogs),
   playlistTracks: many(playlistTracks),
+}));
+
+export const albumsRelations = relations(albums, ({ one, many }) => ({
+  artist: one(artists, { fields: [albums.artistId], references: [artists.id] }),
+  tracks: many(tracks),
+}));
+
+export const artistsRelations = relations(artists, ({ many }) => ({
+  tracks: many(tracks),
+  albums: many(albums),
 }));
 
 export const playlistsRelations = relations(playlists, ({ one, many }) => ({

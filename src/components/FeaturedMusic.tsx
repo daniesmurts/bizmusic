@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, Music, Zap, Star } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getFeaturedTracksAction } from "@/lib/actions/tracks";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
@@ -100,9 +101,18 @@ export const FeaturedMusic = () => {
               {track.title}
             </h4>
             <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-neutral-500 text-[10px] font-black uppercase tracking-widest truncate max-w-[120px]">
-                {track.artist}
-              </p>
+              {track.artistProfile?.slug ? (
+                <Link 
+                  href={`/artists/${track.artistProfile.slug}`}
+                  className="text-neutral-500 text-[10px] font-black uppercase tracking-widest truncate max-w-[120px] hover:text-neon transition-colors"
+                >
+                  {track.artist}
+                </Link>
+              ) : (
+                <p className="text-neutral-500 text-[10px] font-black uppercase tracking-widest truncate max-w-[120px]">
+                  {track.artist}
+                </p>
+              )}
               {track.genre && (
                 <>
                   <div className="w-1 h-1 rounded-full bg-white/10" />
