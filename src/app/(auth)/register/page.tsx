@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Phone, UserCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [userType, setUserType] = useState<"BUSINESS" | "CREATOR">("BUSINESS");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -38,6 +40,8 @@ export default function Register() {
         data: {
           terms_accepted: true,
           terms_accepted_at: new Date().toISOString(),
+          phone,
+          user_type: userType,
         }
       },
     });
@@ -121,6 +125,44 @@ export default function Register() {
               disabled={loading}
               minLength={6}
             />
+          </div>
+ 
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Телефон</Label>
+            <div className="relative group">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-neon transition-colors" />
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+7 (999) 000-00-00"
+                className="bg-white/5 border-white/10 rounded-2xl py-6 pl-12 focus:border-neon/50 focus:ring-neon/20 transition-all text-lg font-medium"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+          </div>
+ 
+          <div className="space-y-2">
+            <Label htmlFor="userType" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Кто вы?</Label>
+            <div className="relative group">
+              <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-neon transition-colors pointer-events-none" />
+              <select
+                id="userType"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:border-neon/50 focus:outline-none focus:ring-2 focus:ring-neon/20 transition-all text-lg font-medium appearance-none text-white cursor-pointer"
+                value={userType}
+                onChange={(e) => setUserType(e.target.value as "BUSINESS" | "CREATOR")}
+                disabled={loading}
+                required
+              >
+                <option value="BUSINESS" className="bg-neutral-900 text-white">Бизнес (Кафе, Ресторан, Офис)</option>
+                <option value="CREATOR" className="bg-neutral-900 text-white">Создатель контента (YouTube, VK)</option>
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-start space-x-3 pt-2">

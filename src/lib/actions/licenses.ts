@@ -172,11 +172,15 @@ export async function submitContractAction(formData: ContractFormData) {
 
     if (!dbUser) {
       console.log(`[SubmitContract] Drizzle user not found for ID: ${authUser.id}, creating...`);
+      // Sync phone and userType from Supabase auth metadata
+      const meta = authUser.user_metadata || {};
       const [newUser] = await db.insert(users).values({
         id: authUser.id,
         email: authUser.email!,
         passwordHash: "SUPABASE_AUTH",
         role: "BUSINESS_OWNER",
+        phone: meta.phone || null,
+        userType: meta.user_type === "CREATOR" ? "CREATOR" : "BUSINESS",
       }).returning();
       dbUser = newUser;
     } else if (dbUser.email !== authUser.email) {

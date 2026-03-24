@@ -11,10 +11,15 @@ import {
   Heart,
   ExternalLink,
   CreditCard,
-  Star
+  Star,
+  HelpCircle,
+  Plus,
+  Minus
 } from "lucide-react";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
+import { useState } from "react";
 import { FeaturedMusic } from "@/components/FeaturedMusic";
+import { cn } from "@/lib/utils";
 
 export default function HomeClient() {
   const { setTrack } = usePlayerStore();
@@ -198,6 +203,88 @@ export default function HomeClient() {
           </div>
         </div>
       </section>
+ 
+      {/* FAQ Section */}
+      <section className="px-6 md:px-12 max-w-5xl mx-auto w-full space-y-16">
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon/30 bg-neon/10 backdrop-blur-md">
+            <HelpCircle className="w-4 h-4 text-neon" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neon">Поддержка</span>
+          </div>
+          <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter">
+            Часто задаваемые <span className="text-neon outline-text">вопросы</span>
+          </h2>
+        </div>
+ 
+        <div className="space-y-4">
+          <FAQItem 
+            question="Как начать пользоваться сервисом?" 
+            answer="Зарегистрируйтесь, выберите подходящий тариф и привяжите карту. Вы получите 14 дней бесплатного периода для тестирования всех функций без ограничений."
+          />
+          <FAQItem 
+            question="Нужно ли платить в РАО и ВОИС?" 
+            answer="Нет. Bizmusic предоставляет музыку по прямым лицензионным договорам с правообладателями. Мы берем на себя всю юридическую ответственность, и вам не нужно делать дополнительные отчисления в аккредитованные организации."
+          />
+          <FAQItem 
+            question="Есть ли мобильное приложение?" 
+            answer="Да, наш сервис — это PWA (Progressive Web App). Вы можете установить его на любой смартфон или планшет прямо из браузера, и оно будет работать как нативное приложение даже при нестабильном интернете."
+          />
+          <FAQItem 
+            question="Могу ли я использовать музыку оффлайн?" 
+            answer="Да, наше приложение автоматически кэширует треки. Если интернет временно пропадет, воспроизведение продолжится без прерываний из локального хранилища устройства."
+          />
+          <FAQItem 
+            question="Как я получу документы для проверки?" 
+            answer="Все необходимые документы (договор оферты, лицензионный сертификат с QR-кодом) доступны в вашем личном кабинете. Вы можете скачать или распечатать их в любой момент для предъявления инспекторам."
+          />
+          <FAQItem 
+            question="Можно ли менять тариф?" 
+            answer="Да, вы можете сменить тарифный план или период оплаты (месяц/год) в личном кабинете в любое время. Все перерасчеты произойдут автоматически."
+          />
+        </div>
+      </section>
+    </div>
+  );
+}
+ 
+function FAQItem({ question, answer }: { question: string, answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+ 
+  return (
+    <div 
+      className={cn(
+        "group border rounded-[1.5rem] md:rounded-[2rem] overflow-hidden transition-all duration-500",
+        isOpen ? "bg-white/[0.03] border-neon/30 ring-1 ring-neon/10" : "bg-white/[0.02] border-white/5 hover:border-white/10"
+      )}
+    >
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-8 py-8 flex items-center justify-between gap-4 text-left"
+      >
+        <span className={cn(
+          "text-lg md:text-xl font-black uppercase tracking-tight transition-colors duration-300",
+          isOpen ? "text-neon" : "text-white group-hover:text-white/80"
+        )}>
+          {question}
+        </span>
+        <div className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-500 shrink-0",
+          isOpen ? "bg-neon border-neon text-black rotate-180" : "bg-white/5 border-white/10 text-white"
+        )}>
+          {isOpen ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+        </div>
+      </button>
+      
+      <div className={cn(
+        "grid transition-all duration-500 ease-in-out",
+        isOpen ? "grid-rows-[1fr] opacity-100 pb-8" : "grid-rows-[0fr] opacity-0"
+      )}>
+        <div className="overflow-hidden px-8">
+          <p className="text-neutral-400 text-lg leading-relaxed font-medium max-w-3xl">
+            {answer}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
