@@ -69,6 +69,7 @@ export default function AdminContentPage() {
     fileName: string;
     url: string;
     duration: number;
+    coverUrl?: string;
   } | null>(null);
 
   // Fetch tracks
@@ -296,8 +297,8 @@ export default function AdminContentPage() {
   });
 
   const handleUploadComplete = useCallback(
-    (fileName: string, url: string, duration: number) => {
-      setUploadedFile({ fileName, url, duration });
+    (fileName: string, url: string, duration: number, coverUrl?: string) => {
+      setUploadedFile({ fileName, url, duration, coverUrl });
     },
     []
   );
@@ -310,6 +311,7 @@ export default function AdminContentPage() {
     moodTags: string[];
     energyLevel: number;
     isExplicit: boolean;
+    coverUrl?: string;
   }) => {
     if (editingTrack) {
       updateTrackMutation.mutate({
@@ -747,6 +749,7 @@ export default function AdminContentPage() {
                   fileUrl={uploadedFile.url}
                   duration={uploadedFile.duration}
                   artists={artists}
+                  extractedCoverUrl={uploadedFile.coverUrl}
                   onSubmit={handleSaveTrack}
                   onCancel={() => {
                     setShowUploadModal(false);

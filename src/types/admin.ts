@@ -14,6 +14,7 @@ export interface AdminTrack {
   energyLevel?: number | null;
   artistId?: string | null;
   artistProfile?: AdminArtist | null;
+  coverUrl?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
   streamUrl?: string;

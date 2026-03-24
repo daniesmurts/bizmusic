@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { Providers } from "@/components/Providers";
 import { Navbar } from "@/components/Navbar";
 import { YandexMetrika } from "@/components/YandexMetrika";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
@@ -51,6 +52,7 @@ export default function RootLayout({
               {children}
             </main>
             <Player />
+            <UpdatePrompt />
             <Toaster position="top-center" richColors theme="dark" />
           </AuthProvider>
         </Providers>
