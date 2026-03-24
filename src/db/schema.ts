@@ -55,6 +55,8 @@ export const businesses = pgTable("businesses", {
   subscriptionExpiresAt: timestamp("subscriptionExpiresAt"),
   trialEndsAt: timestamp("trialEndsAt"),
   rebillId: text("rebillId"),
+  cardMask: text("cardMask"),
+  cardExpiry: text("cardExpiry"),
   currentPlanSlug: text("currentPlanSlug"),
   billingInterval: billingIntervalEnum("billingInterval").default("monthly").notNull(),
   cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),

@@ -8,18 +8,27 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Use Supabase transaction pooler (port 6543) for better connection management
-// If DATABASE_URL uses port 5432 (session mode), consider switching to port 6543
 if (!process.env.DATABASE_URL) {
   console.error("[DB] ❌ DATABASE_URL is not set. All database queries will fail.");
 }
 
+// Auto-switch to Supabase transaction pooler (port 6543) if using direct port 5432
+function getConnectionString(): string | undefined {
+  const url = process.env.DATABASE_URL;
+  if (url && url.includes("supabase.co") && url.includes(":5432")) {
+    console.log("[DB] Auto-switching from port 5432 (session) to 6543 (transaction pooler)");
+    return url.replace(":5432", ":6543");
+  }
+  return url;
+}
+
 const poolConfig = {
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getConnectionString(),
   ssl: { rejectUnauthorized: false },
-  max: 3, // Small pool — enough for concurrent requests without exhausting Supabase
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds (was 5s — too aggressive)
-  connectionTimeoutMillis: 10000, // Timeout after 10 seconds
-  allowExitOnIdle: false, // Keep pool alive in long-running Next.js server
+  max: 10,
+  idleTimeoutMillis: 20000,
+  connectionTimeoutMillis: 15000,
+  allowExitOnIdle: true,
 };
 
 declare global {
@@ -44,6 +53,9 @@ function createPool(): Pool {
     if (process.env.NODE_ENV !== "production") {
       global.pgPool = undefined;
       global.db = undefined;
+    } else {
+      _prodPool = undefined;
+      _prodDb = undefined;
     }
   });
 

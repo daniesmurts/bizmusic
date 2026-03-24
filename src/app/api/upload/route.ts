@@ -6,15 +6,26 @@ import {
   getFileSizeInMB,
   getUploadSignedUrl,
 } from "@/lib/supabase-storage";
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * POST /api/upload
- * Generate a signed URL for uploading audio files to Supabase Storage
+ * Generate a signed URL for uploading audio/image files to Supabase Storage
  */
 export async function POST(request: NextRequest) {
   try {
+    // Auth check — only authenticated users can upload
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { fileName, fileSize, fileType } = body;
+    const { fileName, fileSize, fileType, type = 'audio' } = body;
 
     if (!fileName || !fileSize) {
       return NextResponse.json(
@@ -23,22 +34,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    const validTypes = [
-      'audio/mpeg',
-      'audio/mp3',
-      'audio/wav',
-      'audio/wave',
-      'audio/x-wav',
-      'audio/ogg',
-      'audio/flac',
-    ];
+    if (type === 'image') {
+      const validImageTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'image/svg+xml',
+      ];
+      if (fileType && !validImageTypes.includes(fileType)) {
+        return NextResponse.json(
+          { error: "Invalid image type. Accepted formats: JPG, PNG, WEBP, GIF, SVG" },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Validate audio file type
+      const validAudioTypes = [
+        'audio/mpeg',
+        'audio/mp3',
+        'audio/wav',
+        'audio/wave',
+        'audio/x-wav',
+        'audio/ogg',
+        'audio/flac',
+      ];
 
-    if (fileType && !validTypes.includes(fileType)) {
-      return NextResponse.json(
-        { error: "Invalid file type. Accepted formats: MP3, WAV, OGG, FLAC" },
-        { status: 400 }
-      );
+      if (fileType && !validAudioTypes.includes(fileType)) {
+        return NextResponse.json(
+          { error: "Invalid file type. Accepted formats: MP3, WAV, OGG, FLAC" },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate file size
@@ -52,7 +80,8 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename and upload URL
     const uniqueFileName = generateUniqueFileName(fileName);
-    const { uploadUrl, publicUrl } = await getUploadSignedUrl(uniqueFileName, fileType);
+    const folder = type === 'image' ? 'blog' : 'tracks';
+    const { uploadUrl, publicUrl } = await getUploadSignedUrl(uniqueFileName, folder, fileType);
 
     return NextResponse.json({
       success: true,

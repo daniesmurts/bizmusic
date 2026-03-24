@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { businesses, payments, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { tbank } from "@/lib/payments/tbank";
+import { tbank, type Receipt } from "@/lib/payments/tbank";
 import { getPlanBySlug } from "@/lib/payments/plans";
 import { createClient } from "@/utils/supabase/server";
 import { sendEmail } from "@/lib/email";
@@ -55,6 +55,21 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
       SuccessURL: `${appUrl}/dashboard/subscription/success?orderId=${orderId}`,
       FailURL: `${appUrl}/dashboard/subscription/failure?orderId=${orderId}`,
       NotificationURL: `${appUrl}/api/payments/notification`,
+      Receipt: {
+        Email: user.email,
+        Taxation: 'usn_income_outcome',
+        Items: [
+          {
+            Name: `Верификация карты - ${plan.name}`,
+            Price: 100,
+            Quantity: 1,
+            Amount: 100,
+            Tax: 'none',
+            PaymentMethod: 'full_prepayment',
+            PaymentObject: 'service'
+          }
+        ]
+      },
       DATA: {
           planSlug: planSlug,
           businessId: businessId,
@@ -243,6 +258,51 @@ export async function reactivateSubscription(businessId: string) {
     return { success: true };
   } catch (error: unknown) {
     console.error("Reactivate subscription error:", error);
+    const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
+    return { success: false, error: message };
+  }
+}
+
+export async function removePaymentMethod(businessId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Авторизация обязательна" };
+    }
+
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.id, businessId),
+    });
+
+    if (!business) {
+      return { success: false, error: "Бизнес не найден" };
+    }
+
+    if (business.userId !== user.id) {
+      return { success: false, error: "Отказано в доступе: вы не являетесь владельцем" };
+    }
+
+    // If subscription is ACTIVE, schedule cancellation at period end
+    // since without a rebillId the cron billing can't charge
+    const updateData: Record<string, unknown> = {
+      rebillId: null,
+      cardMask: null,
+      cardExpiry: null,
+      updatedAt: new Date(),
+    };
+    if (business.subscriptionStatus === "ACTIVE") {
+      updateData.cancelAtPeriodEnd = true;
+    }
+
+    await db.update(businesses)
+      .set(updateData)
+      .where(eq(businesses.id, businessId));
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Remove payment method error:", error);
     const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
     return { success: false, error: message };
   }

@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const data = await req.json();
 
     // 1. Validate required fields exist
-    const { OrderId, Status, PaymentId, RebillId, ErrorCode, Amount } = data;
+    const { OrderId, Status, PaymentId, RebillId, ErrorCode, Amount, Pan, ExpDate } = data;
     if (!OrderId || !Status || !PaymentId) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
@@ -61,6 +61,8 @@ export async function POST(req: Request) {
       await db.update(businesses)
         .set({
           rebillId: RebillId || undefined,
+          cardMask: Pan || undefined,
+          cardExpiry: ExpDate || undefined,
           trialEndsAt: trialEndsAt,
           subscriptionExpiresAt: trialEndsAt,
           subscriptionStatus: "ACTIVE",

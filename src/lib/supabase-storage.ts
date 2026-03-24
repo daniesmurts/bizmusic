@@ -22,11 +22,12 @@ const BUCKET_NAME = 'bizmusic-assets';
 
 export async function getUploadSignedUrl(
   fileName: string,
+  folder: string = 'tracks',
   fileType?: string
 ): Promise<{ uploadUrl: string; publicUrl: string }> {
   // `fileType` is currently unused in the upload flow but kept for future validation/logic.
   void fileType;
-  const path = `tracks/${fileName}`;
+  const path = `${folder}/${fileName}`;
   const { data, error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
     .createSignedUploadUrl(path);
@@ -49,10 +50,11 @@ export async function getUploadSignedUrl(
 /**
  * Get the public URL for a track file
  * @param fileName - The name of the file
+ * @param folder - The folder in the bucket (default: tracks)
  * @returns Public URL for the file
  */
-export function getTrackPublicUrl(fileName: string): string {
-  const path = `tracks/${fileName}`;
+export function getFilePublicUrl(fileName: string, folder: string = 'tracks'): string {
+  const path = `${folder}/${fileName}`;
   const { data: { publicUrl } } = supabaseAdmin.storage
     .from(BUCKET_NAME)
     .getPublicUrl(path);
@@ -68,11 +70,12 @@ export function getTrackPublicUrl(fileName: string): string {
  */
 export async function getDownloadSignedUrl(
   fileName: string,
+  folder: string = 'tracks',
   expiresIn: number = 86400
 ): Promise<string> {
   const { data, error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
-    .createSignedUrl(`tracks/${fileName}`, expiresIn);
+    .createSignedUrl(`${folder}/${fileName}`, expiresIn);
 
   if (error) {
     throw new Error(`Failed to create download URL: ${error.message}`);
@@ -85,10 +88,10 @@ export async function getDownloadSignedUrl(
  * Delete a file from Supabase Storage
  * @param fileName - The name of the file to delete
  */
-export async function deleteFile(fileName: string): Promise<void> {
+export async function deleteFile(fileName: string, folder: string = 'tracks'): Promise<void> {
   const { error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
-    .remove([`tracks/${fileName}`]);
+    .remove([`${folder}/${fileName}`]);
 
   if (error) {
     throw new Error(`Failed to delete file: ${error.message}`);
@@ -141,6 +144,23 @@ export function isValidAudioFile(file: File): boolean {
     'audio/x-wav',
     'audio/ogg',
     'audio/flac',
+  ];
+  return validTypes.includes(file.type);
+}
+
+/**
+ * Validate image file type
+ * @param file - File to validate
+ * @returns True if valid image format
+ */
+export function isValidImageFile(file: File): boolean {
+  const validTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/svg+xml',
   ];
   return validTypes.includes(file.type);
 }

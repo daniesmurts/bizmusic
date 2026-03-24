@@ -90,8 +90,8 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
     ...post,
     image: post.imageUrl || "/images/placeholder.png",
     author: {
-      name: post.author?.email?.split('@')[0] || "Автор",
-      avatar: "/images/author-1.png",
+      name: "Админ",
+      avatar: "", // Removed broken image
       role: post.category?.name || "Блог",
       email: post.author?.email || "",
     },
@@ -121,8 +121,17 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
   };
 
   return (
-    <div className="space-y-24 pb-20">
-      {/* Header */}
+    <div className="space-y-24 pb-20 relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="absolute top-0 left-0 w-[1000px] h-[1000px] bg-neon/15 blur-[150px] rounded-full -ml-96 -mt-96 pointer-events-none z-0" />
+      <div className="absolute top-1/4 right-0 w-[800px] h-[800px] bg-blue-500/10 blur-[150px] rounded-full -mr-64 pointer-events-none z-0" />
+      <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-teal-500/10 blur-[150px] rounded-full -ml-32 pointer-events-none z-0" />
+      <div className="absolute top-3/4 right-0 w-[700px] h-[700px] bg-pink-500/10 blur-[150px] rounded-full -mr-32 pointer-events-none z-0" />
+      <div className="absolute bottom-0 left-1/4 w-[900px] h-[900px] bg-purple-500/10 blur-[150px] rounded-full -mb-96 pointer-events-none z-0" />
+      
+      {/* Content wrapper to ensure it sits above blobs */}
+      <div className="relative z-10 space-y-24">
+        {/* Header */}
       <section className="text-center space-y-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon/30 bg-neon/10 backdrop-blur-md">
           <Music className="w-4 h-4 text-neon" />
@@ -300,13 +309,8 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
                   {/* Meta */}
                   <div className="flex items-center justify-between pt-4 border-t border-white/5">
                     <div className="flex items-center gap-3">
-                      <div className="relative w-8 h-8 rounded-full bg-neon/20 border border-neon/20 overflow-hidden">
-                        <Image
-                          src={post.author.avatar}
-                          alt={post.author.name}
-                          fill
-                          className="object-cover"
-                        />
+                      <div className="relative w-8 h-8 rounded-full bg-neon/10 border border-neon/20 flex items-center justify-center">
+                        <span className="text-xs font-black text-neon">А</span>
                       </div>
                       <div>
                         <p className="text-xs font-bold text-white uppercase tracking-tight">
@@ -412,6 +416,7 @@ export default function BlogClient({ initialPosts, initialCategories }: BlogClie
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }

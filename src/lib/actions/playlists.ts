@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { playlists, playlistTracks, tracks, businesses, users, type ScheduleConfig } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getDownloadSignedUrl, getTrackPublicUrl } from "@/lib/supabase-storage";
+import { getDownloadSignedUrl, getFilePublicUrl } from "@/lib/supabase-storage";
 import { createClient } from "@/utils/supabase/server";
 
 async function checkRestrictedAccess() {
@@ -122,12 +122,12 @@ export async function getPlaylistByIdAction(playlistId: string) {
         
         const fallbackUrl = (isFullUrl || !supabaseUrl)
           ? track.fileUrl 
-          : getTrackPublicUrl(fileName);
+          : getFilePublicUrl(fileName);
 
         let streamUrl: string | undefined = undefined;
         try {
           if (!isFullUrl && supabaseUrl) {
-            streamUrl = await getDownloadSignedUrl(fileName, 3600);
+            streamUrl = await getDownloadSignedUrl(fileName, 'tracks', 3600);
           }
         } catch (err) {
           console.error(`Failed to sign URL for playlist track ${track.id}:`, err);

@@ -8,7 +8,7 @@ import {
   generateUniqueFileName,
   getDownloadSignedUrl,
   deleteFile,
-  getTrackPublicUrl,
+  getFilePublicUrl,
 } from "@/lib/supabase-storage";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -274,10 +274,10 @@ export async function getTracksAction(filters?: {
         const fileName = getFileNameFromUrl(track.fileUrl);
         const fallbackUrl = (isFullUrl || !supabaseUrl)
           ? track.fileUrl 
-          : getTrackPublicUrl(fileName);
+          : getFilePublicUrl(fileName);
 
         try {
-          const streamUrl = await getDownloadSignedUrl(fileName, 3600);
+          const streamUrl = await getDownloadSignedUrl(fileName, 'tracks', 3600);
           return { ...track, fileUrl: fallbackUrl, streamUrl };
         } catch (err: unknown) {
           const errMsg = err instanceof Error ? err.message : String(err);
@@ -335,11 +335,12 @@ export async function getFeaturedTracksAction() {
         const fileName = getFileNameFromUrl(track.fileUrl);
         const fallbackUrl = (isFullUrl || !supabaseUrl)
           ? track.fileUrl 
-          : getTrackPublicUrl(fileName);
+          : getFilePublicUrl(fileName);
           
         try {
           const streamUrl = await getDownloadSignedUrl(
             fileName,
+            'tracks',
             3600 // 1 hour
           );
  
@@ -434,11 +435,11 @@ export async function getTrackByIdAction(trackId: string) {
     const fileName = getFileNameFromUrl(track.fileUrl);
     const fallbackUrl = (isFullUrl || !supabaseUrl)
       ? track.fileUrl 
-      : getTrackPublicUrl(fileName);
+      : getFilePublicUrl(fileName);
 
     let streamUrl: string | undefined = undefined;
     try {
-      streamUrl = await getDownloadSignedUrl(fileName, 3600);
+      streamUrl = await getDownloadSignedUrl(fileName, 'tracks', 3600);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error(`[Tracks] Failed to sign URL for single track ${track.id}:`, errMsg);
