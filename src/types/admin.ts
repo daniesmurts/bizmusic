@@ -79,7 +79,7 @@ export interface AdminPlayLog {
   track: {
     title: string;
     artist: string;
-  };
+  } | null;
   businessId?: string | null;
   business?: {
     legalName: string;

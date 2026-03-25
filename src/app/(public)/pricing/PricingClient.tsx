@@ -47,6 +47,7 @@ const pricingTiers: PricingTier[] = [
     yearlyPrice: 8400,
     yearlyDiscount: 29,
     features: [
+      "Голосовые объявления: 30 генераций/мес",
       "Стриминг через PWA плеер",
       "Публичное исполнение (ст. 1243 ГК РФ)",
       "Безлимитные точки вещания",
@@ -75,6 +76,7 @@ const pricingTiers: PricingTier[] = [
     yearlyPrice: 12000,
     yearlyDiscount: 33,
     features: [
+      "Голосовые объявления: 10 генераций/мес",
       "Скачивание MP3/WAV файлов",
       "Стриминг через плеер",
       "Синхронизация с видео/аудио",
@@ -101,6 +103,7 @@ const pricingTiers: PricingTier[] = [
     yearlyPrice: 48000,
     yearlyDiscount: 20,
     features: [
+      "Голосовые объявления: 100 генераций/мес",
       "Стриминг + Скачивание всех треков",
       "Публичное исполнение + Синхронизация",
       "Ограниченное коммерческое использование",
@@ -383,6 +386,7 @@ export default function PricingClient() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {[
+                { feature: "Голосовые объявления / мес", business: "30", content: "10", businessPlus: "100" },
                 { feature: "Стриминг музыки", business: true, content: true, businessPlus: true },
                 { feature: "Скачивание треков", business: false, content: true, businessPlus: true },
                 { feature: "Публичное исполнение", business: true, content: false, businessPlus: true },

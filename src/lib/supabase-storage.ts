@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from '@supabase/supabase-js';
+import { parseStorageObjectRef, type StorageObjectRef } from "@/lib/storage-object-ref";
 
 // Supabase Storage configuration
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -19,6 +20,8 @@ export const supabaseAdmin = createClient(
 );
 
 const BUCKET_NAME = 'bizmusic-assets';
+export { parseStorageObjectRef };
+export type { StorageObjectRef };
 
 export async function getUploadSignedUrl(
   fileName: string,
@@ -45,6 +48,39 @@ export async function getUploadSignedUrl(
     uploadUrl: data.signedUrl,
     publicUrl: publicUrl,
   };
+}
+
+/**
+ * Upload a file directly from a Buffer (server-side)
+ * @param buffer - Node.js Buffer
+ * @param fileName - Unique filename
+ * @param folder - Destination folder
+ * @param contentType - MIME type
+ * @returns Public URL of the uploaded file
+ */
+export async function uploadFileBuffer(
+  buffer: Buffer,
+  fileName: string,
+  folder: string = 'tracks',
+  contentType: string = 'audio/mpeg'
+): Promise<string> {
+  const path = `${folder}/${fileName}`;
+  const { error } = await supabaseAdmin.storage
+    .from(BUCKET_NAME)
+    .upload(path, buffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(`Failed to upload buffer: ${error.message}`);
+  }
+
+  const { data: { publicUrl } } = supabaseAdmin.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(path);
+
+  return publicUrl;
 }
 
 /**

@@ -206,10 +206,9 @@ export default function VoiceAnnouncementsPage() {
                 </Badge>
                 <h3 className="text-4xl font-black uppercase text-white tracking-widest">AI Студия</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-neon">990 ₽</span>
-                  <span className="text-neutral-500 font-bold uppercase text-xs tracking-widest">/ месяц</span>
+                  <span className="text-5xl font-black text-neon">В подписке</span>
                 </div>
-                <p className="text-neutral-400 font-bold uppercase text-[10px] tracking-widest">Или 99 ₽ за объявление</p>
+                <p className="text-neutral-400 font-bold uppercase text-[10px] tracking-widest">Лимиты зависят от тарифа: Business 30, Content 10, Business+ 100 / мес</p>
               </div>
 
               <div className="space-y-4">
@@ -219,7 +218,7 @@ export default function VoiceAnnouncementsPage() {
                    "10+ готовых шаблонов",
                    "Интеграция с плеером",
                    "Базовое расписание",
-                   "До 10 объявлений в месяц"
+                   "После лимита: кредитные пакеты"
                  ].map((feat, i) => (
                    <div key={i} className="flex items-center gap-3 text-white font-medium text-sm">
                      <CheckCircle2 className="w-5 h-5 text-neon" />
@@ -229,7 +228,7 @@ export default function VoiceAnnouncementsPage() {
               </div>
 
               <Button className="w-full bg-neon text-black rounded-2xl h-14 font-black uppercase tracking-widest hover:scale-105 transition-all">
-                Создать AI-объявление
+                Перейти в кабинет
               </Button>
             </div>
           </div>
@@ -272,6 +271,24 @@ export default function VoiceAnnouncementsPage() {
               </Button>
             </div>
           </div>
+        </div>
+
+        <div className="max-w-5xl mx-auto glass-dark border border-white/10 rounded-[2.5rem] p-8 md:p-10">
+          <h3 className="text-2xl md:text-3xl font-black uppercase text-white tracking-tight mb-6">Пакеты кредитов после месячного лимита</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { credits: "5 кредитов", price: "150 ₽" },
+              { credits: "10 кредитов", price: "280 ₽" },
+              { credits: "25 кредитов", price: "625 ₽" },
+              { credits: "50 кредитов", price: "1 150 ₽" },
+            ].map((pack) => (
+              <div key={pack.credits} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-sm font-black uppercase tracking-widest text-white">{pack.credits}</p>
+                <p className="text-neon font-bold mt-1">{pack.price}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-neutral-400 font-medium mt-5">Кредиты из пакетов переносятся и действуют 12 месяцев с даты покупки.</p>
         </div>
       </section>
 

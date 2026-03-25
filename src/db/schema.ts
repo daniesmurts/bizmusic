@@ -63,6 +63,9 @@ export const businesses = pgTable("businesses", {
   currentPlanSlug: text("currentPlanSlug"),
   billingInterval: billingIntervalEnum("billingInterval").default("monthly").notNull(),
   cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
+  ttsMonthlyUsed: integer("ttsMonthlyUsed").default(0).notNull(),
+  ttsMonthlyPeriodStart: timestamp("ttsMonthlyPeriodStart"),
+  ttsMonthlyPeriodEnd: timestamp("ttsMonthlyPeriodEnd"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
@@ -90,6 +93,8 @@ export const tracks = pgTable("tracks", {
   moodTags: text("moodTags").array().$defaultFn(() => ([] as string[])).notNull(),
   isExplicit: boolean("isExplicit").default(false).notNull(),
   isFeatured: boolean("isFeatured").default(false).notNull(),
+  isAnnouncement: boolean("isAnnouncement").default(false).notNull(),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }),
   energyLevel: integer("energyLevel"),
   downloadsCount: integer("downloadsCount").default(0).notNull(),
   sharesCount: integer("sharesCount").default(0).notNull(),
@@ -178,6 +183,48 @@ export const licenses = pgTable("licenses", {
   pdfUrl: text("pdfUrl").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+// VoiceAnnouncements Table
+export const voiceAnnouncements = pgTable("voice_announcements", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
+  text: text("text").notNull(),
+  languageCode: text("languageCode").default("ru-RU").notNull(),
+  provider: text("provider").default("google").notNull(),
+  voiceName: text("voiceName").notNull(),
+  speakingRate: doublePrecision("speakingRate").default(1.0).notNull(),
+  pitch: doublePrecision("pitch").default(0.0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+});
+
+export const ttsCreditLots = pgTable("tts_credit_lots", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  creditsTotal: integer("creditsTotal").notNull(),
+  creditsRemaining: integer("creditsRemaining").notNull(),
+  purchasedAt: timestamp("purchasedAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  paymentId: text("paymentId").references(() => payments.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  businessExpiryIdx: index("tts_credit_lots_business_expiry_idx").on(t.businessId, t.expiresAt),
+  paymentUniqueIdx: uniqueIndex("tts_credit_lots_payment_unique").on(t.paymentId),
+}));
+
+export const ttsUsageEvents = pgTable("tts_usage_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  announcementId: text("announcementId").references(() => voiceAnnouncements.id, { onDelete: "set null" }),
+  provider: text("provider").notNull(),
+  sourceType: text("sourceType").notNull(),
+  consumedCredits: integer("consumedCredits").notNull().default(1),
+  charsCount: integer("charsCount").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  businessCreatedIdx: index("tts_usage_events_business_created_idx").on(t.businessId, t.createdAt),
+}));
 
 // Blog Related Tables
 export const blogCategories = pgTable("blog_categories", {
@@ -223,6 +270,8 @@ export const payments = pgTable("payments", {
   status: text("status").notNull(),
   tbankPaymentId: text("tbankPaymentId").unique(),
   orderId: text("orderId").notNull().unique(),
+  paymentType: text("paymentType").default("subscription").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, string | number | boolean | null>>().default({}).notNull(),
   recurrent: boolean("recurrent").default(false).notNull(),
   rebillId: text("rebillId"),
   errorCode: text("errorCode"),
@@ -243,6 +292,8 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   licenses: many(licenses),
   playLogs: many(playLogs),
   payments: many(payments),
+  ttsCreditLots: many(ttsCreditLots),
+  ttsUsageEvents: many(ttsUsageEvents),
 }));
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({
@@ -253,8 +304,10 @@ export const locationsRelations = relations(locations, ({ one, many }) => ({
 export const tracksRelations = relations(tracks, ({ one, many }) => ({
   artist: one(artists, { fields: [tracks.artistId], references: [artists.id] }),
   album: one(albums, { fields: [tracks.albumId], references: [albums.id] }),
+  business: one(businesses, { fields: [tracks.businessId], references: [businesses.id] }),
   playLogs: many(playLogs),
   playlistTracks: many(playlistTracks),
+  voiceAnnouncement: one(voiceAnnouncements, { fields: [tracks.id], references: [voiceAnnouncements.trackId] }),
 }));
 
 export const albumsRelations = relations(albums, ({ one, many }) => ({
@@ -303,4 +356,18 @@ export const blogPostTagsRelations = relations(blogPostTags, ({ one }) => ({
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
   business: one(businesses, { fields: [payments.businessId], references: [businesses.id] }),
+}));
+export const voiceAnnouncementsRelations = relations(voiceAnnouncements, ({ one }) => ({
+  business: one(businesses, { fields: [voiceAnnouncements.businessId], references: [businesses.id] }),
+  track: one(tracks, { fields: [voiceAnnouncements.trackId], references: [tracks.id] }),
+}));
+
+export const ttsCreditLotsRelations = relations(ttsCreditLots, ({ one }) => ({
+  business: one(businesses, { fields: [ttsCreditLots.businessId], references: [businesses.id] }),
+  payment: one(payments, { fields: [ttsCreditLots.paymentId], references: [payments.id] }),
+}));
+
+export const ttsUsageEventsRelations = relations(ttsUsageEvents, ({ one }) => ({
+  business: one(businesses, { fields: [ttsUsageEvents.businessId], references: [businesses.id] }),
+  announcement: one(voiceAnnouncements, { fields: [ttsUsageEvents.announcementId], references: [voiceAnnouncements.id] }),
 }));

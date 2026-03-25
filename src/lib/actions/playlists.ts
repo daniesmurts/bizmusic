@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { playlists, playlistTracks, tracks, businesses, users, type ScheduleConfig } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getDownloadSignedUrl, getFilePublicUrl } from "@/lib/supabase-storage";
+import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
 import { createClient } from "@/utils/supabase/server";
 
 async function checkRestrictedAccess() {
@@ -118,16 +118,16 @@ export async function getPlaylistByIdAction(playlistId: string) {
       playlist.tracks.map(async (t) => {
         const track = t.track;
         const isFullUrl = track.fileUrl.startsWith('http');
-        const fileName = track.fileUrl.split("/").pop()?.split("?")[0] || track.fileUrl;
+        const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
         
         const fallbackUrl = (isFullUrl || !supabaseUrl)
           ? track.fileUrl 
-          : getFilePublicUrl(fileName);
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
         let streamUrl: string | undefined = undefined;
         try {
           if (!isFullUrl && supabaseUrl) {
-            streamUrl = await getDownloadSignedUrl(fileName, 'tracks', 3600);
+            streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
           }
         } catch (err) {
           console.error(`Failed to sign URL for playlist track ${track.id}:`, err);
@@ -323,6 +323,53 @@ export async function getTracksForPlaylistAction() {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch tracks";
     console.error("Get tracks error:", error);
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+/**
+ * Add a single track to a playlist
+ */
+export async function addTrackToPlaylistAction(playlistId: string, trackId: string) {
+  try {
+    const { isRestricted } = await checkRestrictedAccess();
+    if (isRestricted) return { success: false, error: "Недостаточно прав для редактирования" };
+
+    await db.transaction(async (tx) => {
+      // 1. Get current max position
+      const currentTracks = await tx.select({
+        position: playlistTracks.position
+      })
+      .from(playlistTracks)
+      .where(eq(playlistTracks.playlistId, playlistId))
+      .orderBy(desc(playlistTracks.position))
+      .limit(1);
+
+      const nextPosition = currentTracks.length > 0 ? (currentTracks[0].position + 1) : 0;
+
+      // 2. Insert new track
+      await tx.insert(playlistTracks).values({
+        playlistId,
+        trackId,
+        position: nextPosition,
+      });
+
+      // 3. Update playlist timestamp
+      await tx.update(playlists)
+        .set({ updatedAt: new Date() })
+        .where(eq(playlists.id, playlistId));
+    });
+
+    revalidatePath("/playlists");
+    revalidatePath("/dashboard/announcements");
+
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to add track to playlist";
+    console.error("Add track to playlist error:", error);
     return {
       success: false,
       error: message,

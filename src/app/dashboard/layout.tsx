@@ -15,7 +15,9 @@ import {
   X,
   User,
   LogOut,
-  Settings
+  Settings,
+  Mic,
+  BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
@@ -60,6 +62,11 @@ export default function DashboardLayout({
       icon: Play,
     },
     {
+      name: "Объявления",
+      href: "/dashboard/announcements",
+      icon: Mic,
+    },
+    {
       name: "Подписка",
       href: "/dashboard/subscription",
       icon: CreditCard,
@@ -70,6 +77,11 @@ export default function DashboardLayout({
       icon: FileText,
       hasAction: true,
       status: isSigned ? 'success' : 'action'
+    },
+    {
+      name: "База знаний",
+      href: "/knowledge",
+      icon: BookOpen,
     },
     {
       name: "Настройки",
