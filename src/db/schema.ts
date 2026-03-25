@@ -27,14 +27,14 @@ export const userTypeEnum = pgEnum("user_type", ["BUSINESS", "CREATOR"]);
 export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()), 
   email: text("email").notNull().unique(),
-  passwordHash: text("passwordHash").notNull(),
+  passwordHash: text("passwordHash").default("SUPABASE_AUTH"),
   role: roleEnum("role").default("BUSINESS_OWNER").notNull(),
   userType: userTypeEnum("userType").default("BUSINESS").notNull(),
   phone: text("phone"),
   termsAccepted: boolean("termsAccepted").default(false).notNull(),
   termsAcceptedAt: timestamp("termsAcceptedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
 // Businesses Table
