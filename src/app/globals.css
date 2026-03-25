@@ -109,6 +109,16 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Prevent horizontal overflow from long words */
+    overflow-x: hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+
+  p, span, div {
+    overflow-wrap: break-word;
   }
   ::selection {
     background-color: var(--primary);

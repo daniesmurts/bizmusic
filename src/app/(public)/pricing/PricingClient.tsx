@@ -174,7 +174,7 @@ export default function PricingClient() {
           </span>
         </div>
 
-        <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
+        <h1 className="text-[clamp(2.5rem,10vw,4.5rem)] sm:text-7xl md:text-8xl lg:text-8xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.85] text-white">
           Тарифы <span className="text-neon">для</span> <br />
           <span className="outline-text">бизнеса</span>
         </h1>

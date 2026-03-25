@@ -71,24 +71,24 @@ export default function VoiceAnnouncementsPage() {
           </div>
           
           <div className="space-y-4">
-            <h1 className="text-4xl sm:text-7xl md:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.9] text-white">
+            <h1 className="text-[clamp(2rem,10vw,4.5rem)] sm:text-7xl md:text-8xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.9] text-white">
               Голосовые <br />
               <span className="text-neon outline-text">объявления</span>
             </h1>
-            <p className="text-xl md:text-2xl text-neutral-300 font-medium leading-relaxed max-w-2xl">
+            <p className="text-base md:text-2xl text-neutral-300 font-medium leading-relaxed max-w-2xl break-words">
               Автоматически объявляйте об акциях, скидках и важных новостях — прямо в вашем помещении. 
               Без участия персонала, без технических сложностей.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-6">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             <Link href="/register" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-all rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
-                Создать объявление за 99 ₽
+              <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-all rounded-2xl px-6 sm:px-12 h-14 sm:h-16 text-base sm:text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+                Создать за 99 ₽
               </Button>
             </Link>
-            <Button onClick={handlePlayDemo} variant="outline" className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-12 h-16 text-lg font-black uppercase tracking-widest gap-2">
-              <Play className="w-5 h-5 fill-current" /> Послушать примеры
+            <Button onClick={handlePlayDemo} variant="outline" className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-6 sm:px-12 h-14 sm:h-16 text-base sm:text-lg font-black uppercase tracking-widest gap-2">
+              <Play className="w-5 h-5 fill-current" /> Примеры
             </Button>
           </div>
         </div>
