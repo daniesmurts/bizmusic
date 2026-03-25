@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { businesses, payments, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { tbank } from "@/lib/payments/tbank";
-import { getPlanBySlug, getTtsCreditPackById } from "@/lib/payments/plans";
+import { getPlanBySlug, getTtsTokenPackById } from "@/lib/payments/plans";
 import { createClient } from "@/utils/supabase/server";
 import { sendEmail } from "@/lib/email";
 
@@ -302,13 +302,13 @@ export async function removePaymentMethod(businessId: string) {
   }
 }
 
-export async function purchaseTtsCreditsAction(
+export async function purchaseTtsTokensAction(
   packId: "pack-5" | "pack-10" | "pack-25" | "pack-50"
 ) {
   try {
-    const pack = getTtsCreditPackById(packId);
+    const pack = getTtsTokenPackById(packId);
     if (!pack) {
-      return { success: false, error: "Пакет кредитов не найден" };
+      return { success: false, error: "Пакет токенов не найден" };
     }
 
     const supabase = await createClient();
@@ -332,7 +332,7 @@ export async function purchaseTtsCreditsAction(
     }
 
     const shortBizId = business.id.replace(/-/g, "").substring(0, 10);
-    const orderId = `CRD_${shortBizId}_${Date.now()}`;
+    const orderId = `TOK_${shortBizId}_${Date.now()}`;
     const safeCustomerKey = business.userId.replace(/-/g, "").substring(0, 36);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
 
@@ -342,8 +342,8 @@ export async function purchaseTtsCreditsAction(
       Description: `Пакет TTS: ${pack.label}`,
       Recurrent: "N",
       CustomerKey: safeCustomerKey,
-      SuccessURL: `${appUrl}/dashboard/announcements?credits=success`,
-      FailURL: `${appUrl}/dashboard/announcements?credits=failed`,
+      SuccessURL: `${appUrl}/dashboard/announcements?tokens=success`,
+      FailURL: `${appUrl}/dashboard/announcements?tokens=failed`,
       NotificationURL: `${appUrl}/api/payments/notification`,
       Receipt: {
         Email: user.email,
@@ -361,9 +361,8 @@ export async function purchaseTtsCreditsAction(
         ],
       },
       DATA: {
-        type: "credit_pack",
+        type: "token_pack",
         packId: pack.id,
-        credits: String(pack.credits),
         businessId: business.id,
       },
     });
@@ -381,10 +380,9 @@ export async function purchaseTtsCreditsAction(
       status: "NEW",
       orderId,
       tbankPaymentId: initResult.PaymentId,
-      paymentType: "credit_pack",
+      paymentType: "token_pack",
       metadata: {
         packId: pack.id,
-        credits: pack.credits,
       },
       recurrent: false,
     });
@@ -394,7 +392,7 @@ export async function purchaseTtsCreditsAction(
       paymentUrl: initResult.PaymentURL,
     };
   } catch (error: unknown) {
-    console.error("Purchase TTS credits error:", error);
+    console.error("Purchase TTS tokens error:", error);
     const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
     return { success: false, error: message };
   }

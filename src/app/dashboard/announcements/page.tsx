@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAnnouncementsAction,
   deleteAnnouncementAction,
   getAnnouncementEntitlementStatusAction,
 } from "@/lib/actions/voice-announcements";
+import { getAiAssistStatusAction } from "@/lib/actions/ai-assists";
 import { getPlaylistsAction, addTrackToPlaylistAction } from "@/lib/actions/playlists";
-import { purchaseTtsCreditsAction } from "@/lib/actions/payments";
-import { TTS_CREDIT_PACKS } from "@/lib/payments/plans";
+import { purchaseTtsTokensAction } from "@/lib/actions/payments";
+import { TTS_TOKEN_PACKS } from "@/lib/payments/plans";
 import { VoiceAnnouncementForm } from "@/components/dashboard/VoiceAnnouncementForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import {
   ShieldCheck,
   ListPlus,
   X,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -57,10 +59,21 @@ interface EntitlementStatus {
   monthlyLimit: number;
   monthlyUsed: number;
   monthlyRemaining: number;
-  paidCredits: number;
+  paidTokens: number;
   nextMonthlyResetAt: string | Date | null;
   nearestPackExpiryAt: string | Date | null;
   canGenerate: boolean;
+  denialReason?: string;
+}
+
+interface AiEntitlementStatus {
+  monthlyLimit: number;
+  monthlyUsed: number;
+  monthlyRemaining: number;
+  paidTokens: number;
+  nextMonthlyResetAt: string | Date | null;
+  nearestPackExpiryAt: string | Date | null;
+  canAssist: boolean;
   denialReason?: string;
 }
 
@@ -82,7 +95,21 @@ function formatRuDate(value: string | Date | null | undefined) {
 export default function AnnouncementsPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [addingToPlaylist, setAddingToPlaylist] = useState<AnnouncementItem | null>(null);
+  const formRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!isAdding || !formRef.current) return;
+
+    const timeoutId = window.setTimeout(() => {
+      formRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isAdding]);
 
   const { data: announcements, isLoading } = useQuery<AnnouncementItem[]>({
     queryKey: ["announcements"],
@@ -111,6 +138,15 @@ export default function AnnouncementsPage() {
     },
   });
 
+  const { data: aiEntitlement } = useQuery<AiEntitlementStatus>({
+    queryKey: ["ai-entitlement"],
+    queryFn: async () => {
+      const result = await getAiAssistStatusAction();
+      if (!result.success) throw new Error(result.error);
+      return result.data as AiEntitlementStatus;
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: deleteAnnouncementAction,
     onSuccess: (result) => {
@@ -136,8 +172,8 @@ export default function AnnouncementsPage() {
     },
   });
 
-  const purchaseCreditsMutation = useMutation({
-    mutationFn: (packId: "pack-5" | "pack-10" | "pack-25" | "pack-50") => purchaseTtsCreditsAction(packId),
+  const purchaseTokensMutation = useMutation({
+    mutationFn: (packId: "pack-5" | "pack-10" | "pack-25" | "pack-50") => purchaseTtsTokensAction(packId),
     onSuccess: (result) => {
       if (result.success && result.paymentUrl) {
         window.location.href = result.paymentUrl;
@@ -146,7 +182,7 @@ export default function AnnouncementsPage() {
       }
     },
     onError: () => {
-      toast.error("Ошибка при покупке кредитов");
+      toast.error("Ошибка при покупке токенов");
     },
   });
 
@@ -234,10 +270,10 @@ export default function AnnouncementsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white">Лимиты TTS</h3>
-            <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">1 кредит = 1 генерация (до 500 символов)</p>
+            <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">1 токен = 1 генерация (до 500 символов)</p>
           </div>
           <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-neon/30 text-neon bg-neon/10 w-fit">
-            {entitlement?.canGenerate ? "Генерация доступна" : "Требуется пакет кредитов"}
+            {entitlement?.canGenerate ? "Генерация доступна" : "Требуется пакет токенов"}
           </Badge>
         </div>
 
@@ -251,8 +287,8 @@ export default function AnnouncementsPage() {
             <p className="text-2xl font-black text-neon mt-1">{entitlement?.monthlyRemaining ?? 0}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Пакетные кредиты</p>
-            <p className="text-2xl font-black text-white mt-1">{entitlement?.paidCredits ?? 0}</p>
+            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Пакетные токены</p>
+            <p className="text-2xl font-black text-white mt-1">{entitlement?.paidTokens ?? 0}</p>
           </div>
         </div>
 
@@ -274,15 +310,15 @@ export default function AnnouncementsPage() {
         )}
 
         <div className="space-y-3">
-          <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Пакеты кредитов</p>
+          <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Пакеты токенов</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {TTS_CREDIT_PACKS.map((pack) => (
+            {TTS_TOKEN_PACKS.map((pack) => (
               <Button
                 key={pack.id}
                 type="button"
                 variant="outline"
-                disabled={purchaseCreditsMutation.isPending}
-                onClick={() => purchaseCreditsMutation.mutate(pack.id)}
+                disabled={purchaseTokensMutation.isPending}
+                onClick={() => purchaseTokensMutation.mutate(pack.id)}
                 className="h-auto py-4 border-white/15 text-white hover:bg-neon hover:text-black rounded-2xl flex flex-col items-start gap-1"
               >
                 <span className="text-sm font-black uppercase tracking-widest">{pack.label}</span>
@@ -293,8 +329,52 @@ export default function AnnouncementsPage() {
         </div>
       </section>
 
+      <section className="glass-dark border border-white/10 rounded-[2rem] p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white">🤖 Помощь ИИ</h3>
+            <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">1 ассистирование = 1 токен или бесплатный ежемесячный лимит</p>
+          </div>
+          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-violet-500/30 text-violet-300 bg-violet-500/10 w-fit">
+            {aiEntitlement?.canAssist ? "Ассистирование доступно" : "Требуется пакет токенов"}
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Месячный лимит</p>
+            <p className="text-2xl font-black text-white mt-1">{aiEntitlement?.monthlyUsed ?? 0} / {aiEntitlement?.monthlyLimit ?? 0}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Осталось в месяце</p>
+            <p className="text-2xl font-black text-violet-300 mt-1">{aiEntitlement?.monthlyRemaining ?? 0}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Пакетные токены</p>
+            <p className="text-2xl font-black text-white mt-1">{aiEntitlement?.paidTokens ?? 0}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Сброс месячного лимита</p>
+            <p className="text-sm font-black text-white mt-1">{formatRuDate(aiEntitlement?.nextMonthlyResetAt)}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Ближайшее истечение пакета</p>
+            <p className="text-sm font-black text-white mt-1">{formatRuDate(aiEntitlement?.nearestPackExpiryAt)}</p>
+          </div>
+        </div>
+
+        {!aiEntitlement?.canAssist && aiEntitlement?.denialReason && (
+          <p className="text-sm font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+            {aiEntitlement.denialReason}
+          </p>
+        )}
+      </section>
+
       {isAdding && (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+        <div ref={formRef} className="animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex justify-end mb-4">
             <Button 
               variant="ghost" 
@@ -308,6 +388,7 @@ export default function AnnouncementsPage() {
             setIsAdding(false);
             queryClient.invalidateQueries({ queryKey: ["announcements"] });
             queryClient.invalidateQueries({ queryKey: ["tts-entitlement"] });
+            queryClient.invalidateQueries({ queryKey: ["ai-entitlement"] });
           }} canGenerate={entitlement?.canGenerate ?? true} />
         </div>
       )}

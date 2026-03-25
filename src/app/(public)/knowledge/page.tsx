@@ -33,6 +33,7 @@ export default function KnowledgeBasePage() {
       icon: Mic,
       articles: [
         { title: "Как работают голосовые объявления", href: "/knowledge/voice-announcements" },
+        { title: "Улучшение текста с ИИ (AI Assist)", href: "/knowledge/ai-assist" },
         { title: "Квоты и покупка токенов", href: "/knowledge/voice-announcements#quotas" }
       ]
     },
