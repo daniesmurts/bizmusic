@@ -12,7 +12,8 @@ import {
   Clock, 
   BarChart3,
   MessageSquare,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -41,7 +42,7 @@ export default function VoiceAnnouncementsKnowledgePage() {
              </h2>
           </div>
           <p className="text-neutral-400 font-medium text-xs sm:text-sm italic max-w-2xl">
-            Подробное руководство по использованию сервиса синтеза речи, квотам и управлению токенами.
+            Подробное руководство по использованию сервиса синтеза речи, помощи ИИ и управлению токенами.
           </p>
         </div>
       </div>
@@ -67,6 +68,52 @@ export default function VoiceAnnouncementsKnowledgePage() {
              </div>
           </section>
 
+          {/* Section: AI Assist */}
+          <section className="glass-dark border border-white/10 rounded-[2.5rem] p-8 sm:p-10 space-y-6 relative overflow-hidden bg-gradient-to-br from-violet-950/20 to-transparent">
+             <div className="absolute top-0 right-0 p-8 opacity-5">
+               <Sparkles className="w-32 h-32 text-violet-400" />
+             </div>
+             
+             <div className="relative z-10 space-y-6">
+               <h3 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
+                 <Sparkles className="w-5 h-5 text-violet-400" /> Помощь ИИ в создании текста
+               </h3>
+               <p className="text-neutral-400 leading-relaxed font-medium">
+                 Чтобы сделать текст объявления более чётким, убедительным или просто быстрее его составить, вы можете воспользоваться встроенной помощью искусственного интеллекта. 
+                 Нажмите кнопку <span className="text-violet-400 font-bold">«✨ Улучшить с ИИ»</span> – и система предложит отредактированный вариант вашего текста, соблюдая лимит в 500 символов. 
+                 Вы сможете принять предложение, доработать его вручную и затем использовать для синтеза речи.
+               </p>
+
+               <div className="space-y-4 pt-4 border-t border-white/5">
+                 <h4 className="text-sm font-black uppercase tracking-widest text-white border-l-2 border-violet-500 pl-4">Квоты на использование ИИ‑помощи</h4>
+                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                    {[
+                      { plan: "Бизнес", count: "5" },
+                      { plan: "Бизнес+", count: "10" },
+                      { plan: "Контент", count: "2" }
+                    ].map((item) => (
+                      <div key={item.plan} className="bg-white/5 border border-white/5 rounded-2xl p-4 text-center">
+                        <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">{item.plan}</p>
+                        <p className="text-2xl font-black text-white mt-1">{item.count}</p>
+                        <p className="text-[8px] text-violet-400 font-black uppercase tracking-widest mt-1">улучшений</p>
+                      </div>
+                    ))}
+                 </div>
+                 <p className="text-[11px] text-neutral-500 font-medium italic">
+                   Бесплатные улучшения не переносятся на следующий месяц – они обнуляются в начале нового расчётного периода.
+                 </p>
+               </div>
+
+               <div className="bg-violet-500/5 border border-violet-500/10 rounded-2xl p-4 flex items-start gap-3">
+                 <Info className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+                 <p className="text-[11px] text-neutral-400 font-medium leading-relaxed">
+                   Если вы исчерпали бесплатные улучшения, каждое дополнительное использование ИИ‑помощи стоит <span className="text-violet-400 font-bold">1 токен</span>. 
+                   Токены для этого берутся из ваших приобретённых пакетов. ИИ‑помощь не создаёт аудио автоматически – за последующий синтез речи также списывается 1 токен (или используется бесплатная генерация).
+                 </p>
+               </div>
+             </div>
+          </section>
+
           {/* Section: Quotas */}
           <section id="quotas" className="glass-dark border border-white/10 rounded-[2.5rem] p-8 sm:p-10 space-y-8">
              <div className="space-y-6">
@@ -81,17 +128,17 @@ export default function VoiceAnnouncementsKnowledgePage() {
                  </p>
                  
                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                   {[
-                     { plan: "Бизнес", count: "30" },
-                     { plan: "Бизнес+", count: "100" },
-                     { plan: "Контент", count: "10" }
-                   ].map((item) => (
-                     <div key={item.plan} className="bg-white/5 border border-white/5 rounded-2xl p-4 text-center">
-                       <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">{item.plan}</p>
-                       <p className="text-2xl font-black text-white mt-1">{item.count}</p>
-                       <p className="text-[8px] text-neon/60 font-black uppercase tracking-widest mt-1">генераций</p>
-                     </div>
-                   ))}
+                    {[
+                      { plan: "Бизнес", count: "30" },
+                      { plan: "Бизнес+", count: "100" },
+                      { plan: "Контент", count: "10" }
+                    ].map((item) => (
+                      <div key={item.plan} className="bg-white/5 border border-white/5 rounded-2xl p-4 text-center">
+                        <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">{item.plan}</p>
+                        <p className="text-2xl font-black text-white mt-1">{item.count}</p>
+                        <p className="text-[8px] text-neon/60 font-black uppercase tracking-widest mt-1">генераций</p>
+                      </div>
+                    ))}
                  </div>
                  
                  <div className="bg-neon/5 border border-neon/10 rounded-2xl p-4 flex items-start gap-3">
@@ -103,23 +150,23 @@ export default function VoiceAnnouncementsKnowledgePage() {
                </div>
 
                <div className="space-y-4 pt-4 border-t border-white/5">
-                 <h4 className="text-sm font-black uppercase tracking-widest text-white border-l-2 border-indigo-500 pl-4">Дополнительные Токены</h4>
+                 <h4 className="text-sm font-black uppercase tracking-widest text-white border-l-2 border-indigo-500 pl-4">Пакеты токенов</h4>
                  <p className="text-neutral-400 text-sm leading-relaxed">
                    Если вы использовали все бесплатные генерации, можно докупить пакеты токенов.
                  </p>
                  
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                   {[
-                     { tokens: "5", price: "150 ₽" },
-                     { tokens: "10", price: "280 ₽" },
-                     { tokens: "25", price: "625 ₽" },
-                     { tokens: "50", price: "1 150 ₽" }
-                   ].map((item) => (
-                     <div key={item.tokens} className="bg-white/5 border border-white/5 rounded-2xl p-4 text-center group hover:border-neon/30 transition-all">
-                       <p className="text-xl font-black text-white">{item.tokens}</p>
-                       <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">{item.price}</p>
-                     </div>
-                   ))}
+                    {[
+                      { tokens: "5", price: "150 ₽" },
+                      { tokens: "10", price: "280 ₽" },
+                      { tokens: "25", price: "625 ₽" },
+                      { tokens: "50", price: "1 150 ₽" }
+                    ].map((item) => (
+                      <div key={item.tokens} className="bg-white/5 border border-white/5 rounded-2xl p-4 text-center group hover:border-neon/30 transition-all">
+                        <p className="text-xl font-black text-white">{item.tokens} токенов</p>
+                        <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">{item.price}</p>
+                      </div>
+                    ))}
                  </div>
 
                  <p className="text-[11px] text-neutral-500 font-medium italic">
@@ -143,14 +190,21 @@ export default function VoiceAnnouncementsKnowledgePage() {
                  </div>
                </li>
                <li className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
-                 <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center text-neon font-black italic">2</div>
+                 <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 font-black italic">2</div>
+                 <div className="space-y-1">
+                   <p className="text-sm font-black text-white uppercase tracking-tight">1 ИИ-улучшение = 1 токен</p>
+                   <p className="text-[11px] text-neutral-400 leading-relaxed font-medium capitalize">Каждое дополнительное обращение к ИИ-помощнику сверх бесплатного лимита списывает 1 токен.</p>
+                 </div>
+               </li>
+               <li className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                 <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center text-neon font-black italic">3</div>
                  <div className="space-y-1">
                    <p className="text-sm font-black text-white uppercase tracking-tight">Лимит 500 символов</p>
                    <p className="text-[11px] text-neutral-400 leading-relaxed font-medium">Включая пробелы и знаки препинания. Если текст длиннее, токен не будет списан, и система выдаст предупреждение.</p>
                  </div>
                </li>
                <li className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-lg shadow-neon/5">
-                 <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-black italic">3</div>
+                 <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-black italic">4</div>
                  <div className="space-y-1">
                    <p className="text-sm font-black text-white uppercase tracking-tight">Смена тарифа</p>
                    <p className="text-[11px] text-neutral-400 leading-relaxed font-medium">При апгрейде или даунгрейде ваши купленные токены всегда сохраняются.</p>
@@ -162,19 +216,19 @@ export default function VoiceAnnouncementsKnowledgePage() {
           {/* Section: Examples */}
           <section className="glass-dark border border-white/10 rounded-[2.5rem] p-8 sm:p-10 space-y-6 bg-gradient-to-br from-neutral-900 to-indigo-950/20">
              <h3 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
-               <Info className="w-5 h-5 text-indigo-400" /> Примеры использования
+               <Info className="w-5 h-5 text-indigo-400" /> Примеры
              </h3>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <p className="text-[10px] font-black text-neon uppercase tracking-widest">Сценарий 1</p>
                   <p className="text-xs text-neutral-400 leading-relaxed font-medium">
-                    У вас тариф <span className="text-white font-bold">«Бизнес»</span> (30 генераций). Вы использовали 20, осталось 10. Покупаете пакет 10 токенов. Создаёте ещё 15 генераций: сначала спишутся 10 бесплатных, затем 5 из купленных. Остаток – 0 бесплатных, 5 токенов.
+                    У вас тариф <span className="text-white font-bold">«Бизнес»</span> (30 генераций, 5 улучшений ИИ). Вы использовали 3 улучшения и 20 генераций. Покупаете пакет 10 токенов. Остаток: 2 бесплатных улучшения + 10 бесплатных генераций + 10 токенов. При создании ещё 15 генераций: сначала спишутся 10 бесплатных, затем 5 из купленных.
                   </p>
                 </div>
                 <div className="space-y-3">
                   <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Сценарий 2</p>
                   <p className="text-xs text-neutral-400 leading-relaxed font-medium">
-                    У вас тариф <span className="text-white font-bold">«Бизнес+»</span> (100 генераций) и 20 токенов. Переходите на <span className="text-white font-bold">«Бизнес»</span>. Купленные 20 токенов остаются, а бесплатная квота становится 30 на месяц.
+                    У вас тариф <span className="text-white font-bold">«Бизнес+»</span> (100 генераций, 10 улучшений) и 20 токенов. Переходите на <span className="text-white font-bold">«Бизнес»</span>. Купленные 20 токенов остаются, а бесплатные лимиты становятся 30 генераций и 5 улучшений ИИ на месяц.
                   </p>
                 </div>
              </div>
@@ -183,7 +237,7 @@ export default function VoiceAnnouncementsKnowledgePage() {
           {/* Section: Technologies */}
           <section className="glass-dark border border-white/10 rounded-[2.5rem] p-8 sm:p-10 space-y-6">
              <h3 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
-               <ShieldCheck className="w-5 h-5 text-neon" /> Технологии и безопасность
+               <ShieldCheck className="w-5 h-5 text-neon" /> Почему мы используем разные технологии
              </h3>
              <p className="text-neutral-400 text-sm leading-relaxed font-medium">
                 Мы задействуем несколько сервисов синтеза речи (<span className="text-white font-bold">Sber Salute</span>, <span className="text-white font-bold">Google TTS</span>), 

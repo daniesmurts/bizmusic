@@ -1,34 +1,33 @@
 import { db } from "@/db";
-import { businesses, ttsCreditLots, ttsUsageEvents } from "@/db/schema";
+import { businesses, ttsCreditLots, aiUsageEvents } from "@/db/schema";
 import { getPlanBySlug } from "@/lib/payments/plans";
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 
-type TtsDbExecutor = Pick<typeof db, "query" | "update" | "select" | "insert">;
+type AiDbExecutor = Pick<typeof db, "query" | "update" | "select" | "insert">;
 
-type BusinessEntitlementState = {
+type BusinessAiEntitlementState = {
   id: string;
   currentPlanSlug: string | null;
   subscriptionStatus: "INACTIVE" | "ACTIVE" | "EXPIRED";
-  ttsMonthlyUsed: number;
-  ttsMonthlyPeriodStart: Date | null;
-  ttsMonthlyPeriodEnd: Date | null;
+  aiMonthlyUsed: number;
+  aiMonthlyPeriodStart: Date | null;
+  aiMonthlyPeriodEnd: Date | null;
 };
 
-export interface TtsEntitlementStatus {
+export interface AiEntitlementStatus {
   monthlyLimit: number;
   monthlyUsed: number;
   monthlyRemaining: number;
   paidTokens: number;
   nextMonthlyResetAt: Date | null;
   nearestPackExpiryAt: Date | null;
-  canGenerate: boolean;
+  canAssist: boolean;
   denialReason?: string;
 }
 
-interface ConsumeCreditParams {
-  business: BusinessEntitlementState;
-  announcementId: string;
-  provider: "google" | "sberbank";
+interface ConsumeAiCreditParams {
+  businessId: string;
+  provider: "groq";
   charsCount: number;
   now?: Date;
 }
@@ -46,7 +45,7 @@ export function getMonthBounds(now: Date) {
   return { start, end };
 }
 
-export function getMonthlyLimitForPlan(
+export function getAiMonthlyLimitForPlan(
   planSlug: string | null,
   subscriptionStatus: "INACTIVE" | "ACTIVE" | "EXPIRED"
 ): number {
@@ -55,11 +54,11 @@ export function getMonthlyLimitForPlan(
   }
 
   const plan = planSlug ? getPlanBySlug(planSlug) : undefined;
-  return plan?.ttsMonthlyLimit ?? 0;
+  return plan?.aiMonthlyLimit ?? 0;
 }
 
-function getMonthlyLimitForBusiness(business: BusinessEntitlementState): number {
-  return getMonthlyLimitForPlan(business.currentPlanSlug, business.subscriptionStatus);
+function getAiMonthlyLimitForBusiness(business: BusinessAiEntitlementState): number {
+  return getAiMonthlyLimitForPlan(business.currentPlanSlug, business.subscriptionStatus);
 }
 
 export function pickNextCreditLot(lots: CreditLotCandidate[], now: Date): CreditLotCandidate | null {
@@ -110,10 +109,10 @@ async function getNearestPackExpiryAt(businessId: string, now: Date): Promise<Da
   return rows[0]?.expiresAt ?? null;
 }
 
-async function resetMonthlyWindowIfNeeded(business: BusinessEntitlementState, now: Date): Promise<void> {
+async function resetAiMonthlyWindowIfNeeded(business: BusinessAiEntitlementState, now: Date): Promise<void> {
   const { start, end } = getMonthBounds(now);
-  const periodEnded = !business.ttsMonthlyPeriodEnd || now >= business.ttsMonthlyPeriodEnd;
-  const periodNotInitialized = !business.ttsMonthlyPeriodStart;
+  const periodEnded = !business.aiMonthlyPeriodEnd || now >= business.aiMonthlyPeriodEnd;
+  const periodNotInitialized = !business.aiMonthlyPeriodStart;
 
   if (!periodEnded && !periodNotInitialized) {
     return;
@@ -122,23 +121,23 @@ async function resetMonthlyWindowIfNeeded(business: BusinessEntitlementState, no
   await db
     .update(businesses)
     .set({
-      ttsMonthlyUsed: 0,
-      ttsMonthlyPeriodStart: start,
-      ttsMonthlyPeriodEnd: end,
+      aiMonthlyUsed: 0,
+      aiMonthlyPeriodStart: start,
+      aiMonthlyPeriodEnd: end,
     })
     .where(eq(businesses.id, business.id));
 }
 
-export async function getBusinessEntitlementState(businessId: string, now: Date = new Date()): Promise<BusinessEntitlementState> {
+export async function getBusinessAiEntitlementState(businessId: string, now: Date = new Date()): Promise<BusinessAiEntitlementState> {
   const business = await db.query.businesses.findFirst({
     where: eq(businesses.id, businessId),
     columns: {
       id: true,
       currentPlanSlug: true,
       subscriptionStatus: true,
-      ttsMonthlyUsed: true,
-      ttsMonthlyPeriodStart: true,
-      ttsMonthlyPeriodEnd: true,
+      aiMonthlyUsed: true,
+      aiMonthlyPeriodStart: true,
+      aiMonthlyPeriodEnd: true,
     },
   });
 
@@ -146,7 +145,7 @@ export async function getBusinessEntitlementState(businessId: string, now: Date 
     throw new Error("Business not found.");
   }
 
-  await resetMonthlyWindowIfNeeded(business, now);
+  await resetAiMonthlyWindowIfNeeded(business, now);
 
   const refreshed = await db.query.businesses.findFirst({
     where: eq(businesses.id, businessId),
@@ -154,9 +153,9 @@ export async function getBusinessEntitlementState(businessId: string, now: Date 
       id: true,
       currentPlanSlug: true,
       subscriptionStatus: true,
-      ttsMonthlyUsed: true,
-      ttsMonthlyPeriodStart: true,
-      ttsMonthlyPeriodEnd: true,
+      aiMonthlyUsed: true,
+      aiMonthlyPeriodStart: true,
+      aiMonthlyPeriodEnd: true,
     },
   });
 
@@ -167,68 +166,66 @@ export async function getBusinessEntitlementState(businessId: string, now: Date 
   return refreshed;
 }
 
-export async function getTtsEntitlementStatus(businessId: string): Promise<TtsEntitlementStatus> {
+export async function getAiEntitlementStatus(businessId: string): Promise<AiEntitlementStatus> {
   const now = new Date();
-  const business = await getBusinessEntitlementState(businessId, now);
-  const monthlyLimit = getMonthlyLimitForBusiness(business);
-  const monthlyRemaining = Math.max(0, monthlyLimit - business.ttsMonthlyUsed);
+  const business = await getBusinessAiEntitlementState(businessId, now);
+  const monthlyLimit = getAiMonthlyLimitForBusiness(business);
+  const monthlyRemaining = Math.max(0, monthlyLimit - business.aiMonthlyUsed);
   const paidTokens = await getPaidTokensTotal(businessId, now);
   const nearestPackExpiryAt = await getNearestPackExpiryAt(businessId, now);
 
-  const canGenerate = monthlyRemaining > 0 || paidTokens > 0;
-  const denialReason = canGenerate
+  const canAssist = monthlyRemaining > 0 || paidTokens > 0;
+  const denialReason = canAssist
     ? undefined
-    : "Ежемесячный лимит исчерпан и пакетные токены отсутствуют. Приобретите пакет токенов.";
+    : "Месячный лимит помощи ИИ исчерпан и токены не приобретены. Приобретите пакет токенов.";
 
   return {
     monthlyLimit,
-    monthlyUsed: business.ttsMonthlyUsed,
+    monthlyUsed: business.aiMonthlyUsed,
     monthlyRemaining,
     paidTokens,
-    nextMonthlyResetAt: business.ttsMonthlyPeriodEnd,
+    nextMonthlyResetAt: business.aiMonthlyPeriodEnd,
     nearestPackExpiryAt,
-    canGenerate,
+    canAssist,
     denialReason,
   };
 }
 
-export async function consumeTtsGenerationCredit(
-  executor: TtsDbExecutor,
-  params: ConsumeCreditParams
+export async function consumeAiAssistCredit(
+  executor: AiDbExecutor,
+  params: ConsumeAiCreditParams
 ): Promise<{ sourceType: "monthly" | "pack" }> {
   const now = params.now ?? new Date();
   const currentBusiness = await executor.query.businesses.findFirst({
-    where: eq(businesses.id, params.business.id),
+    where: eq(businesses.id, params.businessId),
     columns: {
       id: true,
       currentPlanSlug: true,
       subscriptionStatus: true,
-      ttsMonthlyUsed: true,
-      ttsMonthlyPeriodStart: true,
-      ttsMonthlyPeriodEnd: true,
+      aiMonthlyUsed: true,
+      aiMonthlyPeriodStart: true,
+      aiMonthlyPeriodEnd: true,
     },
   });
 
   if (!currentBusiness) {
-    throw new Error("Business not found during credit consumption.");
+    throw new Error("Business not found during AI credit consumption.");
   }
 
-  const monthlyLimit = getMonthlyLimitForBusiness(currentBusiness);
+  const monthlyLimit = getAiMonthlyLimitForBusiness(currentBusiness);
 
-  if (monthlyLimit > currentBusiness.ttsMonthlyUsed) {
+  if (monthlyLimit > currentBusiness.aiMonthlyUsed) {
     await executor
       .update(businesses)
       .set({
-        ttsMonthlyUsed: currentBusiness.ttsMonthlyUsed + 1,
+        aiMonthlyUsed: currentBusiness.aiMonthlyUsed + 1,
       })
       .where(eq(businesses.id, currentBusiness.id));
 
-    await executor.insert(ttsUsageEvents).values({
-      businessId: params.business.id,
-      announcementId: params.announcementId,
+    await executor.insert(aiUsageEvents).values({
+      businessId: params.businessId,
       provider: params.provider,
       sourceType: "monthly",
-      consumedCredits: 1,
       charsCount: params.charsCount,
     });
 
@@ -245,7 +242,7 @@ export async function consumeTtsGenerationCredit(
     .from(ttsCreditLots)
     .where(
       and(
-        eq(ttsCreditLots.businessId, params.business.id),
+        eq(ttsCreditLots.businessId, params.businessId),
         gt(ttsCreditLots.creditsRemaining, 0),
         gt(ttsCreditLots.expiresAt, now)
       )
@@ -255,7 +252,7 @@ export async function consumeTtsGenerationCredit(
 
   const lot = pickNextCreditLot(lots, now);
   if (!lot) {
-    throw new Error("Лимит генерации исчерпан. Приобретите пакет токенов.");
+    throw new Error("Лимит помощи ИИ исчерпан. Приобретите пакет токенов.");
   }
 
   await executor
@@ -265,12 +262,10 @@ export async function consumeTtsGenerationCredit(
     })
     .where(eq(ttsCreditLots.id, lot.id));
 
-  await executor.insert(ttsUsageEvents).values({
-    businessId: params.business.id,
-    announcementId: params.announcementId,
+  await executor.insert(aiUsageEvents).values({
+    businessId: params.businessId,
     provider: params.provider,
     sourceType: "pack",
-    consumedCredits: 1,
     charsCount: params.charsCount,
   });
 

@@ -66,6 +66,9 @@ export const businesses = pgTable("businesses", {
   ttsMonthlyUsed: integer("ttsMonthlyUsed").default(0).notNull(),
   ttsMonthlyPeriodStart: timestamp("ttsMonthlyPeriodStart"),
   ttsMonthlyPeriodEnd: timestamp("ttsMonthlyPeriodEnd"),
+  aiMonthlyUsed: integer("aiMonthlyUsed").default(0).notNull(),
+  aiMonthlyPeriodStart: timestamp("aiMonthlyPeriodStart"),
+  aiMonthlyPeriodEnd: timestamp("aiMonthlyPeriodEnd"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
@@ -226,6 +229,17 @@ export const ttsUsageEvents = pgTable("tts_usage_events", {
   businessCreatedIdx: index("tts_usage_events_business_created_idx").on(t.businessId, t.createdAt),
 }));
 
+export const aiUsageEvents = pgTable("ai_usage_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  provider: text("provider").notNull(),
+  sourceType: text("sourceType").notNull(),
+  charsCount: integer("charsCount").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  businessCreatedIdx: index("ai_usage_events_business_created_idx").on(t.businessId, t.createdAt),
+}));
+
 // Blog Related Tables
 export const blogCategories = pgTable("blog_categories", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -294,6 +308,7 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   payments: many(payments),
   ttsCreditLots: many(ttsCreditLots),
   ttsUsageEvents: many(ttsUsageEvents),
+  aiUsageEvents: many(aiUsageEvents),
 }));
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({

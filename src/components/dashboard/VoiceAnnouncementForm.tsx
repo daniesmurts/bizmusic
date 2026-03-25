@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mic, Loader2, Info } from "lucide-react";
+import { Mic, Loader2, Info, Sparkles } from "lucide-react";
 import { generateVoiceAnnouncementAction } from "@/lib/actions/voice-announcements";
+import { generateAiAssistAction } from "@/lib/actions/ai-assists";
 import { toast } from "sonner";
 
 const PROVIDERS = [
@@ -42,6 +43,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
   const [speakingRate, setSpeakingRate] = useState(1.0);
   const [pitch, setPitch] = useState(0.0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   // Update voice if provider changes
   useEffect(() => {
@@ -63,7 +65,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
     }
 
     if (!canGenerate) {
-      toast.error("Лимит генераций исчерпан. Приобретите пакет кредитов.");
+      toast.error("Лимит генераций исчерпан. Приобретите пакет токенов.");
       return;
     }
 
@@ -90,6 +92,37 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
       toast.error("Произошла ошибка при создании объявления.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleAiAssist = async () => {
+    if (!text) {
+      toast.error("Пожалуйста, напишите черновик объявления.");
+      return;
+    }
+
+    if (text.length > 500) {
+      toast.error("Черновик объявления не должен превышать 500 символов.");
+      return;
+    }
+
+    setIsAiGenerating(true);
+    try {
+      const result = await generateAiAssistAction({
+        userDraft: text,
+        locale: "ru-RU",
+      });
+
+      if (result.success && result.data) {
+        setText(result.data.refinedText);
+        toast.success("✨ Текст улучшен! Вы можете отредактировать и создать объявление.");
+      } else {
+        toast.error(result.error || "Не удалось улучшить текст.");
+      }
+    } catch {
+      toast.error("Произошла ошибка при обращении к ИИ.");
+    } finally {
+      setIsAiGenerating(false);
     }
   };
 
@@ -237,26 +270,46 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
           <div className="pt-6">
             {!canGenerate && (
               <p className="text-sm text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 mb-4">
-                Лимит генераций исчерпан. Приобретите пакет кредитов, чтобы продолжить.
+                Лимит генераций исчерпан. Приобретите пакет токенов, чтобы продолжить.
               </p>
             )}
-            <Button
-              type="submit"
-              disabled={isGenerating || !text || !title || !canGenerate}
-              className="w-full bg-neon text-black hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl h-14 font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-neon/20"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Генерация...
-                </>
-              ) : (
-                <>
-                  <Mic className="mr-2 h-5 w-5 fill-current" />
-                  Создать объявление
-                </>
-              )}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                disabled={isAiGenerating || !text || text.length > 500}
+                onClick={handleAiAssist}
+                className="flex-1 bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 border border-violet-500/30 hover:border-violet-500/50 active:scale-[0.98] transition-all rounded-2xl h-14 font-black uppercase text-xs tracking-[0.2em] shadow-lg hover:shadow-violet-500/20"
+              >
+                {isAiGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ИИ улучшает...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    ✨ Улучшить с ИИ
+                  </>
+                )}
+              </Button>
+              <Button
+                type="submit"
+                disabled={isGenerating || !text || !title || !canGenerate}
+                className="flex-1 bg-neon text-black hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl h-14 font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-neon/20"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Генерация...
+                  </>
+                ) : (
+                  <>
+                    <Mic className="mr-2 h-5 w-5 fill-current" />
+                    Создать объявление
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </CardContent>

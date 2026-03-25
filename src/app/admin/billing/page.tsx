@@ -1,7 +1,8 @@
 import { db } from "@/db";
-import { businesses, ttsCreditLots, ttsUsageEvents, payments } from "@/db/schema";
-import { and, desc, eq, gt, gte, ilike, lt, sql, type SQL } from "drizzle-orm";
-import { CreditCard, History, Wallet, Mic2 } from "lucide-react";
+import { AwardTokensDialog } from "@/components/admin/AwardTokensDialog";
+import { businesses, ttsCreditLots, ttsUsageEvents, payments, aiUsageEvents } from "@/db/schema";
+import { and, count, desc, eq, gt, gte, ilike, lt, sql, type SQL } from "drizzle-orm";
+import { CreditCard, History, Wallet, Mic2, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 function formatRub(amountKopeks: number) {
@@ -12,13 +13,15 @@ function formatRub(amountKopeks: number) {
   }).format(amountKopeks / 100);
 }
 
-function formatRuDate(date: Date | null) {
+function formatRuDate(date: Date | string | null | undefined) {
   if (!date) return "-";
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return "-";
   return new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(date);
+  }).format(d);
 }
 
 function escapeLike(value: string) {
@@ -68,9 +71,9 @@ export default async function AdminBillingPage({
 
   const [summary] = await db
     .select({
-      totalPaidCredits: sql<number>`coalesce(sum(${ttsCreditLots.creditsRemaining}), 0)`,
+      totalPaidTokens: sql<number>`coalesce(sum(${ttsCreditLots.creditsRemaining}), 0)`,
       expiringIn30Days: sql<number>`coalesce(sum(case when ${ttsCreditLots.expiresAt} <= ${new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)} then ${ttsCreditLots.creditsRemaining} else 0 end), 0)`,
-      totalPackPaymentsAmount: sql<number>`coalesce(sum(case when ${payments.paymentType} = 'credit_pack' and (${payments.status} = 'CONFIRMED' or ${payments.status} = 'AUTHORIZED') then ${payments.amount} else 0 end), 0)`,
+      totalPackPaymentsAmount: sql<number>`coalesce(sum(case when ${payments.paymentType} = 'token_pack' and (${payments.status} = 'CONFIRMED' or ${payments.status} = 'AUTHORIZED') then ${payments.amount} else 0 end), 0)`,
     })
     .from(ttsCreditLots)
     .leftJoin(payments, eq(payments.id, ttsCreditLots.paymentId));
@@ -79,7 +82,7 @@ export default async function AdminBillingPage({
     .select({
       businessId: businesses.id,
       legalName: businesses.legalName,
-      credits: sql<number>`coalesce(sum(${ttsCreditLots.creditsRemaining}), 0)`,
+      tokens: sql<number>`coalesce(sum(${ttsCreditLots.creditsRemaining}), 0)`,
       nearestExpiry: sql<Date | null>`min(${ttsCreditLots.expiresAt})`,
     })
     .from(businesses)
@@ -102,7 +105,7 @@ export default async function AdminBillingPage({
       businessName: businesses.legalName,
       sourceType: ttsUsageEvents.sourceType,
       provider: ttsUsageEvents.provider,
-      consumedCredits: ttsUsageEvents.consumedCredits,
+      consumedTokens: ttsUsageEvents.consumedCredits,
       charsCount: ttsUsageEvents.charsCount,
       createdAt: ttsUsageEvents.createdAt,
     })
@@ -111,6 +114,49 @@ export default async function AdminBillingPage({
     .where(usageFilters.length > 0 ? and(...usageFilters) : undefined)
     .orderBy(desc(ttsUsageEvents.createdAt))
     .limit(25);
+
+  const aiUsageFilters: SQL[] = [];
+  if (businessQuery) {
+    const safeBusiness = escapeLike(businessQuery);
+    aiUsageFilters.push(ilike(businesses.legalName, `%${safeBusiness}%`));
+  }
+  if (fromQuery) {
+    const fromDate = new Date(`${fromQuery}T00:00:00.000Z`);
+    if (!Number.isNaN(fromDate.getTime())) {
+      aiUsageFilters.push(gte(aiUsageEvents.createdAt, fromDate));
+    }
+  }
+  if (toQuery) {
+    const toDateExclusive = new Date(`${toQuery}T00:00:00.000Z`);
+    if (!Number.isNaN(toDateExclusive.getTime())) {
+      toDateExclusive.setUTCDate(toDateExclusive.getUTCDate() + 1);
+      aiUsageFilters.push(lt(aiUsageEvents.createdAt, toDateExclusive));
+    }
+  }
+
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+  const [aiSummary] = await db
+    .select({
+      totalAssists: sql<number>`count(${aiUsageEvents.id})`,
+      assistsThisMonth: sql<number>`count(case when ${aiUsageEvents.createdAt} >= ${monthStart} then 1 end)`,
+      avgChars: sql<number>`coalesce(avg(${aiUsageEvents.charsCount}), 0)`,
+    })
+    .from(aiUsageEvents);
+
+  const recentAiUsage = await db
+    .select({
+      id: aiUsageEvents.id,
+      businessName: businesses.legalName,
+      sourceType: aiUsageEvents.sourceType,
+      provider: aiUsageEvents.provider,
+      charsCount: aiUsageEvents.charsCount,
+      createdAt: aiUsageEvents.createdAt,
+    })
+    .from(aiUsageEvents)
+    .leftJoin(businesses, eq(businesses.id, aiUsageEvents.businessId))
+    .where(aiUsageFilters.length > 0 ? and(...aiUsageFilters) : undefined)
+    .orderBy(desc(aiUsageEvents.createdAt))
+    .limit(20);
 
   return (
     <div className="space-y-12">
@@ -121,10 +167,11 @@ export default async function AdminBillingPage({
             <span className="text-[10px] font-black uppercase tracking-widest">Финансы • TTS отчеты</span>
           </div>
           <h1 className="text-5xl lg:text-6xl font-black uppercase tracking-tighter leading-none">
-            TTS кредиты и <br />
+            TTS токены и <br />
             <span className="text-neon underline decoration-neon/20 underline-offset-8">генерации</span>
           </h1>
         </div>
+        <AwardTokensDialog />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -133,8 +180,8 @@ export default async function AdminBillingPage({
             <Wallet className="w-6 h-6 text-neon" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">Активные пакетные кредиты</p>
-            <h3 className="text-2xl font-black uppercase tracking-tight text-white">{summary?.totalPaidCredits ?? 0}</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">Активные пакетные токены</p>
+            <h3 className="text-2xl font-black uppercase tracking-tight text-white">{summary?.totalPaidTokens ?? 0}</h3>
           </div>
           <p className="text-sm text-neutral-400 font-medium">Доступный остаток по всем бизнесам.</p>
         </div>
@@ -147,7 +194,7 @@ export default async function AdminBillingPage({
             <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">Истекают в 30 дней</p>
             <h3 className="text-2xl font-black uppercase tracking-tight text-white">{summary?.expiringIn30Days ?? 0}</h3>
           </div>
-          <p className="text-sm text-neutral-400 font-medium">Кредиты, требующие внимания и уведомлений.</p>
+          <p className="text-sm text-neutral-400 font-medium">Токены, требующие внимания и уведомлений.</p>
         </div>
 
         <div className="glass-dark border border-white/5 rounded-[2rem] p-8 space-y-4">
@@ -158,7 +205,7 @@ export default async function AdminBillingPage({
             <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">Продажи пакетов</p>
             <h3 className="text-2xl font-black uppercase tracking-tight text-white">{formatRub(summary?.totalPackPaymentsAmount ?? 0)}</h3>
           </div>
-          <p className="text-sm text-neutral-400 font-medium">Сумма подтвержденных платежей за пакеты кредитов.</p>
+          <p className="text-sm text-neutral-400 font-medium">Сумма подтвержденных платежей за пакеты токенов.</p>
         </div>
       </div>
 
@@ -225,7 +272,7 @@ export default async function AdminBillingPage({
             {topBalances.map((row) => (
               <div key={row.businessId} className="border border-white/10 rounded-xl p-4 bg-white/[0.03]">
                 <p className="text-sm font-black uppercase tracking-widest text-white">{row.legalName}</p>
-                <p className="text-xs text-neutral-400 mt-1">Кредиты: <span className="text-neon font-bold">{row.credits}</span></p>
+                <p className="text-xs text-neutral-400 mt-1">Токены: <span className="text-neon font-bold">{row.tokens}</span></p>
                 <p className="text-xs text-neutral-500 mt-1">Ближайшее истечение: {formatRuDate(row.nearestExpiry)}</p>
               </div>
             ))}
@@ -244,7 +291,7 @@ export default async function AdminBillingPage({
               <div key={event.id} className="border border-white/10 rounded-xl p-4 bg-white/[0.03]">
                 <p className="text-sm font-black uppercase tracking-widest text-white">{event.businessName}</p>
                 <p className="text-xs text-neutral-400 mt-1">Источник: <span className="font-bold">{event.sourceType}</span> • Провайдер: <span className="font-bold">{event.provider}</span></p>
-                <p className="text-xs text-neutral-500 mt-1">Списано: {event.consumedCredits} • Символов: {event.charsCount}</p>
+                <p className="text-xs text-neutral-500 mt-1">Списано: {event.consumedTokens} • Символов: {event.charsCount}</p>
                 <p className="text-xs text-neutral-500 mt-1">{new Intl.DateTimeFormat("ru-RU", { dateStyle: "short", timeStyle: "short" }).format(event.createdAt)}</p>
               </div>
             ))}
@@ -256,6 +303,65 @@ export default async function AdminBillingPage({
           </div>
         </section>
       </div>
+
+      <div className="flex items-center gap-3 text-neutral-500 pt-4">
+        <Sparkles className="w-4 h-4 text-violet-400" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-violet-400">ИИ-Помощник • Статистика использования</span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="glass-dark border border-white/5 rounded-[2rem] p-8 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-violet-400" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">Всего ИИ-ассистирований</p>
+            <h3 className="text-2xl font-black uppercase tracking-tight text-white">{aiSummary?.totalAssists ?? 0}</h3>
+          </div>
+          <p className="text-sm text-neutral-400 font-medium">Суммарно за всё время.</p>
+        </div>
+
+        <div className="glass-dark border border-white/5 rounded-[2rem] p-8 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+            <History className="w-6 h-6 text-indigo-400" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">В этом месяце</p>
+            <h3 className="text-2xl font-black uppercase tracking-tight text-white">{aiSummary?.assistsThisMonth ?? 0}</h3>
+          </div>
+          <p className="text-sm text-neutral-400 font-medium">Ассистирований с начала текущего месяца.</p>
+        </div>
+
+        <div className="glass-dark border border-white/5 rounded-[2rem] p-8 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+            <Mic2 className="w-6 h-6 text-pink-400" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">Ср. символов на запрос</p>
+            <h3 className="text-2xl font-black uppercase tracking-tight text-white">{Math.round(aiSummary?.avgChars ?? 0)}</h3>
+          </div>
+          <p className="text-sm text-neutral-400 font-medium">Средняя длина текста ответа ИИ.</p>
+        </div>
+      </div>
+
+      <section className="glass-dark border border-white/5 rounded-[2rem] p-8">
+        <h2 className="text-xl font-black uppercase tracking-tight text-white mb-6">Последние ИИ-ассистирования</h2>
+        <div className="space-y-3 max-h-[480px] overflow-y-auto pr-2">
+          {recentAiUsage.map((event) => (
+            <div key={event.id} className="border border-white/10 rounded-xl p-4 bg-white/[0.03]">
+              <p className="text-sm font-black uppercase tracking-widest text-white">{event.businessName}</p>
+              <p className="text-xs text-neutral-400 mt-1">Источник: <span className="font-bold">{event.sourceType}</span> • Провайдер: <span className="font-bold text-violet-400">{event.provider}</span></p>
+              <p className="text-xs text-neutral-500 mt-1">Символов в ответе: {event.charsCount}</p>
+              <p className="text-xs text-neutral-500 mt-1">{new Intl.DateTimeFormat("ru-RU", { dateStyle: "short", timeStyle: "short" }).format(event.createdAt)}</p>
+            </div>
+          ))}
+          {recentAiUsage.length === 0 && (
+            <div className="border border-white/10 rounded-xl p-4 bg-white/[0.03] text-sm text-neutral-400">
+              Нет событий использования ИИ по выбранным параметрам.
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
