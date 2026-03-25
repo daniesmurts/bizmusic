@@ -1,14 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Music, Menu, User, X } from "lucide-react";
+import { 
+  Music, 
+  Menu, 
+  User, 
+  X, 
+  LayoutDashboard, 
+  Play, 
+  CreditCard, 
+  FileText, 
+  Settings,
+  ChevronRight
+} from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import { cn } from "@/lib/utils";
 
 export const Navbar = () => {
   const { user, role, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isDashboard = pathname.startsWith('/dashboard');
 
   // Lock body scroll when menu is open
   useEffect(() => {
@@ -21,6 +36,19 @@ export const Navbar = () => {
       document.body.style.overflow = 'unset';
     };
   }, [isMenuOpen]);
+
+  // Close menu on route change
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
+
+  const dashboardNavItems = [
+    { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Плеер", href: "/dashboard/player", icon: Play },
+    { name: "Подписка", href: "/dashboard/subscription", icon: CreditCard },
+    { name: "Договор", href: "/dashboard/contract", icon: FileText },
+    { name: "Настройки", href: "/dashboard/settings", icon: Settings },
+  ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
@@ -40,10 +68,19 @@ export const Navbar = () => {
           {role === 'ADMIN' && (
             <Link href="/admin/content" className="text-neon hover:text-white transition-colors">Админ</Link>
           )}
-          <Link href="/products" className="text-neutral-400 hover:text-neon transition-colors">Продукты</Link>
-          <Link href="/blog" className="text-neutral-400 hover:text-neon transition-colors">Блог</Link>
-          <Link href="/about" className="text-neutral-400 hover:text-neon transition-colors">О нас</Link>
-          <Link href="/pricing" className="text-neutral-400 hover:text-neon transition-colors">Тарифы</Link>
+          {isDashboard ? (
+            <>
+               <Link href="/dashboard" className={cn("transition-colors", pathname === "/dashboard" ? "text-neon" : "text-neutral-400 hover:text-white")}>Дашборд</Link>
+               <Link href="/products" className="text-neutral-400 hover:text-neon transition-colors">Каталог</Link>
+            </>
+          ) : (
+            <>
+              <Link href="/products" className="text-neutral-400 hover:text-neon transition-colors">Продукты</Link>
+              <Link href="/blog" className="text-neutral-400 hover:text-neon transition-colors">Блог</Link>
+              <Link href="/about" className="text-neutral-400 hover:text-neon transition-colors">О нас</Link>
+              <Link href="/pricing" className="text-neutral-400 hover:text-neon transition-colors">Тарифы</Link>
+            </>
+          )}
         </div>
 
         {/* Actions */}
@@ -59,7 +96,7 @@ export const Navbar = () => {
               </Link>
               <Button 
                 variant="ghost" 
-                className="text-neutral-400 hover:text-neon font-black uppercase tracking-widest text-xs"
+                className="text-neutral-400 hover:text-neon font-black uppercase tracking-widest text-xs md:flex hidden"
                 onClick={() => signOut()}
               >
                 Выйти
@@ -91,48 +128,107 @@ export const Navbar = () => {
         <div className="fixed inset-0 z-[60] md:hidden animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" />
           
-          {/* Close Button Inside Overlay */}
-          <div className="absolute top-8 right-8 z-[70]">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white hover:bg-white/10 rounded-full w-12 h-12"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <X className="w-8 h-8" />
-            </Button>
-          </div>
-
-          <div className="relative h-full flex flex-col items-center justify-center gap-12 p-6 text-center">
-            <div className="flex flex-col gap-8 text-3xl font-black uppercase tracking-[0.25em]">
-              {role === 'ADMIN' && (
-                <Link href="/admin/content" onClick={() => setIsMenuOpen(false)} className="text-neon">Админ</Link>
-              )}
-              <Link href="/products" onClick={() => setIsMenuOpen(false)} className="text-white hover:text-neon transition-colors">Продукты</Link>
-              <Link href="/blog" onClick={() => setIsMenuOpen(false)} className="text-white hover:text-neon transition-colors">Блог</Link>
-              <Link href="/about" onClick={() => setIsMenuOpen(false)} className="text-white hover:text-neon transition-colors">О нас</Link>
-              <Link href="/pricing" onClick={() => setIsMenuOpen(false)} className="text-white hover:text-neon transition-colors">Тарифы</Link>
-              {!user && (
-                <Link href="/login" onClick={() => setIsMenuOpen(false)} className="text-neutral-400 hover:text-neon transition-colors">Войти</Link>
-              )}
-            </div>
-            
-            {user ? (
+          <div className="relative h-full flex flex-col p-6 overflow-y-auto">
+            <div className="flex justify-between items-center py-4">
+              <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-neon rounded-lg flex items-center justify-center">
+                  <Music className="text-black w-5 h-5" />
+                </div>
+                <span className="text-lg font-black tracking-tighter text-white uppercase">Бизнес<span className="text-neon">Музыка</span></span>
+              </Link>
               <Button 
                 variant="ghost" 
-                className="text-neon font-black uppercase tracking-widest text-xl mt-4"
-                onClick={() => {
-                  signOut();
-                  setIsMenuOpen(false);
-                }}
+                size="icon" 
+                className="text-white hover:bg-white/10 rounded-full w-10 h-10"
+                onClick={() => setIsMenuOpen(false)}
               >
-                Выйти
+                <X className="w-6 h-6" />
               </Button>
-            ) : (
-              <Button asChild className="bg-neon text-black rounded-full px-16 py-10 text-2xl font-black uppercase tracking-widest mt-4 shadow-2xl shadow-neon/40">
-                <Link href="/register" onClick={() => setIsMenuOpen(false)}>Регистрация</Link>
-              </Button>
-            )}
+            </div>
+
+            <div className="mt-8 space-y-8">
+              {/* Dashboard Section */}
+              {isDashboard && (
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 pl-4">Управление бизнесом</h3>
+                  <div className="grid gap-2">
+                    {dashboardNavItems.map((item) => {
+                      const isActive = pathname === item.href;
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className={cn(
+                            "flex items-center gap-4 p-4 rounded-2xl border transition-all",
+                            isActive 
+                              ? "bg-neon/10 border-neon/20 text-neon" 
+                              : "bg-white/[0.02] border-white/5 text-white/70"
+                          )}
+                        >
+                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", isActive ? "bg-neon text-black" : "bg-white/5")}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <span className="font-black uppercase tracking-widest text-xs">{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Main Links */}
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 pl-4">Навигация</h3>
+                <div className="grid gap-2">
+                  <Link 
+                    href="/products" 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
+                  >
+                    <span className="font-black uppercase tracking-widest text-xs">Продукты</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                  <Link 
+                    href="/pricing" 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
+                  >
+                    <span className="font-black uppercase tracking-widest text-xs">Тарифы</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                  <Link 
+                    href="/about" 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
+                  >
+                    <span className="font-black uppercase tracking-widest text-xs">О компании</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Account Section */}
+              <div className="pt-8 border-t border-white/5 flex flex-col gap-4">
+                {user ? (
+                  <Button 
+                    variant="destructive" 
+                    className="h-14 rounded-2xl font-black uppercase tracking-widest text-xs gap-3"
+                    onClick={() => {
+                      signOut();
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Выйти из аккаунта
+                  </Button>
+                ) : (
+                  <Button asChild className="h-14 bg-neon text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-neon/20">
+                    <Link href="/register" onClick={() => setIsMenuOpen(false)}>Начать бесплатно</Link>
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

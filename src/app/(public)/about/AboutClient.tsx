@@ -165,11 +165,11 @@ export default function AboutClient() {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
+          <h1 className="text-[clamp(2.5rem,10vw,4.5rem)] sm:text-7xl md:text-8xl lg:text-8xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.85] text-white">
             Бизнес <span className="text-neon">Музыка</span>
           </h1>
 
-          <p className="text-xl text-neutral-400 font-medium max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-neutral-400 font-medium max-w-3xl mx-auto leading-relaxed">
             Мы делаем легальную музыку доступной для каждого бизнеса.
             Прямые лицензии от правообладателей, полная защита от РАО и ВОИС,
             и музыка, которая создаёт атмосферу вашего успеха.
@@ -512,14 +512,14 @@ export default function AboutClient() {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link href="/pricing" className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-10 h-14 font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+                <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-6 sm:px-10 h-14 font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                   Выбрать тариф
                 </Button>
               </Link>
               <Link href="#contact" className="w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-10 h-14 font-black uppercase tracking-widest"
+                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-2xl px-6 sm:px-10 h-14 font-black uppercase tracking-widest"
                 >
                   Связаться с нами
                 </Button>

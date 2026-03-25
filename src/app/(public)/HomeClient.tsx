@@ -55,7 +55,7 @@ export default function HomeClient() {
             <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">Новое поколение звука</span>
           </div>
           
-          <h1 className="text-4xl sm:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
+          <h1 className="text-[clamp(2rem,10vw,4.5rem)] sm:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.85] text-white">
             Атмосфера <br />
             <span className="text-neon outline-text">вашего успеха</span>
           </h1>
@@ -67,12 +67,12 @@ export default function HomeClient() {
 
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Link href="/register">
-              <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-10 py-8 text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+              <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-6 py-6 sm:px-10 sm:py-8 text-base sm:text-lg font-black uppercase tracking-widest shadow-[0_0_30px_rgba(92,243,135,0.4)]">
                 Начать бесплатно
               </Button>
             </Link>
             <Link href="/pricing">
-              <Button variant="outline" className="border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-full px-10 py-8 text-lg font-black uppercase tracking-widest">
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/5 backdrop-blur-sm rounded-full px-6 py-6 sm:px-10 sm:py-8 text-base sm:text-lg font-black uppercase tracking-widest">
                 Все тарифы
               </Button>
             </Link>

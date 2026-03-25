@@ -73,27 +73,27 @@ export default function ContentCreatorsPage() {
             Для YouTube, VK, TikTok и подкастов
           </Badge>
           
-          <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
+          <h1 className="text-[clamp(2rem,10vw,4.5rem)] sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.85] text-white">
             Контент для <span className="text-neon outline-text">блогеров</span>
           </h1>
           
-          <p className="text-lg md:text-2xl text-neutral-300 font-medium max-w-4xl mx-auto leading-relaxed">
+          <p className="text-base md:text-2xl text-neutral-300 font-medium max-w-4xl mx-auto leading-relaxed break-words">
             Музыка для видео, подкастов и социальных сетей. Создавайте без претензий от платформ.
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-4">
             <Link href="/register" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto h-16 px-10 bg-neon text-black hover:scale-105 transition-all text-lg font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(92,243,135,0.4)]">
-                Попробовать 7 дней бесплатно
+              <Button className="w-full sm:w-auto h-14 sm:h-16 px-6 sm:px-10 bg-neon text-black hover:scale-105 transition-all text-base sm:text-lg font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+                Попробовать бесплатно
               </Button>
             </Link>
             <Button
               variant="outline"
               onClick={handlePlayDemo}
-              className="w-full sm:w-auto h-16 px-10 border-white/20 text-white hover:bg-white/5 transition-all text-lg font-black uppercase tracking-widest rounded-2xl backdrop-blur-md"
+              className="w-full sm:w-auto h-14 sm:h-16 px-6 sm:px-10 border-white/20 text-white hover:bg-white/5 transition-all text-base sm:text-lg font-black uppercase tracking-widest rounded-2xl backdrop-blur-md"
             >
-              <Play className="w-5 h-5 mr-3 fill-current" />
-              Послушать демо-треки
+              <Play className="w-5 h-5 mr-2 sm:mr-3 fill-current" />
+              Демо-треки
             </Button>
           </div>
         </div>

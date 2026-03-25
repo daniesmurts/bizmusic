@@ -46,20 +46,20 @@ export default function Dashboard() {
       <div className="fixed top-[20%] right-[-5%] w-[600px] h-[600px] bg-blue-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
       <div className="fixed bottom-[-10%] left-[10%] w-[800px] h-[800px] bg-purple-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-2">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black uppercase tracking-tighter">Обзор <span className="text-neon">Активности</span></h2>
-          <p className="text-neutral-400 font-medium text-sm italic">
+          <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter">Обзор <span className="text-neon">Активности</span></h2>
+          <p className="text-neutral-400 font-medium text-xs sm:text-sm italic break-all sm:break-normal">
             Добро пожаловать, <span className="text-white font-bold not-italic">{user?.email}</span>
           </p>
         </div>
-        <div className="flex gap-4">
-          <Link href="/dashboard/settings">
-            <Button className="bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-2xl px-6 py-6 font-black uppercase text-xs tracking-widest gap-2">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <Link href="/dashboard/settings" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-2xl px-6 py-5 sm:py-6 font-black uppercase text-[10px] sm:text-xs tracking-widest gap-2">
               <Settings className="w-4 h-4" /> Настройки
             </Button>
           </Link>
-          <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 py-6 font-black uppercase text-xs tracking-widest gap-2 shadow-lg shadow-neon/20">
+          <Button className="w-full sm:w-auto bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-6 sm:px-8 py-5 sm:py-6 font-black uppercase text-[10px] sm:text-xs tracking-widest gap-2 shadow-lg shadow-neon/20">
             <Plus className="w-4 h-4" /> Добавить точку
           </Button>
         </div>
@@ -67,40 +67,40 @@ export default function Dashboard() {
 
       {/* Grid Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass-dark border border-white/10 p-8 rounded-[2.5rem] space-y-4">
+        <div className="glass-dark border border-white/10 p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] space-y-4">
           <div className="w-12 h-12 bg-neon/10 rounded-xl flex items-center justify-center">
             <MapPin className="text-neon w-6 h-6" />
           </div>
           <div>
-            <div className="text-4xl font-black text-white leading-none mb-1">
+            <div className="text-3xl sm:text-4xl font-black text-white leading-none mb-1">
               {isLoading ? <Skeleton className="h-10 w-12 bg-white/5" /> : stats.locationCount}
             </div>
-            <div className="text-neutral-500 font-bold uppercase tracking-widest text-xs">Активные локации</div>
+            <div className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] sm:text-xs">Активные локации</div>
           </div>
         </div>
-        <div className="glass-dark border border-white/10 p-8 rounded-[2.5rem] space-y-4">
+        <div className="glass-dark border border-white/10 p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] space-y-4">
           <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
             <Music className="text-blue-500 w-6 h-6" />
           </div>
           <div>
-            <div className="text-4xl font-black text-white leading-none mb-1">
+            <div className="text-3xl sm:text-4xl font-black text-white leading-none mb-1">
               {isLoading ? <Skeleton className="h-10 w-20 bg-white/5" /> : stats.trackCount}
             </div>
-            <div className="text-neutral-500 font-bold uppercase tracking-widest text-xs">Треков в плейлистах</div>
+            <div className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] sm:text-xs">Треков в плейлистах</div>
           </div>
         </div>
-        <div className="glass-dark border border-white/10 p-8 rounded-[2.5rem] space-y-4">
+        <div className="glass-dark border border-white/10 p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] space-y-4">
           <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center">
             <ShieldCheck className="text-orange-500 w-6 h-6" />
           </div>
           <div>
             <div className={cn(
-               "text-2xl font-black uppercase tracking-tight leading-none mb-1",
+               "text-xl sm:text-2xl font-black uppercase tracking-tight leading-none mb-1",
                stats.licenseStatus === 'ACTIVE' ? 'text-neon' : 'text-orange-500'
             )}>
               {isLoading ? <Skeleton className="h-8 w-24 bg-white/5" /> : stats.licenseStatus}
             </div>
-            <div className="text-neutral-500 font-bold uppercase tracking-widest text-xs">Статус лицензии</div>
+            <div className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] sm:text-xs">Статус лицензии</div>
           </div>
         </div>
       </div>
@@ -119,24 +119,24 @@ export default function Dashboard() {
             ))}
           </div>
         ) : locations.length > 0 ? (
-          <div className="glass-dark border border-white/10 rounded-[2.5rem] overflow-hidden">
+          <div className="glass-dark border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden">
             {locations.map((loc: any) => (
-              <div key={loc.id} className="p-8 flex items-center justify-between border-b border-white/5 group hover:bg-white/5 transition-colors cursor-pointer">
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-neutral-900 rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform">
-                    <Music className="text-neon/40 w-8 h-8" />
+              <div key={loc.id} className="p-5 sm:p-8 flex items-center justify-between border-b border-white/5 group hover:bg-white/5 transition-colors cursor-pointer">
+                <div className="flex items-center gap-4 sm:gap-6">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-neutral-900 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform">
+                    <Music className="text-neon/40 w-6 h-6 sm:w-8 sm:h-8" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black uppercase tracking-tight text-white mb-1">{loc.name}</h3>
-                    <p className="text-neutral-500 text-sm font-medium">{loc.address}</p>
+                    <h3 className="text-base sm:text-xl font-black uppercase tracking-tight text-white mb-0.5 sm:mb-1">{loc.name}</h3>
+                    <p className="text-neutral-500 text-[10px] sm:text-sm font-medium">{loc.address}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-12">
+                <div className="flex items-center gap-4 sm:gap-12">
                   <div className="hidden md:block">
                     <div className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] mb-1">Статус</div>
                     <div className="text-white font-black text-sm uppercase">Онлайн</div>
                   </div>
-                  <Button size="icon" className="bg-neon/10 border border-neon/20 text-neon rounded-full hover:bg-neon hover:text-black">
+                  <Button size="icon" className="w-10 h-10 sm:w-12 sm:h-12 bg-neon/10 border border-neon/20 text-neon rounded-full hover:bg-neon hover:text-black">
                     <Play className="w-4 h-4 fill-current ml-0.5" />
                   </Button>
                 </div>

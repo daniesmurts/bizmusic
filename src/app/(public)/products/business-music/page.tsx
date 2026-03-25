@@ -55,24 +55,24 @@ export default function BusinessMusicPage() {
             Профессиональное аудио-оформление
           </Badge>
           
-          <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.85] text-white">
+          <h1 className="text-[clamp(2rem,10vw,4rem)] sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.85] text-white">
             Музыка для <span className="text-neon outline-text">бизнеса</span>
           </h1>
           
-          <p className="text-lg md:text-2xl text-neutral-300 font-medium max-w-4xl mx-auto leading-relaxed">
+          <p className="text-base md:text-2xl text-neutral-300 font-medium max-w-4xl mx-auto leading-relaxed break-words">
             Легально. Безопасно. Под ключ. Идеально для кафе, ресторанов, ритейла, офисов и фитнес-центров.
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-4">
             <Link href="/register" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto h-16 px-10 bg-neon text-black hover:scale-105 transition-all text-lg font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(92,243,135,0.4)]">
-                Попробовать 14 дней бесплатно
+              <Button className="w-full sm:w-auto h-14 sm:h-16 px-6 sm:px-10 bg-neon text-black hover:scale-105 transition-all text-base sm:text-lg font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(92,243,135,0.4)]">
+                Попробовать бесплатно
               </Button>
             </Link>
             <Link href="/legal/public-offer" className="w-full sm:w-auto">
-              <Button variant="outline" className="w-full sm:w-auto h-16 px-10 border-white/20 text-white hover:bg-white/5 transition-all text-lg font-black uppercase tracking-widest rounded-2xl backdrop-blur-md">
-                <Download className="w-5 h-5 mr-3" />
-                Открыть лицензионную оферту
+              <Button variant="outline" className="w-full sm:w-auto h-14 sm:h-16 px-6 sm:px-10 border-white/20 text-white hover:bg-white/5 transition-all text-base sm:text-lg font-black uppercase tracking-widest rounded-2xl backdrop-blur-md">
+                <Download className="w-5 h-5 mr-2 sm:mr-3" />
+                Лицензионная оферта
               </Button>
             </Link>
           </div>

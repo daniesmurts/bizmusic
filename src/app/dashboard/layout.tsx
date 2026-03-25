@@ -10,11 +10,18 @@ import {
   FileText,
   LayoutDashboard,
   Music,
-  ChevronRight
+  ChevronRight,
+  Menu,
+  X,
+  User,
+  LogOut,
+  Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
 import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
+import { useAuth } from "@/components/AuthProvider";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({
   children,
@@ -22,6 +29,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { signOut, user } = useAuth();
   const [isSigned, setIsSigned] = useState(false);
 
   useEffect(() => {
@@ -63,12 +71,17 @@ export default function DashboardLayout({
       hasAction: true,
       status: isSigned ? 'success' : 'action'
     },
+    {
+      name: "Настройки",
+      href: "/dashboard/settings",
+      icon: Settings,
+    },
   ];
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-64px)]">
+    <div className="flex flex-col min-h-screen bg-black">
       <div className="flex flex-1 gap-6 lg:gap-8 p-6 lg:p-12">
-        {/* Sidebar */}
+        {/* Sidebar Desktop */}
         <aside className="hidden lg:flex w-72 flex-col gap-6">
           <div className="glass-dark border border-white/10 rounded-[2.5rem] p-6 space-y-2">
             <div className="px-4 py-2 mb-4">
