@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, Loader2, Phone, UserCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, Phone, UserCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { translateAuthError } from "@/utils/auth-errors";
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [userType, setUserType] = useState<"BUSINESS" | "CREATOR">("BUSINESS");
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export default function Register() {
     setLoading(true);
     setError(null);
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -47,9 +49,14 @@ export default function Register() {
     });
 
     if (signUpError) {
-      setError(signUpError.message === "User already registered" ? "Пользователь уже зарегистрирован" : signUpError.message);
+      setError(translateAuthError(signUpError.message));
       setLoading(false);
       return;
+    }
+
+    // Safety: if project config accidentally auto-confirms email, do not keep user logged in right after signup.
+    if (signUpData?.session) {
+      await supabase.auth.signOut();
     }
 
     setSuccess(true);
@@ -92,9 +99,9 @@ export default function Register() {
       <CardContent className="px-8 pt-4 pb-10">
         <form onSubmit={handleRegister} className="space-y-6">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              {error}
+            <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-start gap-3 text-sm font-bold animate-in fade-in slide-in-from-top-2 duration-300">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span className="leading-relaxed break-words">{error}</span>
             </div>
           )}
           
@@ -114,17 +121,31 @@ export default function Register() {
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Пароль</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              className="bg-white/5 border-white/10 rounded-2xl py-6 focus:border-neon/50 focus:ring-neon/20 transition-all text-lg font-medium"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              minLength={6}
-            />
+            <div className="relative group/pass">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className="bg-white/5 border-white/10 rounded-2xl py-6 pr-14 focus:border-neon/50 focus:ring-neon/20 transition-all text-lg font-medium w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neon transition-colors p-2 rounded-xl hover:bg-white/5"
+                disabled={loading}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
           </div>
  
           <div className="space-y-2">
