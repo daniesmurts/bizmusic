@@ -1,9 +1,14 @@
 import { tbank } from "@/lib/payments/tbank";
 import { db } from "@/db";
-import { payments, businesses, users } from "@/db/schema";
+import { payments, businesses, users, ttsCreditLots } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
+import {
+  extractCreditsFromPaymentMetadata,
+  isConfirmedPaymentStatus,
+  shouldCreateCreditLot,
+} from "@/lib/payments/webhook-credit-pack";
 
 export async function POST(req: Request) {
   try {
@@ -30,10 +35,7 @@ export async function POST(req: Request) {
       return new NextResponse("Payment not found", { status: 404 });
     }
 
-    // 4. Idempotency: skip if already processed
-    if (payment.status === "CONFIRMED" || payment.status === "AUTHORIZED") {
-      return new NextResponse("OK");
-    }
+    const wasAlreadyConfirmed = isConfirmedPaymentStatus(payment.status);
 
     // 5. Validate amount matches what we initiated
     if (typeof Amount === "number" && Amount !== payment.amount) {
@@ -51,11 +53,52 @@ export async function POST(req: Request) {
       })
       .where(eq(payments.orderId, OrderId));
 
-    // 7. Handle trial activation on successful confirmation
-    if (Status === "CONFIRMED" || Status === "AUTHORIZED") {
+    // 7. Handle successful confirmation
+    if (isConfirmedPaymentStatus(Status)) {
+      if (payment.paymentType === "credit_pack") {
+        const existingLot = await db.query.ttsCreditLots.findFirst({
+          where: eq(ttsCreditLots.paymentId, payment.id),
+          columns: { id: true },
+        });
+
+        if (shouldCreateCreditLot(payment.paymentType, Status, Boolean(existingLot))) {
+          const metadata = payment.metadata ?? {};
+          let rawCredits = 0;
+          try {
+            rawCredits = extractCreditsFromPaymentMetadata(metadata);
+          } catch {
+            console.error(`[Webhook] Invalid credits metadata for payment ${payment.id}`);
+            return new NextResponse("Invalid credits metadata", { status: 400 });
+          }
+
+          const purchasedAt = new Date();
+          const expiresAt = new Date(purchasedAt);
+          expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+          await db.insert(ttsCreditLots).values({
+            businessId: payment.businessId,
+            creditsTotal: rawCredits,
+            creditsRemaining: rawCredits,
+            purchasedAt,
+            expiresAt,
+            paymentId: payment.id,
+          });
+        }
+
+        return new NextResponse("OK");
+      }
+
+      if (wasAlreadyConfirmed) {
+        return new NextResponse("OK");
+      }
+
       const trialDurationDays = 14;
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + trialDurationDays);
+
+      const metadata = payment.metadata ?? {};
+      const planSlug = typeof metadata.planSlug === "string" ? metadata.planSlug : payment.business.currentPlanSlug;
+      const interval = metadata.interval === "yearly" ? "yearly" : "monthly";
 
       // Activate subscription and save plan info (moved from startFreeTrial)
       await db.update(businesses)
@@ -63,6 +106,8 @@ export async function POST(req: Request) {
           rebillId: RebillId || undefined,
           cardMask: Pan || undefined,
           cardExpiry: ExpDate || undefined,
+          currentPlanSlug: planSlug,
+          billingInterval: interval,
           trialEndsAt: trialEndsAt,
           subscriptionExpiresAt: trialEndsAt,
           subscriptionStatus: "ACTIVE",

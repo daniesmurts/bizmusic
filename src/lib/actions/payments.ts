@@ -3,8 +3,8 @@
 import { db } from "@/db";
 import { businesses, payments, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { tbank, type Receipt } from "@/lib/payments/tbank";
-import { getPlanBySlug } from "@/lib/payments/plans";
+import { tbank } from "@/lib/payments/tbank";
+import { getPlanBySlug, getTtsCreditPackById } from "@/lib/payments/plans";
 import { createClient } from "@/utils/supabase/server";
 import { sendEmail } from "@/lib/email";
 
@@ -82,24 +82,18 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
       return { success: false, error: initResult.Message || initResult.Details || "Ошибка инициализации платежа" };
     }
 
-    // Create payment record and update business plan in a single transaction
-    await db.transaction(async (tx) => {
-      await tx.insert(payments).values({
-        businessId,
-        amount: 100,
-        status: "NEW",
-        orderId: orderId,
-        tbankPaymentId: initResult.PaymentId,
-        recurrent: true,
-      });
-
-      // Store selected plan/interval for the webhook to activate on confirmation
-      await tx.update(businesses)
-        .set({ 
-          currentPlanSlug: planSlug,
-          billingInterval: interval,
-        })
-        .where(eq(businesses.id, businessId));
+    await db.insert(payments).values({
+      businessId,
+      amount: 100,
+      status: "NEW",
+      orderId: orderId,
+      tbankPaymentId: initResult.PaymentId,
+      paymentType: "subscription",
+      metadata: {
+        planSlug,
+        interval,
+      },
+      recurrent: true,
     });
 
     return { 
@@ -303,6 +297,104 @@ export async function removePaymentMethod(businessId: string) {
     return { success: true };
   } catch (error: unknown) {
     console.error("Remove payment method error:", error);
+    const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
+    return { success: false, error: message };
+  }
+}
+
+export async function purchaseTtsCreditsAction(
+  packId: "pack-5" | "pack-10" | "pack-25" | "pack-50"
+) {
+  try {
+    const pack = getTtsCreditPackById(packId);
+    if (!pack) {
+      return { success: false, error: "Пакет кредитов не найден" };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Авторизация обязательна" };
+    }
+
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      with: { user: true },
+    });
+
+    if (!business) {
+      return { success: false, error: "Бизнес не найден" };
+    }
+
+    if (!process.env.TBANK_TERMINAL_KEY || !process.env.TBANK_PASSWORD) {
+      return { success: false, error: "Платежный шлюз не настроен" };
+    }
+
+    const shortBizId = business.id.replace(/-/g, "").substring(0, 10);
+    const orderId = `CRD_${shortBizId}_${Date.now()}`;
+    const safeCustomerKey = business.userId.replace(/-/g, "").substring(0, 36);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
+
+    const initResult = await tbank.init({
+      Amount: pack.price,
+      OrderId: orderId,
+      Description: `Пакет TTS: ${pack.label}`,
+      Recurrent: "N",
+      CustomerKey: safeCustomerKey,
+      SuccessURL: `${appUrl}/dashboard/announcements?credits=success`,
+      FailURL: `${appUrl}/dashboard/announcements?credits=failed`,
+      NotificationURL: `${appUrl}/api/payments/notification`,
+      Receipt: {
+        Email: user.email,
+        Taxation: "usn_income_outcome",
+        Items: [
+          {
+            Name: `Пакет TTS ${pack.label}`,
+            Price: pack.price,
+            Quantity: 1,
+            Amount: pack.price,
+            Tax: "none",
+            PaymentMethod: "full_prepayment",
+            PaymentObject: "service",
+          },
+        ],
+      },
+      DATA: {
+        type: "credit_pack",
+        packId: pack.id,
+        credits: String(pack.credits),
+        businessId: business.id,
+      },
+    });
+
+    if (!initResult.Success) {
+      return {
+        success: false,
+        error: initResult.Message || initResult.Details || "Ошибка инициализации платежа",
+      };
+    }
+
+    await db.insert(payments).values({
+      businessId: business.id,
+      amount: pack.price,
+      status: "NEW",
+      orderId,
+      tbankPaymentId: initResult.PaymentId,
+      paymentType: "credit_pack",
+      metadata: {
+        packId: pack.id,
+        credits: pack.credits,
+      },
+      recurrent: false,
+    });
+
+    return {
+      success: true,
+      paymentUrl: initResult.PaymentURL,
+    };
+  } catch (error: unknown) {
+    console.error("Purchase TTS credits error:", error);
     const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
     return { success: false, error: message };
   }

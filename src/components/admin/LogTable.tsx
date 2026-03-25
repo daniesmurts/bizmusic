@@ -18,11 +18,12 @@ interface LogTableProps {
 
 export const LogTable = ({ logs }: LogTableProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const normalizedQuery = searchQuery.toLowerCase();
 
   const filteredLogs = logs.filter((log) =>
-    log.track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.track.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.business?.legalName?.toLowerCase().includes(searchQuery.toLowerCase())
+    (log.track?.title ?? "Удаленный трек").toLowerCase().includes(normalizedQuery) ||
+    (log.track?.artist ?? "Неизвестный артист").toLowerCase().includes(normalizedQuery) ||
+    (log.business?.legalName ?? "").toLowerCase().includes(normalizedQuery)
   );
 
   const formatTime = (date: Date) => {
@@ -98,10 +99,10 @@ export const LogTable = ({ logs }: LogTableProps) => {
                        <Music className="w-4 h-4 text-neutral-500" />
                        <div>
                          <p className="font-bold text-white text-sm">
-                           {log.track.title}
+                           {log.track?.title || "Удаленный трек"}
                          </p>
                          <p className="text-xs text-neutral-500 font-medium">
-                           {log.track.artist}
+                           {log.track?.artist || "Запись больше недоступна в каталоге"}
                          </p>
                        </div>
                     </div>

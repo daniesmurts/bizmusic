@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { tracks, playLogs, businesses, users, artists } from "@/db/schema";
+import { tracks, playLogs, businesses, users, artists, voiceAnnouncements } from "@/db/schema";
 import { eq, or, ilike, sql, desc, and, arrayContains, SQL, inArray } from "drizzle-orm";
 import {
   getUploadSignedUrl,
@@ -9,6 +9,7 @@ import {
   getDownloadSignedUrl,
   deleteFile,
   getFilePublicUrl,
+  parseStorageObjectRef,
 } from "@/lib/supabase-storage";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -30,13 +31,6 @@ export interface TrackInput {
 }
 
 /**
- * Standardize filename extraction from a file URL, handling query parameters.
- */
-function getFileNameFromUrl(fileUrl: string): string {
-  return fileUrl.split("/").pop()?.split("?")[0] || fileUrl;
-}
-
-/**
  * Escape special LIKE/ILIKE characters to prevent injection.
  */
 function escapeLike(value: string): string {
@@ -51,6 +45,8 @@ export async function generateUploadUrlAction(
   contentType: string
 ) {
   try {
+    // `contentType` is reserved for future server-side validation.
+    void contentType;
     const uniqueFileName = generateUniqueFileName(fileName);
     const { uploadUrl, publicUrl } = await getUploadSignedUrl(uniqueFileName);
 
@@ -168,10 +164,10 @@ export async function deleteTrackAction(trackId: string) {
     }
 
     // Delete the file from storage (extract filename from URL)
-    const fileName = getFileNameFromUrl(track.fileUrl);
-    if (fileName) {
+    const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
+    if (fileRef.fileName) {
       try {
-        await deleteFile(fileName);
+        await deleteFile(fileRef.fileName, fileRef.folder);
       } catch (storageError) {
         console.warn("Failed to delete file from storage:", storageError);
         // Continue with database deletion even if storage deletion fails
@@ -204,28 +200,45 @@ export async function getTracksAction(filters?: {
   moodTag?: string;
   limit?: number;
   offset?: number;
+  businessId?: string;
+  isAnnouncement?: boolean;
 }) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
-    let isRestricted = true;
-    if (user) {
-      const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id) });
-      if (dbUser?.role === "ADMIN") {
-        isRestricted = false;
-      } else {
-        const business = await db.query.businesses.findFirst({ where: eq(businesses.userId, user.id) });
-        if (business && business.subscriptionStatus === "ACTIVE") {
-          isRestricted = false;
-        }
+    const conditions: SQL[] = [];
+
+    // Base conditions: 
+    // 1. Featured tracks (global)
+    // 2. Business-specific tracks (if businessId is known)
+    
+    let businessId: string | undefined = filters?.businessId;
+    
+    if (user && !businessId) {
+      const business = await db.query.businesses.findFirst({ where: eq(businesses.userId, user.id) });
+      if (business) {
+        businessId = business.id;
       }
     }
 
-    const conditions: SQL[] = [];
+    const baseConditions: SQL[] = [eq(tracks.isFeatured, true)];
+    if (businessId) {
+      baseConditions.push(eq(tracks.businessId, businessId));
+    }
 
-    if (isRestricted) {
-      conditions.push(eq(tracks.isFeatured, true));
+    // Combine base conditions with an OR, unless we are specifically looking for announcements
+    if (filters?.isAnnouncement) {
+      if (businessId) {
+        conditions.push(and(eq(tracks.businessId, businessId), eq(tracks.isAnnouncement, true)) as SQL);
+      } else {
+        // If no businessId, we can't really show private announcements
+        conditions.push(eq(tracks.isAnnouncement, true));
+      }
+    } else {
+      conditions.push(or(...baseConditions) as SQL);
+      // Exclude announcements from general music search unless requested
+      conditions.push(eq(tracks.isAnnouncement, false));
     }
 
     if (filters?.search) {
@@ -247,21 +260,24 @@ export async function getTracksAction(filters?: {
         track: tracks,
         artistProfile: artists,
         playLogsCount: sql<number>`cast(count(${playLogs.id}) as int)`,
+        announcementProvider: voiceAnnouncements.provider,
       })
       .from(tracks)
       .leftJoin(playLogs, eq(playLogs.trackId, tracks.id))
       .leftJoin(artists, eq(tracks.artistId, artists.id))
+      .leftJoin(voiceAnnouncements, eq(voiceAnnouncements.trackId, tracks.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .groupBy(tracks.id, artists.id)
+      .groupBy(tracks.id, artists.id, voiceAnnouncements.id)
       .orderBy(desc(tracks.createdAt))
       .limit(filters?.limit || 100)
       .offset(filters?.offset || 0);
 
     // Remap to match previous return structure with _count
-    const tracksWithCount = tracksList.map(({ track, artistProfile, playLogsCount }) => ({
+    const tracksWithCount = tracksList.map(({ track, artistProfile, playLogsCount, announcementProvider }) => ({
       ...track,
       artistProfile: artistProfile || null,
-      _count: { playLogs: playLogsCount || 0 }
+      _count: { playLogs: playLogsCount || 0 },
+      provider: announcementProvider
     }));
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -280,13 +296,13 @@ export async function getTracksAction(filters?: {
     const tracksWithUrls = await Promise.all(
       tracksWithCount.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
-        const fileName = getFileNameFromUrl(track.fileUrl);
+        const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
         const fallbackUrl = (isFullUrl || !supabaseUrl)
           ? track.fileUrl 
-          : getFilePublicUrl(fileName);
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
         try {
-          const streamUrl = await getDownloadSignedUrl(fileName, 'tracks', 3600);
+          const streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
           return { ...track, fileUrl: fallbackUrl, streamUrl };
         } catch (err: unknown) {
           const errMsg = err instanceof Error ? err.message : String(err);
@@ -351,15 +367,15 @@ export async function getFeaturedTracksAction() {
     const tracksWithUrls = await Promise.all(
       featuredTracks.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
-        const fileName = getFileNameFromUrl(track.fileUrl);
+        const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
         const fallbackUrl = (isFullUrl || !supabaseUrl)
           ? track.fileUrl 
-          : getFilePublicUrl(fileName);
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
           
         try {
           const streamUrl = await getDownloadSignedUrl(
-            fileName,
-            'tracks',
+            fileRef.fileName,
+            fileRef.folder,
             3600 // 1 hour
           );
  
@@ -454,14 +470,14 @@ export async function getTrackByIdAction(trackId: string) {
       };
     }
 
-    const fileName = getFileNameFromUrl(track.fileUrl);
+    const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
     const fallbackUrl = (isFullUrl || !supabaseUrl)
       ? track.fileUrl 
-      : getFilePublicUrl(fileName);
+      : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
     let streamUrl: string | undefined = undefined;
     try {
-      streamUrl = await getDownloadSignedUrl(fileName, 'tracks', 3600);
+      streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error(`[Tracks] Failed to sign URL for single track ${track.id}:`, errMsg);

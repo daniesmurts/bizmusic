@@ -156,6 +156,7 @@ export default function SubscriptionPage() {
       price: isYearly ? "8 400 ₽" : "990 ₽",
       priceValue: isYearly ? 8400 : 990,
       description: "Все для вашего пространства",
+      ttsMonthlyLimit: 30,
       icon: Music,
       color: "blue"
     },
@@ -165,6 +166,7 @@ export default function SubscriptionPage() {
       price: isYearly ? "12 000 ₽" : "1 490 ₽",
       priceValue: isYearly ? 12000 : 1490,
       description: "Для видео и соцсетей",
+      ttsMonthlyLimit: 10,
       icon: TrendingUp,
       color: "neon",
       popular: true
@@ -175,6 +177,7 @@ export default function SubscriptionPage() {
       price: isYearly ? "48 000 ₽" : "4 990 ₽",
       priceValue: isYearly ? 48000 : 4990,
       description: "Сети и агентства",
+      ttsMonthlyLimit: 100,
       icon: Crown,
       color: "purple"
     }
@@ -300,6 +303,7 @@ export default function SubscriptionPage() {
               <div className="pt-2">
                  <div className="text-4xl font-black">{tier.price} <span className="text-xs text-neutral-500 font-bold lowercase">/ {isYearly ? "год" : "мес"}</span></div>
                  <p className="text-neon text-[10px] font-black uppercase tracking-widest mt-1">14 дней бесплатно</p>
+                  <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest mt-2">TTS: {tier.ttsMonthlyLimit} генераций / мес</p>
               </div>
             </div>
 

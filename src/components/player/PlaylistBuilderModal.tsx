@@ -111,8 +111,26 @@ export function PlaylistBuilderModal({ playlistId, playlistName, initialTrackIds
                 }`}
               >
                 <div className="flex flex-col gap-1 w-full max-w-[80%] pr-4">
-                  <div className="text-sm font-bold text-white leading-tight">{track.title}</div>
-                  <div className="text-xs text-neutral-500">{track.artist}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-bold text-white leading-tight">{track.title}</div>
+                    {track.isAnnouncement && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[8px] font-black uppercase tracking-widest bg-neon/10 text-neon px-1.5 py-0.5 rounded border border-neon/20">
+                          Объявление
+                        </span>
+                        {track.provider && (
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
+                            track.provider === 'google' 
+                              ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' 
+                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          }`}>
+                            {track.provider === 'google' ? 'Google' : 'Salute'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-neutral-500">{track.artist || "Голосовое сообщение"}</div>
                   {(track.genre || (track.moodTags && track.moodTags.length > 0) || track.bpm) && (
                     <div className="flex flex-wrap gap-2 mt-1">
                       {track.genre && (

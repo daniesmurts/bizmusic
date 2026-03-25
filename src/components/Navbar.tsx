@@ -14,7 +14,8 @@ import {
   CreditCard, 
   FileText, 
   Settings,
-  ChevronRight
+  ChevronRight,
+  Mic
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ export const Navbar = () => {
   const dashboardNavItems = [
     { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
     { name: "Плеер", href: "/dashboard/player", icon: Play },
+    { name: "Объявления", href: "/dashboard/announcements", icon: Mic },
     { name: "Подписка", href: "/dashboard/subscription", icon: CreditCard },
     { name: "Договор", href: "/dashboard/contract", icon: FileText },
     { name: "Настройки", href: "/dashboard/settings", icon: Settings },
@@ -79,6 +81,7 @@ export const Navbar = () => {
               <Link href="/blog" className="text-neutral-400 hover:text-neon transition-colors">Блог</Link>
               <Link href="/about" className="text-neutral-400 hover:text-neon transition-colors">О нас</Link>
               <Link href="/pricing" className="text-neutral-400 hover:text-neon transition-colors">Тарифы</Link>
+              <Link href="/knowledge" className="text-neutral-400 hover:text-neon transition-colors">База знаний</Link>
             </>
           )}
         </div>
@@ -204,6 +207,14 @@ export const Navbar = () => {
                     className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
                   >
                     <span className="font-black uppercase tracking-widest text-xs">О компании</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                  <Link 
+                    href="/knowledge" 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all font-black uppercase tracking-widest text-xs"
+                  >
+                    <span>База знаний</span>
                     <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
