@@ -42,7 +42,7 @@ export default function ClientsPage() {
       }
 
       const data = result.data;
-      toast.success(`Повторная генерация завершена: восстановлено ${data.recovered} из ${data.scanned}`);
+      toast.success(`Повторная генерация завершена: восстановлено ${data?.recovered ?? 0} из ${data?.scanned ?? 0}`);
       await refetch();
     } catch {
       toast.error("Ошибка при пакетной повторной генерации");
