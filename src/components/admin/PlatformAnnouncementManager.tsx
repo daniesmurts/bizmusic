@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -260,6 +260,11 @@ export function PlatformAnnouncementManager() {
 
   const canSubmitCreate = Boolean(title.trim()) && (mode === "upload" ? Boolean(uploadedFile) : Boolean(transcript.trim()));
 
+  const handleAnnouncementUploadComplete = useCallback((fileName: string, url: string, duration: number, coverUrl?: string) => {
+    setUploadedFile({ fileName, url, duration, coverUrl });
+    setTitle((previous) => previous || fileName.replace(/\.[^.]+$/, ""));
+  }, []);
+
   return (
     <div className="space-y-10">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -312,12 +317,7 @@ export function PlatformAnnouncementManager() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <div className="space-y-6">
             {mode === "upload" ? (
-              <TrackUploader uploadType="announcement" onUploadComplete={(fileName, url, duration, coverUrl) => {
-                setUploadedFile({ fileName, url, duration, coverUrl });
-                if (!title) {
-                  setTitle(fileName.replace(/\.[^.]+$/, ""));
-                }
-              }} />
+              <TrackUploader uploadType="announcement" onUploadComplete={handleAnnouncementUploadComplete} />
             ) : (
               <div className="space-y-4 rounded-[2rem] border border-white/10 bg-white/5 p-6">
                 <div>
