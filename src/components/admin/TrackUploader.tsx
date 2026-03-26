@@ -14,6 +14,16 @@ interface TrackUploaderProps {
   uploadType?: "audio" | "announcement";
 }
 
+function isAbortLikeWaveError(err: unknown) {
+  const name = typeof err === "object" && err !== null && "name" in err ? String((err as { name: unknown }).name) : "";
+  const message = typeof err === "object" && err !== null && "message" in err
+    ? String((err as { message: unknown }).message)
+    : String(err ?? "");
+
+  return name === "AbortError"
+    || /aborted|aborterror|signal is aborted without reason/i.test(message);
+}
+
 export const TrackUploader = ({ onUploadComplete, uploadType = "audio" }: TrackUploaderProps) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -106,6 +116,10 @@ export const TrackUploader = ({ onUploadComplete, uploadType = "audio" }: TrackU
       });
 
       ws.on("error", (err) => {
+        if (isAbortLikeWaveError(err)) {
+          return;
+        }
+
         console.error("WaveSurfer error:", err);
         toast.error("Failed to load audio waveform");
       });
@@ -113,8 +127,12 @@ export const TrackUploader = ({ onUploadComplete, uploadType = "audio" }: TrackU
       wavesurferRef.current = ws;
 
       return () => {
-        if (wavesurferRef.current) {
-          wavesurferRef.current.destroy();
+        if (wavesurferRef.current === ws) {
+          wavesurferRef.current = null;
+        }
+
+        if (ws) {
+          ws.destroy();
         }
       };
     }
