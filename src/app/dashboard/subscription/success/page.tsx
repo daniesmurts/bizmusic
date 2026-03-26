@@ -44,9 +44,9 @@ function SuccessContent() {
     );
   }
 
-  // Calculate trial end date (today + 14 days)
+  // Calculate trial end date (today + 7 days)
   const trialEndDate = new Date();
-  trialEndDate.setDate(trialEndDate.getDate() + 14);
+  trialEndDate.setDate(trialEndDate.getDate() + 7);
   const formattedDate = trialEndDate.toLocaleDateString("ru-RU", {
     day: "numeric",
     month: "long",

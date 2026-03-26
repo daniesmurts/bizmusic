@@ -93,7 +93,7 @@ export async function POST(req: Request) {
         return new NextResponse("OK");
       }
 
-      const trialDurationDays = 14;
+      const trialDurationDays = 7;
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + trialDurationDays);
 

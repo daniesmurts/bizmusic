@@ -14,7 +14,7 @@ import { ArtistTable } from "@/components/admin/ArtistTable";
 import { ArtistEditor } from "@/components/admin/ArtistEditor";
 import { Users } from "lucide-react";
 import {
-  getTracksAction,
+  getAdminTracksAction,
   createTrackAction,
   updateTrackAction,
   deleteTrackAction,
@@ -76,7 +76,7 @@ export default function AdminContentPage() {
   const { data: tracksData } = useQuery({
     queryKey: ["admin-tracks"],
     queryFn: async () => {
-      const result = await getTracksAction();
+      const result = await getAdminTracksAction();
       if (!result.success) {
         throw new Error(result.error);
       }

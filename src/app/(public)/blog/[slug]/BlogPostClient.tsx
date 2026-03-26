@@ -12,9 +12,6 @@ import {
   Tag,
   Bookmark,
   Share2,
-  Facebook,
-  Twitter,
-  Linkedin,
   Copy,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -55,22 +52,6 @@ interface BlogPostClientProps {
 
 export default function BlogPostClient({ post, relatedPosts }: BlogPostClientProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
-
-  const handleShare = (platform: string) => {
-    const url = encodeURIComponent(window.location.href);
-    const title = encodeURIComponent(post.title);
-
-    const urls: Record<string, string> = {
-      Facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-      Twitter: `https://twitter.com/intent/tweet?url=${url}&text=${title}`,
-      LinkedIn: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-    };
-
-    const shareUrl = urls[platform];
-    if (shareUrl) {
-      window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=400");
-    }
-  };
 
   const handleCopyLink = async () => {
     try {
@@ -182,8 +163,12 @@ export default function BlogPostClient({ post, relatedPosts }: BlogPostClientPro
               >
                 <Bookmark className="w-5 h-5" />
               </button>
-              <button className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
-                <Share2 className="w-5 h-5" />
+              <button 
+                onClick={handleCopyLink}
+                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-neon transition-colors"
+                title="Копировать ссылку"
+              >
+                <Copy className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -231,31 +216,14 @@ export default function BlogPostClient({ post, relatedPosts }: BlogPostClientPro
               <h3 className="text-xl font-black uppercase tracking-tight text-white">
                 Поделиться статьёй
               </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleShare("Facebook")}
-                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-[#1877F2] hover:border-[#1877F2] transition-colors"
-                >
-                  <Facebook className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => handleShare("Twitter")}
-                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-[#1DA1F2] hover:border-[#1DA1F2] transition-colors"
-                >
-                  <Twitter className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => handleShare("LinkedIn")}
-                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-[#0A66C2] hover:border-[#0A66C2] transition-colors"
-                >
-                  <Linkedin className="w-5 h-5" />
-                </button>
-                <button
+              <div className="flex items-center gap-3">
+                <Button
                   onClick={handleCopyLink}
-                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-white hover:border-white/20 transition-colors"
+                  className="bg-white/5 border border-white/10 text-neutral-400 hover:text-neon hover:border-neon/50 uppercase font-black text-xs tracking-widest px-8 rounded-2xl h-14 flex items-center gap-3"
                 >
                   <Copy className="w-5 h-5" />
-                </button>
+                  Копировать ссылку
+                </Button>
               </div>
             </div>
           </div>

@@ -9,7 +9,7 @@ import {
   ListMusic, 
   Clock,
   Heart,
-  Share2
+  Copy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
@@ -47,6 +47,16 @@ export const ArtistProfileClient = ({ artist }: ArtistProfileClientProps) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleCopyTrackLink = async (trackId: string) => {
+    try {
+      const url = `${window.location.origin}${window.location.pathname}?track=${trackId}`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Ссылка на трек скопирована");
+    } catch {
+      toast.error("Не удалось скопировать ссылку");
+    }
   };
 
   return (
@@ -147,8 +157,14 @@ export const ArtistProfileClient = ({ artist }: ArtistProfileClientProps) => {
                         <Button size="icon" variant="ghost" className="text-neutral-500 hover:text-neon hover:bg-neon/10 rounded-full">
                           <Heart className="w-4 h-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="text-neutral-500 hover:text-white hover:bg-white/5 rounded-full">
-                          <Share2 className="w-4 h-4" />
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="text-neutral-500 hover:text-white hover:bg-white/5 rounded-full"
+                          title="Копировать ссылку"
+                          onClick={() => handleCopyTrackLink(track.id)}
+                        >
+                          <Copy className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
