@@ -502,6 +502,105 @@ export async function getTrackByIdAction(trackId: string) {
 }
 
 /**
+ * Get ALL tracks for admin dashboard (no filtering by featured/business)
+ */
+export async function getAdminTracksAction(filters?: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Verify admin role
+    const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id) });
+    if (!dbUser || dbUser.role !== "ADMIN") {
+      return { success: false, error: "Forbidden: Admin access required" };
+    }
+
+    const conditions: SQL[] = [];
+
+    if (filters?.search) {
+      const safeSearch = escapeLike(filters.search);
+      conditions.push(
+        or(
+          ilike(tracks.title, `%${safeSearch}%`),
+          ilike(tracks.artist, `%${safeSearch}%`)
+        ) as SQL
+      );
+    }
+
+    const tracksList = await db
+      .select({
+        track: tracks,
+        artistProfile: artists,
+        playLogsCount: sql<number>`cast(count(${playLogs.id}) as int)`,
+      })
+      .from(tracks)
+      .leftJoin(playLogs, eq(playLogs.trackId, tracks.id))
+      .leftJoin(artists, eq(tracks.artistId, artists.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .groupBy(tracks.id, artists.id)
+      .orderBy(desc(tracks.createdAt))
+      .limit(filters?.limit || 1000)
+      .offset(filters?.offset || 0);
+
+    const tracksWithCount = tracksList.map(({ track, artistProfile, playLogsCount }) => ({
+      ...track,
+      artistProfile: artistProfile || null,
+      _count: { playLogs: playLogsCount || 0 },
+    }));
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    const needsConfiguration = tracksWithCount.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
+    
+    if (needsConfiguration) {
+      console.error("[Admin Tracks] NEXT_PUBLIC_SUPABASE_URL is not set");
+      return {
+        success: false,
+        error: "Server configuration is incomplete",
+      };
+    }
+
+    const tracksWithUrls = await Promise.all(
+      tracksWithCount.map(async (track) => {
+        const isFullUrl = track.fileUrl.startsWith('http');
+        const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
+        const fallbackUrl = (isFullUrl || !supabaseUrl)
+          ? track.fileUrl 
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
+
+        try {
+          const streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
+          return { ...track, fileUrl: fallbackUrl, streamUrl };
+        } catch (err: unknown) {
+          console.error(`[Admin Tracks] Failed to generate signed URL for track ${track.id}:`, err);
+          return { ...track, fileUrl: fallbackUrl };
+        }
+      })
+    );
+
+    return {
+      success: true,
+      data: tracksWithUrls,
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch admin tracks";
+    console.error("Get admin tracks error:", error);
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+/**
  * Batch update mood tags for multiple tracks
  */
 export async function batchUpdateTagsAction(

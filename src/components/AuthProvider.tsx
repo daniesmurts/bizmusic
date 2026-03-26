@@ -45,6 +45,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       
       if (event === "SIGNED_IN") {
+        // Clear featured track play history when user signs in
+        try {
+          localStorage.removeItem("featured-tracks-played");
+        } catch (error) {
+          console.error("Failed to clear featured tracks play history:", error);
+        }
         router.refresh();
       }
       if (event === "SIGNED_OUT") {

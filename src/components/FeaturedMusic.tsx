@@ -1,16 +1,50 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, Music, Zap, Star } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getFeaturedTracksAction } from "@/lib/actions/tracks";
+import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
+import { useAuth } from "@/components/AuthProvider";
+import { useFeaturedTrackPlay } from "@/hooks/useFeaturedTrackPlay";
+import { SubscriptionPromptModal } from "@/components/SubscriptionPromptModal";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const FeaturedMusic = () => {
   const { currentTrack, isPlaying, setTrack, togglePlay } = usePlayerStore();
+  const { user } = useAuth();
+  const { hasPlayedBefore, markAsPlayed, isHydrated } = useFeaturedTrackPlay();
+  const [subscriptionStatus, setSubscriptionStatus] = useState<"ACTIVE" | "INACTIVE" | null>(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [submittedPlayTrackId, setSubmittedPlayTrackId] = useState<string | null>(null);
+
+  // Fetch subscription status if user is logged in
+  useEffect(() => {
+    if (!user) {
+      setSubscriptionStatus(null);
+      return;
+    }
+
+    async function checkSubscription() {
+      try {
+        const result = await getBusinessDetailsAction();
+        if (result.success && result.data) {
+          setSubscriptionStatus(result.data.subscriptionStatus || "INACTIVE");
+        } else {
+          setSubscriptionStatus("INACTIVE");
+        }
+      } catch (error) {
+        console.error("Failed to check subscription:", error);
+        setSubscriptionStatus("INACTIVE");
+      }
+    }
+
+    checkSubscription();
+  }, [user]);
 
   const { data: featuredTracks, isLoading, isError } = useQuery({
     queryKey: ["featured-tracks"],
@@ -22,8 +56,40 @@ export const FeaturedMusic = () => {
     retry: 1,
   });
 
+  // Helper to check if user can play a track
+  const canPlayTrack = (trackId: string): boolean => {
+    // If logged in with active subscription, always allow
+    if (user && subscriptionStatus === "ACTIVE") {
+      return true;
+    }
+
+    // If not logged in or no active subscription, check if already played
+    return !hasPlayedBefore(trackId);
+  };
+
+  // Helper to get play button state info
+  const getPlayButtonState = (trackId: string) => {
+    const isCurrentTrack = currentTrack?.id === trackId;
+    const alreadyPlayed = hasPlayedBefore(trackId);
+    const hasActiveSubscription = user && subscriptionStatus === "ACTIVE";
+    const isDisabled = !hasActiveSubscription && alreadyPlayed;
+
+    return { isCurrentTrack, alreadyPlayed, isDisabled, hasActiveSubscription };
+  };
+
   const handlePlayPause = (track: any) => {
-    if (currentTrack?.id === track.id) {
+    if (!isHydrated) return; // Wait for localStorage to hydrate
+
+    const { isCurrentTrack, isDisabled } = getPlayButtonState(track.id);
+
+    // If track is disabled, show subscription modal
+    if (isDisabled) {
+      setSubmittedPlayTrackId(track.id);
+      setShowSubscriptionModal(true);
+      return;
+    }
+
+    if (isCurrentTrack) {
       togglePlay();
     } else {
       const playerTrack: Track = {
@@ -37,6 +103,11 @@ export const FeaturedMusic = () => {
       };
       setTrack(playerTrack);
       toast.info(`Воспроизведение: ${track.title}`);
+
+      // Mark as played only if user is not subscribed
+      if (!user || subscriptionStatus !== "ACTIVE") {
+        markAsPlayed(track.id);
+      }
     }
   };
 
@@ -79,21 +150,37 @@ export const FeaturedMusic = () => {
           </div>
 
           {/* Play Button */}
-          <button
-            onClick={() => handlePlayPause(track)}
-            className={cn(
-              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl",
-              currentTrack?.id === track.id && isPlaying
-                ? "bg-primary text-primary-foreground scale-105"
-                : "bg-white/5 text-white group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110"
-            )}
-          >
-            {currentTrack?.id === track.id && isPlaying ? (
-              <Pause className="w-5 h-5 fill-current" />
-            ) : (
-              <Play className="w-5 h-5 fill-current ml-0.5" />
-            )}
-          </button>
+          {(() => {
+            const { isCurrentTrack, alreadyPlayed, isDisabled } = getPlayButtonState(track.id);
+            return (
+              <div className="relative group/btn">
+                <button
+                  onClick={() => handlePlayPause(track)}
+                  disabled={isDisabled}
+                  title={isDisabled ? "Вы уже прослушали этот трек. Подпишитесь для неограниченного доступа" : ""}
+                  className={cn(
+                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl",
+                    isCurrentTrack && isPlaying
+                      ? "bg-primary text-primary-foreground scale-105"
+                      : isDisabled
+                      ? "bg-white/10 text-white/50 cursor-not-allowed"
+                      : "bg-white/5 text-white group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110"
+                  )}
+                >
+                  {isCurrentTrack && isPlaying ? (
+                    <Pause className="w-5 h-5 fill-current" />
+                  ) : (
+                    <Play className="w-5 h-5 fill-current ml-0.5" />
+                  )}
+                </button>
+                {isDisabled && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-lg text-[10px] text-neutral-300 whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none z-20 shadow-lg">
+                    Одно прослушивание. Подпишитесь для доступа
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Info */}
           <div className="flex-1 min-w-0 pr-4">
@@ -138,6 +225,11 @@ export const FeaturedMusic = () => {
           )}
         </div>
       ))}
+      
+      <SubscriptionPromptModal 
+        isOpen={showSubscriptionModal} 
+        onClose={() => setShowSubscriptionModal(false)} 
+      />
     </div>
   );
 };

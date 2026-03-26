@@ -4,7 +4,6 @@ import Image from "next/image";
 import { 
   Music, 
   Globe, 
-  Share2,
   Disc,
   ArrowLeft,
   ExternalLink
@@ -152,7 +151,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
                       className="flex items-center justify-between p-4 rounded-2xl bg-[#0077FF]/5 border border-[#0077FF]/10 hover:bg-[#0077FF]/10 transition-all"
                     >
                       <div className="flex items-center gap-3">
-                        <Share2 className="w-5 h-5 text-[#0077FF]" />
+                        <Music className="w-5 h-5 text-[#0077FF]" />
                         <span className="text-sm font-bold text-white">VK Music</span>
                       </div>
                       <ExternalLink className="w-4 h-4 text-[#0077FF]/60" />

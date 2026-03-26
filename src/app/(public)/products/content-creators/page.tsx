@@ -23,7 +23,6 @@ import {
   Minus,
   HelpCircle,
   Monitor,
-  Share2,
   Mic2,
   Lock,
   History,
