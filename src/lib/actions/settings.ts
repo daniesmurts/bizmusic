@@ -156,26 +156,49 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
       columns: { id: true }
     });
     
-    // Basic fields
+    const trimmedInn = data.inn?.trim();
+    const trimmedLegalName = data.legalName?.trim();
+    const trimmedAddress = data.address?.trim();
+
+    if (data.inn !== undefined && !trimmedInn) {
+      return { success: false, error: "ИНН не может быть пустым." };
+    }
+    if (data.legalName !== undefined && !trimmedLegalName) {
+      return { success: false, error: "Название компании не может быть пустым." };
+    }
+    if (data.address !== undefined && !trimmedAddress) {
+      return { success: false, error: "Адрес не может быть пустым." };
+    }
+
+    // On first create, mandatory legal fields are required.
+    if (!existingBusiness && (!trimmedInn || !trimmedLegalName || !trimmedAddress)) {
+      return {
+        success: false,
+        error: "Для создания бизнеса заполните ИНН, название компании и адрес.",
+      };
+    }
+
+    // Build partial update payload without overwriting required fields with empty strings.
     const businessData: Partial<typeof businesses.$inferInsert> = {
       userId: user.id,
-      inn: data.inn || "",
-      legalName: data.legalName || "",
-      address: data.address || "",
-      kpp: data.kpp || null,
-      phone: data.phone || null,
-      contactPerson: data.contactPerson || null,
-      businessType: data.businessType || null,
-      businessCategory: data.businessCategory || null,
-      bankName: data.bankName || null,
-      bik: data.bik || null,
-      settlementAccount: data.settlementAccount || null,
-      corrAccount: data.corrAccount || null,
     };
+
+    if (trimmedInn) businessData.inn = trimmedInn;
+    if (trimmedLegalName) businessData.legalName = trimmedLegalName;
+    if (trimmedAddress) businessData.address = trimmedAddress;
+    if (data.kpp !== undefined) businessData.kpp = data.kpp?.trim() || null;
+    if (data.phone !== undefined) businessData.phone = data.phone?.trim() || null;
+    if (data.contactPerson !== undefined) businessData.contactPerson = data.contactPerson?.trim() || null;
+    if (data.businessType !== undefined) businessData.businessType = data.businessType?.trim() || null;
+    if (data.businessCategory !== undefined) businessData.businessCategory = data.businessCategory?.trim() || null;
+    if (data.bankName !== undefined) businessData.bankName = data.bankName?.trim() || null;
+    if (data.bik !== undefined) businessData.bik = data.bik?.trim() || null;
+    if (data.settlementAccount !== undefined) businessData.settlementAccount = data.settlementAccount?.trim() || null;
+    if (data.corrAccount !== undefined) businessData.corrAccount = data.corrAccount?.trim() || null;
     
-    if (data.inn) {
+    if (trimmedInn) {
       const innCheck = await db.query.businesses.findFirst({
-        where: eq(businesses.inn, data.inn),
+        where: eq(businesses.inn, trimmedInn),
         columns: { id: true, userId: true }
       });
       if (innCheck && innCheck.userId !== user.id) {

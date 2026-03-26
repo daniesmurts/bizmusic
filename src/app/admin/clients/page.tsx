@@ -1,16 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { Building2, Plus, Users, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Users, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ClientTable } from "@/components/admin/ClientTable";
 import { getClientsAction } from "@/lib/actions/clients";
+import { retryFailedLicensesBatchAction } from "@/lib/actions/licenses";
 import { AdminBusiness } from "@/types/admin";
 import { toast } from "sonner";
 
 export default function ClientsPage() {
-  const { data: clients, isLoading, error } = useQuery({
+  const [retryingFailed, setRetryingFailed] = useState(false);
+
+  const { data: clients, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-clients"],
     queryFn: async () => {
       const result = await getClientsAction();
@@ -26,6 +29,27 @@ export default function ClientsPage() {
       toast.error("Ошибка загрузки клиентов");
     }
   }, [error]);
+
+  const failedDocsCount = clients?.filter((c) => c.licenses?.[0]?.documentStatus === "FAILED").length || 0;
+
+  const handleRetryFailed = async () => {
+    setRetryingFailed(true);
+    try {
+      const result = await retryFailedLicensesBatchAction(50);
+      if (!result.success) {
+        toast.error(result.error || "Не удалось повторно сформировать документы");
+        return;
+      }
+
+      const data = result.data;
+      toast.success(`Повторная генерация завершена: восстановлено ${data.recovered} из ${data.scanned}`);
+      await refetch();
+    } catch {
+      toast.error("Ошибка при пакетной повторной генерации");
+    } finally {
+      setRetryingFailed(false);
+    }
+  };
 
   return (
     <div className="space-y-12">
@@ -64,6 +88,16 @@ export default function ClientsPage() {
               </span>
             </div>
           </div>
+
+          <Button
+            onClick={handleRetryFailed}
+            disabled={retryingFailed || failedDocsCount === 0}
+            variant="outline"
+            className="border-amber-500/30 text-amber-300 rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2"
+          >
+            <RefreshCcw className={`w-4 h-4 ${retryingFailed ? "animate-spin" : ""}`} />
+            Повторить Ошибки ({failedDocsCount})
+          </Button>
           
           <Button
             onClick={async () => {

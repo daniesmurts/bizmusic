@@ -33,6 +33,17 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
       return { success: false, error: "Отказано в доступе: вы не являетесь владельцем" };
     }
 
+    const hasRequiredBusinessData = Boolean(
+      business.inn?.trim() && business.legalName?.trim() && business.address?.trim()
+    );
+
+    if (!hasRequiredBusinessData) {
+      return {
+        success: false,
+        error: "Перед покупкой заполните обязательные реквизиты компании (ИНН, название и адрес)",
+      };
+    }
+
     // Checking if TBANK API keys exist
     if (!process.env.TBANK_TERMINAL_KEY || !process.env.TBANK_PASSWORD) {
       console.error("Missing T-Bank credentials in environment.");

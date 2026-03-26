@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { syncUserAndLegalAcceptance } from '@/lib/legal-acceptance'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -32,6 +33,23 @@ export async function GET(request: Request) {
     )
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      const { data: userData } = await supabase.auth.getUser()
+      const authUser = userData.user
+      const ipHeader = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')
+      const ipAddress = ipHeader?.split(',')[0]?.trim()
+      const userAgent = request.headers.get('user-agent') || undefined
+
+      if (authUser?.id && authUser.email) {
+        await syncUserAndLegalAcceptance({
+          userId: authUser.id,
+          email: authUser.email,
+          metadata: authUser.user_metadata as Record<string, unknown>,
+          source: 'auth_callback',
+          ipAddress,
+          userAgent,
+        })
+      }
+
       return NextResponse.redirect(`${baseUrl}${next}`)
     }
   }

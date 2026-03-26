@@ -69,7 +69,21 @@ export interface AdminBusiness {
   licenses: {
     id: string;
     pdfUrl: string;
+    documentStatus?: "GENERATING" | "READY" | "FAILED";
+    generationError?: string | null;
   }[];
+}
+
+export interface AdminLegalAcceptanceEvent {
+  id: string;
+  acceptedAt: Date;
+  source: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  termsVersion?: string | null;
+  user: {
+    email: string;
+  } | null;
 }
 
 export interface AdminPlayLog {

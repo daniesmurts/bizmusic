@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { businesses, locations, playlists, licenses, playlistTracks } from "@/db/schema";
+import { businesses, locations, licenses, playlistTracks } from "@/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 
@@ -27,7 +27,12 @@ export async function getDashboardDataAction() {
             id: true,
             name: true,
           }
-        }
+        },
+        licenses: {
+          columns: { documentStatus: true, pdfUrl: true },
+          orderBy: [desc(licenses.issuedAt)],
+          limit: 1,
+        },
       }
     });
 
@@ -71,7 +76,13 @@ export async function getDashboardDataAction() {
         stats: {
           locationCount: business.locations.length,
           trackCount: totalTrackCount,
-          licenseStatus: business.subscriptionStatus
+          licenseStatus: (() => {
+            const lic = business.licenses?.[0];
+            if (business.subscriptionStatus === 'ACTIVE' || lic?.documentStatus === 'READY' || lic?.pdfUrl) return 'ACTIVE';
+            if (lic?.documentStatus === 'GENERATING') return 'GENERATING';
+            if (lic?.documentStatus === 'FAILED') return 'FAILED';
+            return business.subscriptionStatus;
+          })(),
         }
       }
     };
@@ -110,8 +121,8 @@ export async function getBusinessDetailsAction() {
       success: true,
       data: business
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get business details error:", error);
-    return { success: false, error: error.message || "Failed to fetch details" };
+    return { success: false, error: error instanceof Error ? error.message : "Failed to fetch details" };
   }
 }

@@ -10,6 +10,8 @@ export interface LicenseData {
   validFrom: string;
   validTo: string;
   verificationUrl: string;
+  signingName?: string;
+  ownerName?: string;
 }
 
 export async function generateLicensePDF(data: LicenseData): Promise<Buffer> {
@@ -101,12 +103,28 @@ export async function generateLicensePDF(data: LicenseData): Promise<Buffer> {
       doc.font(regularFontPath).fontSize(8).fillColor("#999999").text("ОТСКАНИРУЙТЕ ДЛЯ ПРОВЕРКИ", 380, 745, { width: 120, align: "center" });
 
       // Signature Section
+      const ownerName = data.ownerName?.trim() || process.env.LICENSOR_LEGAL_NAME || "ИП Бугембе Даниел";
+      const signerName = data.signingName?.trim();
+      const signatureImagePath = process.env.LICENSOR_SIGNATURE_IMAGE_PATH
+        ? path.join(process.cwd(), process.env.LICENSOR_SIGNATURE_IMAGE_PATH)
+        : path.join(process.cwd(), "public", "images", "signature.png");
+
       doc.font(regularFontPath).fontSize(12).fillColor("#000000").text("Уполномоченный представитель", 70, 650);
-      doc.font(boldFontPath).text("ООО «БИЗНЕС МУЗЫКА»", 70, 670);
-      
-      // Stylized Signature
-      doc.font(boldFontPath).fontSize(24).fillColor("#1e40af").text("D. Smurts", 75, 715, { oblique: true });
+      doc.font(boldFontPath).text(ownerName, 70, 670);
+
+      if (fs.existsSync(signatureImagePath)) {
+        doc.image(signatureImagePath, 70, 700, { width: 150, height: 40 });
+      } else {
+        doc.font(boldFontPath).fontSize(24).fillColor("#1e40af").text(ownerName, 75, 715, { oblique: true });
+      }
       doc.lineWidth(1).strokeColor("#1e40af").moveTo(70, 745).lineTo(220, 745).stroke();
+
+      if (signerName) {
+        doc.font(regularFontPath)
+          .fontSize(10)
+          .fillColor("#333333")
+          .text(`Подписант лицензиата: ${signerName}`, 70, 755, { width: 300 });
+      }
       
       // Stamp Placeholder
       doc.circle(280, 710, 45).lineWidth(2).strokeColor("#1e40af").dash(5, { space: 2 }).stroke();

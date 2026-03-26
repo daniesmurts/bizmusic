@@ -40,7 +40,14 @@ export async function getClientsAction() {
           locations: b.locationsCount,
           playLogs: b.playLogsCount,
         },
-        licenses: latestLicense ? [{ id: latestLicense.id, pdfUrl: latestLicense.pdfUrl }] : []
+        licenses: latestLicense
+          ? [{
+              id: latestLicense.id,
+              pdfUrl: latestLicense.pdfUrl,
+              documentStatus: latestLicense.documentStatus,
+              generationError: latestLicense.generationError,
+            }]
+          : []
       };
     }));
 

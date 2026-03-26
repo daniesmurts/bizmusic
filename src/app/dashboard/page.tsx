@@ -96,9 +96,9 @@ export default function Dashboard() {
           <div>
             <div className={cn(
                "text-xl sm:text-2xl font-black uppercase tracking-tight leading-none mb-1",
-               stats.licenseStatus === 'ACTIVE' ? 'text-neon' : 'text-orange-500'
+               stats.licenseStatus === 'ACTIVE' ? 'text-neon' : stats.licenseStatus === 'GENERATING' ? 'text-yellow-400' : 'text-orange-500'
             )}>
-              {isLoading ? <Skeleton className="h-8 w-24 bg-white/5" /> : stats.licenseStatus}
+              {isLoading ? <Skeleton className="h-8 w-24 bg-white/5" /> : stats.licenseStatus === 'ACTIVE' ? 'АКТИВНА' : stats.licenseStatus === 'GENERATING' ? 'ФОРМИРУЕТСЯ' : stats.licenseStatus === 'FAILED' ? 'ОШИБКА' : 'НЕ АКТИВНА'}
             </div>
             <div className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] sm:text-xs">Статус лицензии</div>
           </div>
@@ -120,7 +120,7 @@ export default function Dashboard() {
           </div>
         ) : locations.length > 0 ? (
           <div className="glass-dark border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden">
-            {locations.map((loc: any) => (
+            {locations.map((loc: { id: string; name: string; address?: string }) => (
               <div key={loc.id} className="p-5 sm:p-8 flex items-center justify-between border-b border-white/5 group hover:bg-white/5 transition-colors cursor-pointer">
                 <div className="flex items-center gap-4 sm:gap-6">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 bg-neutral-900 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform">
