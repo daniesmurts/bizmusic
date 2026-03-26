@@ -18,7 +18,7 @@ export const FeaturedMusic = () => {
   const { currentTrack, isPlaying, setTrack, togglePlay } = usePlayerStore();
   const { user } = useAuth();
   const { hasPlayedBefore, markAsPlayed, isHydrated } = useFeaturedTrackPlay();
-  const [subscriptionStatus, setSubscriptionStatus] = useState<"ACTIVE" | "INACTIVE" | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<"ACTIVE" | "INACTIVE" | "EXPIRED" | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [submittedPlayTrackId, setSubmittedPlayTrackId] = useState<string | null>(null);
 
