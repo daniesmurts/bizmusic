@@ -117,3 +117,24 @@ export interface AlbumWithTracks {
   updatedAt?: Date;
   tracks?: AdminTrack[];
 }
+
+export interface AdminPlatformAnnouncement {
+  id: string;
+  description?: string | null;
+  transcript?: string | null;
+  languageCode: string;
+  provider: string;
+  voiceName: string;
+  speakingRate: number;
+  pitch: number;
+  accessModel: "FREE" | "PAID";
+  priceKopeks: number;
+  isFeatured: boolean;
+  isPublished: boolean;
+  sourceType: "UPLOAD" | "TTS";
+  sortOrder: number;
+  acquisitionCount: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+  track: AdminTrack;
+}

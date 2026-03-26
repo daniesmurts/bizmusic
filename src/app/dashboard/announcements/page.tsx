@@ -3,10 +3,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getAnnouncementsAction,
   deleteAnnouncementAction,
   getAnnouncementEntitlementStatusAction,
 } from "@/lib/actions/voice-announcements";
+import { getBusinessAnnouncementsLibraryAction } from "@/lib/actions/platform-announcements";
 import { getAiAssistStatusAction } from "@/lib/actions/ai-assists";
 import { getPlaylistsAction, addTrackToPlaylistAction } from "@/lib/actions/playlists";
 import { purchaseTtsTokensAction } from "@/lib/actions/payments";
@@ -46,6 +46,11 @@ interface AnnouncementItem {
   text: string;
   provider: string;
   voiceName: string;
+  platformAnnouncementId?: string | null;
+  platformAnnouncement?: {
+    accessModel: "FREE" | "PAID";
+    priceKopeks: number;
+  } | null;
   createdAt: string | Date;
   track: {
     id: string;
@@ -53,6 +58,11 @@ interface AnnouncementItem {
     duration: number;
     fileUrl: string;
   };
+}
+
+interface AnnouncementLibrary {
+  generatedByBusiness: AnnouncementItem[];
+  fromPlatform: AnnouncementItem[];
 }
 
 interface EntitlementStatus {
@@ -111,12 +121,12 @@ export default function AnnouncementsPage() {
     return () => window.clearTimeout(timeoutId);
   }, [isAdding]);
 
-  const { data: announcements, isLoading } = useQuery<AnnouncementItem[]>({
-    queryKey: ["announcements"],
+  const { data: announcementLibrary, isLoading } = useQuery<AnnouncementLibrary>({
+    queryKey: ["announcements-library"],
     queryFn: async () => {
-      const result = await getAnnouncementsAction();
+      const result = await getBusinessAnnouncementsLibraryAction();
       if (!result.success) throw new Error(result.error);
-      return (result.data ?? []) as AnnouncementItem[];
+      return result.data as AnnouncementLibrary;
     },
   });
 
@@ -152,7 +162,7 @@ export default function AnnouncementsPage() {
     onSuccess: (result) => {
       if (result.success) {
         toast.success("Объявление удалено");
-        queryClient.invalidateQueries({ queryKey: ["announcements"] });
+        queryClient.invalidateQueries({ queryKey: ["announcements-library"] });
       } else {
         toast.error(result.error);
       }
@@ -185,6 +195,132 @@ export default function AnnouncementsPage() {
       toast.error("Ошибка при покупке токенов");
     },
   });
+
+  const generatedAnnouncements = announcementLibrary?.generatedByBusiness ?? [];
+  const platformAnnouncements = announcementLibrary?.fromPlatform ?? [];
+  const totalAnnouncements = generatedAnnouncements.length + platformAnnouncements.length;
+
+  const renderAnnouncementCards = (items: AnnouncementItem[], options: { title: string; subtitle: string; emptyTitle: string; emptyDescription: string; badgeTone: "neon" | "blue"; canDelete: boolean; }) => {
+    if (items.length === 0) {
+      return (
+        <div className="glass-dark border border-white/10 p-12 rounded-[2.5rem] text-center space-y-6">
+          <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto border border-white/5">
+            <Volume2 className="text-neutral-600 w-10 h-10" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-black uppercase tracking-tight text-white">{options.emptyTitle}</h3>
+            <p className="text-neutral-500 font-medium text-sm">{options.emptyDescription}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <div>
+            <h3 className="text-lg font-black uppercase tracking-tight text-white">{options.title}</h3>
+            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest mt-1">{options.subtitle}</p>
+          </div>
+          <div className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">
+            {items.length} записей
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="p-5 sm:p-7 glass-dark border border-white/5 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-4 group hover:border-white/20 transition-all"
+            >
+              <div className="flex items-center gap-5 w-full">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform shrink-0">
+                  <Volume2 className="text-neon/60 w-7 h-7" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white truncate">
+                      {item.track.title}
+                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 bg-neon/10 text-neon text-[8px] font-black uppercase tracking-widest rounded-full border border-neon/20">
+                        {item.track.duration} СЕК
+                      </span>
+                      <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-2 py-0 border-white/10 ${
+                        item.platformAnnouncementId
+                          ? "text-blue-300 bg-blue-500/10"
+                          : item.provider === "google"
+                          ? "text-indigo-400 bg-indigo-500/5"
+                          : "text-amber-400 bg-amber-500/5"
+                      }`}>
+                        {item.platformAnnouncementId ? "Платформа" : item.provider === "google" ? "Google" : "Salute"}
+                      </Badge>
+                      {item.platformAnnouncement?.accessModel === "PAID" && (
+                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest px-2 py-0 border-amber-500/20 text-amber-300 bg-amber-500/10">
+                          {formatRubFromKopeks(item.platformAnnouncement.priceKopeks)}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-neutral-500 text-xs font-medium italic truncate mb-2">
+                    &quot;{item.text}&quot;
+                  </p>
+                  <div className="flex items-center gap-4 text-[10px] text-neutral-600 font-bold uppercase tracking-widest">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-neon/40" />
+                      {format(new Date(item.createdAt), 'dd MMM yyyy', { locale: ru })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3 text-neon/40" />
+                      {item.voiceName.split('-').pop()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAddingToPlaylist(item)}
+                  className="w-12 h-12 bg-neon/5 border border-neon/10 text-neon rounded-2xl hover:bg-neon hover:text-black hover:border-neon transition-all"
+                  title="Добавить в плейлист"
+                >
+                  <ListPlus className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const audio = new Audio(item.track.fileUrl);
+                    audio.play();
+                  }}
+                  className="w-12 h-12 bg-white/5 border border-white/10 text-white rounded-2xl hover:bg-neon hover:text-black hover:border-neon transition-all"
+                >
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                </Button>
+                {options.canDelete && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (confirm("Вы уверены, что хотите удалить это объявление?")) {
+                        deleteMutation.mutate(item.id);
+                      }
+                    }}
+                    disabled={deleteMutation.isPending}
+                    className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-10 pb-20 animate-fade-in relative">
@@ -386,7 +522,7 @@ export default function AnnouncementsPage() {
           </div>
           <VoiceAnnouncementForm onSuccess={() => {
             setIsAdding(false);
-            queryClient.invalidateQueries({ queryKey: ["announcements"] });
+            queryClient.invalidateQueries({ queryKey: ["announcements-library"] });
             queryClient.invalidateQueries({ queryKey: ["tts-entitlement"] });
             queryClient.invalidateQueries({ queryKey: ["ai-entitlement"] });
           }} canGenerate={entitlement?.canGenerate ?? true} />
@@ -400,7 +536,7 @@ export default function AnnouncementsPage() {
             Ваша <span className="text-neon">библиотека</span>
           </h2>
           <div className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">
-            {announcements?.length ?? 0} ОБЪЯВЛЕНИЙ
+            {totalAnnouncements} ОБЪЯВЛЕНИЙ
           </div>
         </div>
 
@@ -410,88 +546,24 @@ export default function AnnouncementsPage() {
               <div key={i} className="h-28 glass-dark rounded-[2rem] animate-pulse" />
             ))}
           </div>
-        ) : announcements && announcements.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4">
-            {announcements.map((item) => (
-              <div 
-                key={item.id} 
-                className="p-5 sm:p-7 glass-dark border border-white/5 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-4 group hover:border-white/20 transition-all"
-              >
-                <div className="flex items-center gap-5 w-full">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform shrink-0">
-                    <Volume2 className="text-neon/60 w-7 h-7" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white truncate">
-                        {item.track.title}
-                      </h3>
-                      <div className="flex items-center gap-1.5">
-                        <span className="px-2 py-0.5 bg-neon/10 text-neon text-[8px] font-black uppercase tracking-widest rounded-full border border-neon/20">
-                          {item.track.duration} СЕК
-                        </span>
-                        <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-2 py-0 border-white/10 ${
-                          item.provider === 'google' 
-                            ? 'text-indigo-400 bg-indigo-500/5' 
-                            : 'text-amber-400 bg-amber-500/5'
-                        }`}>
-                          {item.provider === 'google' ? 'Google' : 'Salute'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <p className="text-neutral-500 text-xs font-medium italic truncate mb-2">
-                      &quot;{item.text}&quot;
-                    </p>
-                    <div className="flex items-center gap-4 text-[10px] text-neutral-600 font-bold uppercase tracking-widest">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-neon/40" /> 
-                        {format(new Date(item.createdAt), 'dd MMM yyyy', { locale: ru })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MessageSquare className="w-3 h-3 text-neon/40" /> 
-                        {item.voiceName.split('-').pop()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => setAddingToPlaylist(item)}
-                    className="w-12 h-12 bg-neon/5 border border-neon/10 text-neon rounded-2xl hover:bg-neon hover:text-black hover:border-neon transition-all"
-                    title="Добавить в плейлист"
-                  >
-                    <ListPlus className="w-5 h-5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => {
-                        const audio = new Audio(item.track.fileUrl);
-                        audio.play();
-                    }}
-                    className="w-12 h-12 bg-white/5 border border-white/10 text-white rounded-2xl hover:bg-neon hover:text-black hover:border-neon transition-all"
-                  >
-                    <Play className="w-5 h-5 fill-current ml-0.5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => {
-                      if (confirm("Вы уверены, что хотите удалить это объявление?")) {
-                        deleteMutation.mutate(item.id);
-                      }
-                    }}
-                    disabled={deleteMutation.isPending}
-                    className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+        ) : totalAnnouncements > 0 ? (
+          <div className="space-y-8">
+            {renderAnnouncementCards(generatedAnnouncements, {
+              title: "Мои объявления",
+              subtitle: "Созданы вашей компанией через TTS",
+              emptyTitle: "Нет собственных объявлений",
+              emptyDescription: "Создайте первое объявление через форму выше.",
+              badgeTone: "neon",
+              canDelete: true,
+            })}
+            {renderAnnouncementCards(platformAnnouncements, {
+              title: "Из библиотеки BizMusic",
+              subtitle: "Полученные или купленные платформенные анонсы",
+              emptyTitle: "Нет платформенных объявлений",
+              emptyDescription: "Добавляйте готовые объявления с витрины BizMusic.",
+              badgeTone: "blue",
+              canDelete: true,
+            })}
           </div>
         ) : (
           <div className="glass-dark border border-white/10 p-16 rounded-[2.5rem] text-center space-y-6">

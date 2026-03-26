@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { businesses, payments, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { businessAnnouncementAcquisitions, businesses, payments, platformAnnouncementProducts, users } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { tbank } from "@/lib/payments/tbank";
 import { getPlanBySlug, getTtsTokenPackById } from "@/lib/payments/plans";
 import { createClient } from "@/utils/supabase/server";
@@ -404,6 +404,120 @@ export async function purchaseTtsTokensAction(
     };
   } catch (error: unknown) {
     console.error("Purchase TTS tokens error:", error);
+    const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
+    return { success: false, error: message };
+  }
+}
+
+export async function purchasePlatformAnnouncementAction(platformAnnouncementId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Авторизация обязательна" };
+    }
+
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      with: { user: true },
+    });
+
+    if (!business) {
+      return { success: false, error: "Бизнес не найден" };
+    }
+
+    const product = await db.query.platformAnnouncementProducts.findFirst({
+      where: eq(platformAnnouncementProducts.id, platformAnnouncementId),
+      with: { track: true },
+    });
+
+    if (!product || !product.isPublished) {
+      return { success: false, error: "Объявление недоступно" };
+    }
+
+    if (product.accessModel !== "PAID") {
+      return { success: false, error: "Это объявление доступно бесплатно" };
+    }
+
+    const existingAcquisition = await db.query.businessAnnouncementAcquisitions.findFirst({
+      where: and(
+        eq(businessAnnouncementAcquisitions.businessId, business.id),
+        eq(businessAnnouncementAcquisitions.platformAnnouncementId, platformAnnouncementId)
+      ),
+      columns: { id: true },
+    });
+
+    if (existingAcquisition) {
+      return { success: false, error: "Это объявление уже есть в вашей библиотеке" };
+    }
+
+    if (!process.env.TBANK_TERMINAL_KEY || !process.env.TBANK_PASSWORD) {
+      return { success: false, error: "Платежный шлюз не настроен" };
+    }
+
+    const shortBizId = business.id.replace(/-/g, "").substring(0, 10);
+    const orderId = `ANN_${shortBizId}_${Date.now()}`;
+    const safeCustomerKey = business.userId.replace(/-/g, "").substring(0, 36);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
+
+    const initResult = await tbank.init({
+      Amount: product.priceKopeks,
+      OrderId: orderId,
+      Description: `Готовое объявление: ${product.track.title}`,
+      Recurrent: "N",
+      CustomerKey: safeCustomerKey,
+      SuccessURL: `${appUrl}/dashboard/announcements?announcement=success`,
+      FailURL: `${appUrl}/dashboard/announcements?announcement=failed`,
+      NotificationURL: `${appUrl}/api/payments/notification`,
+      Receipt: {
+        Email: user.email,
+        Taxation: "usn_income_outcome",
+        Items: [
+          {
+            Name: `Готовое объявление ${product.track.title}`,
+            Price: product.priceKopeks,
+            Quantity: 1,
+            Amount: product.priceKopeks,
+            Tax: "none",
+            PaymentMethod: "full_prepayment",
+            PaymentObject: "service",
+          },
+        ],
+      },
+      DATA: {
+        type: "announcement_purchase",
+        platformAnnouncementId,
+        businessId: business.id,
+      },
+    });
+
+    if (!initResult.Success) {
+      return {
+        success: false,
+        error: initResult.Message || initResult.Details || "Ошибка инициализации платежа",
+      };
+    }
+
+    await db.insert(payments).values({
+      businessId: business.id,
+      amount: product.priceKopeks,
+      status: "NEW",
+      orderId,
+      tbankPaymentId: initResult.PaymentId,
+      paymentType: "announcement_purchase",
+      metadata: {
+        platformAnnouncementId,
+      },
+      recurrent: false,
+    });
+
+    return {
+      success: true,
+      paymentUrl: initResult.PaymentURL,
+    };
+  } catch (error: unknown) {
+    console.error("Purchase platform announcement error:", error);
     const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
     return { success: false, error: message };
   }

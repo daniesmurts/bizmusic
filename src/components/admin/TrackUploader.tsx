@@ -11,9 +11,10 @@ import { parseBlob } from "music-metadata-browser";
 
 interface TrackUploaderProps {
   onUploadComplete: (fileName: string, publicUrl: string, duration: number, coverUrl?: string) => void;
+  uploadType?: "audio" | "announcement";
 }
 
-export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
+export const TrackUploader = ({ onUploadComplete, uploadType = "audio" }: TrackUploaderProps) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedFile, setUploadedFile] = useState<{
@@ -139,6 +140,7 @@ export const TrackUploader = ({ onUploadComplete }: TrackUploaderProps) => {
           fileName: file.name,
           fileSize: file.size,
           fileType: file.type,
+          type: uploadType,
         }),
       });
 

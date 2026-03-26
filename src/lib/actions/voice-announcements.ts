@@ -248,8 +248,10 @@ export async function deleteAnnouncementAction(announcementId: string) {
       return { success: false, error: "Forbidden" };
     }
 
-    // 1. Delete file from storage
-    if (announcement.track.fileUrl) {
+    const isImportedPlatformAnnouncement = Boolean(announcement.platformAnnouncementId);
+
+    // 1. Delete file from storage only for business-owned originals.
+    if (!isImportedPlatformAnnouncement && announcement.track.fileUrl) {
       const ref = parseStorageObjectRef(announcement.track.fileUrl, "announcements");
       if (ref.fileName) {
         try {
