@@ -80,7 +80,11 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename and upload URL
     const uniqueFileName = generateUniqueFileName(fileName);
-    const folder = type === 'image' ? 'blog' : 'tracks';
+    const folder = type === 'image'
+      ? 'blog'
+      : type === 'announcement'
+      ? 'announcements'
+      : 'tracks';
     const { uploadUrl, publicUrl } = await getUploadSignedUrl(uniqueFileName, folder, fileType);
 
     return NextResponse.json({

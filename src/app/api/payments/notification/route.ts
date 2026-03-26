@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
 import { generateLicenseAction } from "@/lib/actions/licenses";
+import { grantPlatformAnnouncementToBusiness } from "@/lib/actions/platform-announcements";
 import {
   extractCreditsFromPaymentMetadata,
   isConfirmedPaymentStatus,
@@ -83,6 +84,29 @@ export async function POST(req: Request) {
             purchasedAt,
             expiresAt,
             paymentId: payment.id,
+          });
+        }
+
+        return new NextResponse("OK");
+      }
+
+      if (payment.paymentType === "announcement_purchase") {
+        const metadata = payment.metadata ?? {};
+        const platformAnnouncementId = typeof metadata.platformAnnouncementId === "string"
+          ? metadata.platformAnnouncementId
+          : null;
+
+        if (!platformAnnouncementId) {
+          console.error(`[Webhook] Missing platformAnnouncementId metadata for payment ${payment.id}`);
+          return new NextResponse("Invalid announcement metadata", { status: 400 });
+        }
+
+        if (!wasAlreadyConfirmed) {
+          await grantPlatformAnnouncementToBusiness({
+            businessId: payment.businessId,
+            platformAnnouncementId,
+            paymentId: payment.id,
+            pricePaidKopeks: payment.amount,
           });
         }
 

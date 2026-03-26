@@ -12,6 +12,7 @@ import { AlbumTable } from "@/components/admin/AlbumTable";
 import { AlbumEditor } from "@/components/admin/AlbumEditor";
 import { ArtistTable } from "@/components/admin/ArtistTable";
 import { ArtistEditor } from "@/components/admin/ArtistEditor";
+import { PlatformAnnouncementManager } from "@/components/admin/PlatformAnnouncementManager";
 import { Users } from "lucide-react";
 import {
   getAdminTracksAction,
@@ -43,7 +44,7 @@ import { cn } from "@/lib/utils";
 import { AdminTrack, AdminPlaylist, AlbumWithTracks, AdminArtist } from "@/types/admin";
 import { usePlayerStore } from "@/store/usePlayerStore";
 
-type ContentView = "tracks" | "playlists" | "albums" | "artists";
+type ContentView = "tracks" | "playlists" | "albums" | "artists" | "announcements";
 
 export default function AdminContentPage() {
   const queryClient = useQueryClient();
@@ -404,6 +405,13 @@ export default function AdminContentPage() {
                   Артисты • Профили
                 </span>
               </>
+            ) : currentView === "announcements" ? (
+              <>
+                <Music className="w-4 h-4 text-neon" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Голосовые объявления • Витрина платформы
+                </span>
+              </>
             ) : (
               <>
                 <ListMusic className="w-4 h-4 text-neon" />
@@ -433,6 +441,13 @@ export default function AdminContentPage() {
                 Каталог <br />
                 <span className="text-neon underline decoration-neon/20 underline-offset-8">
                   Артистов
+                </span>
+              </>
+            ) : currentView === "announcements" ? (
+              <>
+                Платформенные <br />
+                <span className="text-neon underline decoration-neon/20 underline-offset-8">
+                  Объявления
                 </span>
               </>
             ) : (
@@ -496,6 +511,18 @@ export default function AdminContentPage() {
             >
               <Users className="w-4 h-4" />
               Артисты
+            </button>
+            <button
+              onClick={() => setCurrentView("announcements")}
+              className={cn(
+                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                currentView === "announcements"
+                  ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+                  : "text-neutral-400 hover:text-white"
+              )}
+            >
+              <Music className="w-4 h-4" />
+              Анонсы
             </button>
           </div>
 
@@ -704,6 +731,8 @@ export default function AdminContentPage() {
               </>
            )}
         </div>
+      ) : currentView === "announcements" ? (
+        <PlatformAnnouncementManager />
       ) : (
         <PlaylistEditor
           tracks={tracks}

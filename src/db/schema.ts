@@ -23,6 +23,8 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", ["INACTIVE",
 export const billingIntervalEnum = pgEnum("billing_interval", ["monthly", "yearly"]);
 export const userTypeEnum = pgEnum("user_type", ["BUSINESS", "CREATOR"]);
 export const documentStatusEnum = pgEnum("document_status", ["GENERATING", "READY", "FAILED"]);
+export const platformAnnouncementAccessEnum = pgEnum("platform_announcement_access", ["FREE", "PAID"]);
+export const platformAnnouncementSourceEnum = pgEnum("platform_announcement_source", ["UPLOAD", "TTS"]);
 
 // Users Table
 export const users = pgTable("users", {
@@ -207,6 +209,7 @@ export const voiceAnnouncements = pgTable("voice_announcements", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
   trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
+  platformAnnouncementId: text("platformAnnouncementId").references(() => platformAnnouncementProducts.id, { onDelete: "set null" }),
   text: text("text").notNull(),
   languageCode: text("languageCode").default("ru-RU").notNull(),
   provider: text("provider").default("google").notNull(),
@@ -216,6 +219,30 @@ export const voiceAnnouncements = pgTable("voice_announcements", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
+
+export const platformAnnouncementProducts = pgTable("platform_announcement_products", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull().unique(),
+  createdByUserId: text("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  description: text("description"),
+  transcript: text("transcript"),
+  languageCode: text("languageCode").default("ru-RU").notNull(),
+  provider: text("provider").default("uploaded").notNull(),
+  voiceName: text("voiceName").default("uploaded").notNull(),
+  speakingRate: doublePrecision("speakingRate").default(1.0).notNull(),
+  pitch: doublePrecision("pitch").default(0.0).notNull(),
+  accessModel: platformAnnouncementAccessEnum("accessModel").default("FREE").notNull(),
+  priceKopeks: integer("priceKopeks").default(0).notNull(),
+  isFeatured: boolean("isFeatured").default(false).notNull(),
+  isPublished: boolean("isPublished").default(true).notNull(),
+  sourceType: platformAnnouncementSourceEnum("sourceType").notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  featuredPublishedIdx: index("platform_announcement_featured_published_idx").on(t.isFeatured, t.isPublished, t.sortOrder),
+  accessModelIdx: index("platform_announcement_access_model_idx").on(t.accessModel),
+}));
 
 export const ttsCreditLots = pgTable("tts_credit_lots", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -309,11 +336,28 @@ export const payments = pgTable("payments", {
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
+export const businessAnnouncementAcquisitions = pgTable("business_announcement_acquisitions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  platformAnnouncementId: text("platformAnnouncementId").references(() => platformAnnouncementProducts.id, { onDelete: "cascade" }).notNull(),
+  paymentId: text("paymentId").references(() => payments.id, { onDelete: "set null" }),
+  importedAnnouncementId: text("importedAnnouncementId").references(() => voiceAnnouncements.id, { onDelete: "set null" }),
+  pricePaidKopeks: integer("pricePaidKopeks").default(0).notNull(),
+  claimedAt: timestamp("claimedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  businessPlatformUniqueIdx: uniqueIndex("business_announcement_acquisition_unique").on(t.businessId, t.platformAnnouncementId),
+  paymentUniqueIdx: uniqueIndex("business_announcement_acquisition_payment_unique").on(t.paymentId),
+  businessClaimedIdx: index("business_announcement_acquisition_business_claimed_idx").on(t.businessId, t.claimedAt),
+}));
+
 // RELATIONS
 export const usersRelations = relations(users, ({ many }) => ({
   businesses: many(businesses),
   blogPosts: many(blogPosts),
   legalAcceptanceEvents: many(legalAcceptanceEvents),
+  platformAnnouncementProducts: many(platformAnnouncementProducts),
 }));
 
 export const businessesRelations = relations(businesses, ({ one, many }) => ({
@@ -326,6 +370,7 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   ttsCreditLots: many(ttsCreditLots),
   ttsUsageEvents: many(ttsUsageEvents),
   aiUsageEvents: many(aiUsageEvents),
+  announcementAcquisitions: many(businessAnnouncementAcquisitions),
 }));
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({
@@ -340,6 +385,7 @@ export const tracksRelations = relations(tracks, ({ one, many }) => ({
   playLogs: many(playLogs),
   playlistTracks: many(playlistTracks),
   voiceAnnouncement: one(voiceAnnouncements, { fields: [tracks.id], references: [voiceAnnouncements.trackId] }),
+  platformAnnouncementProduct: one(platformAnnouncementProducts, { fields: [tracks.id], references: [platformAnnouncementProducts.trackId] }),
 }));
 
 export const albumsRelations = relations(albums, ({ one, many }) => ({
@@ -393,9 +439,25 @@ export const blogPostTagsRelations = relations(blogPostTags, ({ one }) => ({
 export const paymentsRelations = relations(payments, ({ one }) => ({
   business: one(businesses, { fields: [payments.businessId], references: [businesses.id] }),
 }));
-export const voiceAnnouncementsRelations = relations(voiceAnnouncements, ({ one }) => ({
+export const voiceAnnouncementsRelations = relations(voiceAnnouncements, ({ one, many }) => ({
   business: one(businesses, { fields: [voiceAnnouncements.businessId], references: [businesses.id] }),
   track: one(tracks, { fields: [voiceAnnouncements.trackId], references: [tracks.id] }),
+  platformAnnouncement: one(platformAnnouncementProducts, { fields: [voiceAnnouncements.platformAnnouncementId], references: [platformAnnouncementProducts.id] }),
+  acquisitions: many(businessAnnouncementAcquisitions),
+}));
+
+export const platformAnnouncementProductsRelations = relations(platformAnnouncementProducts, ({ one, many }) => ({
+  track: one(tracks, { fields: [platformAnnouncementProducts.trackId], references: [tracks.id] }),
+  createdByUser: one(users, { fields: [platformAnnouncementProducts.createdByUserId], references: [users.id] }),
+  acquisitions: many(businessAnnouncementAcquisitions),
+  importedAnnouncements: many(voiceAnnouncements),
+}));
+
+export const businessAnnouncementAcquisitionsRelations = relations(businessAnnouncementAcquisitions, ({ one }) => ({
+  business: one(businesses, { fields: [businessAnnouncementAcquisitions.businessId], references: [businesses.id] }),
+  platformAnnouncement: one(platformAnnouncementProducts, { fields: [businessAnnouncementAcquisitions.platformAnnouncementId], references: [platformAnnouncementProducts.id] }),
+  payment: one(payments, { fields: [businessAnnouncementAcquisitions.paymentId], references: [payments.id] }),
+  importedAnnouncement: one(voiceAnnouncements, { fields: [businessAnnouncementAcquisitions.importedAnnouncementId], references: [voiceAnnouncements.id] }),
 }));
 
 export const ttsCreditLotsRelations = relations(ttsCreditLots, ({ one }) => ({

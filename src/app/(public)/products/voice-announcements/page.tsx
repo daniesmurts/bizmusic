@@ -25,6 +25,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
+import { PlatformAnnouncementCatalogSection } from "@/components/PlatformAnnouncementCatalogSection";
 
 export default function VoiceAnnouncementsPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
@@ -142,6 +143,8 @@ export default function VoiceAnnouncementsPage() {
           </div>
         </div>
       </section>
+
+      <PlatformAnnouncementCatalogSection />
 
       {/* How it Works */}
       <section className="px-6 md:px-12 space-y-16">
