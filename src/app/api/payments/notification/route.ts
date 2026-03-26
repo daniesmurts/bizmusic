@@ -1,9 +1,10 @@
 import { tbank } from "@/lib/payments/tbank";
 import { db } from "@/db";
-import { payments, businesses, users, ttsCreditLots } from "@/db/schema";
+import { payments, businesses, users, ttsCreditLots, licenses } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
+import { generateLicenseAction } from "@/lib/actions/licenses";
 import {
   extractCreditsFromPaymentMetadata,
   isConfirmedPaymentStatus,
@@ -115,7 +116,33 @@ export async function POST(req: Request) {
         })
         .where(eq(businesses.id, payment.businessId));
 
-      // TODO: Auto-generate license PDF via generateLicenseAction
+      // Generate license once after first successful activation.
+      // Webhooks may be retried, so check if a valid license already exists.
+      try {
+        const latestLicense = await db.query.licenses.findFirst({
+          where: eq(licenses.businessId, payment.businessId),
+          orderBy: (licenses, { desc }) => [desc(licenses.issuedAt)],
+        });
+
+        const hasRequiredBusinessData = Boolean(
+          payment.business.inn?.trim() && payment.business.legalName?.trim() && payment.business.address?.trim()
+        );
+
+        if (!latestLicense && hasRequiredBusinessData) {
+          const generationResult = await generateLicenseAction(payment.businessId);
+          if (!generationResult.success) {
+            console.error("[Webhook] License generation failed:", generationResult.error);
+          }
+        }
+
+        if (!hasRequiredBusinessData) {
+          console.error(
+            `[Webhook] Missing business legal fields for license generation (businessId=${payment.businessId})`
+          );
+        }
+      } catch (licenseError) {
+        console.error("[Webhook] Unexpected license generation error:", licenseError);
+      }
 
       // Send activation email notification
       try {

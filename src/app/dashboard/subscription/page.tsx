@@ -3,10 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { 
   CreditCard, 
-  Check, 
-  Zap, 
   ShieldCheck, 
-  ArrowRight,
   Receipt,
   RotateCcw,
   Sparkles,
@@ -25,6 +22,9 @@ import { useAuth } from "@/components/AuthProvider";
 
 interface BusinessData {
   id: string;
+  inn: string | null;
+  legalName: string | null;
+  address: string | null;
   subscriptionStatus: string;
   currentPlanSlug: string | null;
   trialEndsAt: string | null;
@@ -39,7 +39,6 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [businessData, setBusinessData] = useState<BusinessData | null>(null);
-  const [pageLoading, setPageLoading] = useState(true);
   const [isYearly, setIsYearly] = useState(false);
 
   useEffect(() => {
@@ -52,8 +51,6 @@ export default function SubscriptionPage() {
         }
       } catch (error) {
         console.error("Failed to fetch business:", error);
-      } finally {
-        setPageLoading(false);
       }
     }
 
@@ -66,6 +63,15 @@ export default function SubscriptionPage() {
     if (!user?.id || !businessData?.id) {
         toast.error("Сначала завершите регистрацию бизнеса");
         return;
+    }
+
+    const hasRequiredBusinessData = Boolean(
+      businessData.inn?.trim() && businessData.legalName?.trim() && businessData.address?.trim()
+    );
+
+    if (!hasRequiredBusinessData) {
+      toast.error("Перед покупкой заполните ИНН, название компании и адрес в настройках");
+      return;
     }
     
     setLoading(planSlug);
@@ -100,7 +106,7 @@ export default function SubscriptionPage() {
       } else {
         toast.error(result.error || "Не удалось отменить подписку");
       }
-    } catch (error: unknown) {
+    } catch {
       toast.error("Произошла ошибка при отмене");
     } finally {
       setLoading(null);
@@ -119,7 +125,7 @@ export default function SubscriptionPage() {
       } else {
         toast.error(result.error || "Не удалось возобновить подписку");
       }
-    } catch (error: unknown) {
+    } catch {
       toast.error("Произошла ошибка при возобновлении");
     } finally {
       setLoading(null);
@@ -142,7 +148,7 @@ export default function SubscriptionPage() {
       } else {
         toast.error(result.error || "Не удалось удалить способ оплаты");
       }
-    } catch (error: unknown) {
+    } catch {
       toast.error("Произошла ошибка при удалении");
     } finally {
       setLoading(null);

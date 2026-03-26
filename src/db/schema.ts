@@ -22,6 +22,7 @@ export const roleEnum = pgEnum("role", ["ADMIN", "BUSINESS_OWNER", "STAFF"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["INACTIVE", "ACTIVE", "EXPIRED"]);
 export const billingIntervalEnum = pgEnum("billing_interval", ["monthly", "yearly"]);
 export const userTypeEnum = pgEnum("user_type", ["BUSINESS", "CREATOR"]);
+export const documentStatusEnum = pgEnum("document_status", ["GENERATING", "READY", "FAILED"]);
 
 // Users Table
 export const users = pgTable("users", {
@@ -35,6 +36,17 @@ export const users = pgTable("users", {
   termsAcceptedAt: timestamp("termsAcceptedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+});
+
+export const legalAcceptanceEvents = pgTable("legal_acceptance_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("userId").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  acceptedAt: timestamp("acceptedAt").defaultNow().notNull(),
+  source: text("source").default("unknown").notNull(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  termsVersion: text("termsVersion"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 // Businesses Table
@@ -184,6 +196,10 @@ export const licenses = pgTable("licenses", {
   validTo: timestamp("validTo").notNull(),
   totalCost: doublePrecision("totalCost").default(0).notNull(),
   pdfUrl: text("pdfUrl").notNull(),
+  documentStatus: documentStatusEnum("documentStatus").default("READY").notNull(),
+  generationError: text("generationError"),
+  agreementAcceptedAt: timestamp("agreementAcceptedAt"),
+  agreementAcceptedIp: text("agreementAcceptedIp"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 // VoiceAnnouncements Table
@@ -297,6 +313,7 @@ export const payments = pgTable("payments", {
 export const usersRelations = relations(users, ({ many }) => ({
   businesses: many(businesses),
   blogPosts: many(blogPosts),
+  legalAcceptanceEvents: many(legalAcceptanceEvents),
 }));
 
 export const businessesRelations = relations(businesses, ({ one, many }) => ({
@@ -353,6 +370,10 @@ export const playLogsRelations = relations(playLogs, ({ one }) => ({
 
 export const licensesRelations = relations(licenses, ({ one }) => ({
   business: one(businesses, { fields: [licenses.businessId], references: [businesses.id] }),
+}));
+
+export const legalAcceptanceEventsRelations = relations(legalAcceptanceEvents, ({ one }) => ({
+  user: one(users, { fields: [legalAcceptanceEvents.userId], references: [users.id] }),
 }));
 
 export const blogCategoriesRelations = relations(blogCategories, ({ many }) => ({

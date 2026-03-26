@@ -110,26 +110,41 @@ export const ClientTable = ({ clients }: ClientTableProps) => {
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <Badge
-                      className={cn(
-                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                        client.subscriptionStatus === "ACTIVE"
-                          ? "bg-neon/10 border-neon/20 text-neon"
-                          : "bg-red-500/10 border-red-500/20 text-red-500"
+                    <div className="flex flex-col gap-2">
+                      <Badge
+                        className={cn(
+                          "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                          client.subscriptionStatus === "ACTIVE"
+                            ? "bg-neon/10 border-neon/20 text-neon"
+                            : "bg-red-500/10 border-red-500/20 text-red-500"
+                        )}
+                      >
+                        {client.subscriptionStatus === "ACTIVE" ? (
+                          <span className="flex items-center gap-1.5">
+                            <ShieldCheck className="w-3 h-3" />
+                            Активен
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            <ShieldAlert className="w-3 h-3" />
+                            Неактивен
+                          </span>
+                        )}
+                      </Badge>
+
+                      {client.licenses?.[0] && (
+                        <Badge
+                          className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                            client.licenses[0].documentStatus === "READY" && "bg-neon/10 border-neon/20 text-neon",
+                            client.licenses[0].documentStatus === "GENERATING" && "bg-white/5 border-white/10 text-neutral-300",
+                            client.licenses[0].documentStatus === "FAILED" && "bg-red-500/10 border-red-500/20 text-red-400"
+                          )}
+                        >
+                          Документ: {client.licenses[0].documentStatus === "READY" ? "готов" : client.licenses[0].documentStatus === "FAILED" ? "ошибка" : "формируется"}
+                        </Badge>
                       )}
-                    >
-                      {client.subscriptionStatus === "ACTIVE" ? (
-                        <span className="flex items-center gap-1.5">
-                          <ShieldCheck className="w-3 h-3" />
-                          Активен
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5">
-                          <ShieldAlert className="w-3 h-3" />
-                          Неактивен
-                        </span>
-                      )}
-                    </Badge>
+                    </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2 text-neutral-400">
@@ -152,7 +167,10 @@ export const ClientTable = ({ clients }: ClientTableProps) => {
                       <LicenseButton 
                         businessId={client.id} 
                         hasLicense={!!client.licenses?.[0]} 
+                        licenseId={client.licenses?.[0]?.id}
                         pdfUrl={client.licenses?.[0]?.pdfUrl}
+                        documentStatus={client.licenses?.[0]?.documentStatus}
+                        generationError={client.licenses?.[0]?.generationError}
                       />
                       <Button
                         variant="ghost"
