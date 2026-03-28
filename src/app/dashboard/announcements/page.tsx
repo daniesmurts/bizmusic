@@ -161,7 +161,7 @@ export default function AnnouncementsPage() {
     mutationFn: deleteAnnouncementAction,
     onSuccess: (result) => {
       if (result.success) {
-        toast.success("Объявление удалено");
+        toast.success("Анонс удален");
         queryClient.invalidateQueries({ queryKey: ["announcements-library"] });
       } else {
         toast.error(result.error);
@@ -304,7 +304,7 @@ export default function AnnouncementsPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => {
-                      if (confirm("Вы уверены, что хотите удалить это объявление?")) {
+                      if (confirm("Вы уверены, что хотите удалить этот анонс?")) {
                         deleteMutation.mutate(item.id);
                       }
                     }}
@@ -386,7 +386,7 @@ export default function AnnouncementsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div className="space-y-1">
           <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-white">
-            Голосовые <span className="text-neon">объявления</span>
+            Голосовые <span className="text-neon">анонсы</span>
           </h2>
           <p className="text-neutral-400 font-medium text-xs sm:text-sm italic">
             Автоматизируйте оповещения в вашем заведении
@@ -397,7 +397,7 @@ export default function AnnouncementsPage() {
             onClick={() => setIsAdding(true)}
             className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 h-14 font-black uppercase text-xs tracking-widest gap-2 shadow-lg shadow-neon/20"
           >
-            <Plus className="w-4 h-4" /> Создать объявление
+            <Plus className="w-4 h-4" /> Создать анонс
           </Button>
         )}
       </div>
@@ -536,7 +536,7 @@ export default function AnnouncementsPage() {
             Ваша <span className="text-neon">библиотека</span>
           </h2>
           <div className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">
-            {totalAnnouncements} ОБЪЯВЛЕНИЙ
+            {totalAnnouncements} АНОНСОВ
           </div>
         </div>
 
@@ -549,18 +549,18 @@ export default function AnnouncementsPage() {
         ) : totalAnnouncements > 0 ? (
           <div className="space-y-8">
             {renderAnnouncementCards(generatedAnnouncements, {
-              title: "Мои объявления",
+              title: "Мои анонсы",
               subtitle: "Созданы вашей компанией через TTS",
-              emptyTitle: "Нет собственных объявлений",
-              emptyDescription: "Создайте первое объявление через форму выше.",
+              emptyTitle: "Нет собственных анонсов",
+              emptyDescription: "Создайте первый анонс через форму выше.",
               badgeTone: "neon",
               canDelete: true,
             })}
             {renderAnnouncementCards(platformAnnouncements, {
               title: "Из библиотеки BizMusic",
               subtitle: "Полученные или купленные платформенные анонсы",
-              emptyTitle: "Нет платформенных объявлений",
-              emptyDescription: "Добавляйте готовые объявления с витрины BizMusic.",
+              emptyTitle: "Нет платформенных анонсов",
+              emptyDescription: "Добавляйте готовые анонсы с витрины BizMusic.",
               badgeTone: "blue",
               canDelete: true,
             })}
@@ -572,7 +572,7 @@ export default function AnnouncementsPage() {
              </div>
              <div className="space-y-2">
                <h3 className="text-xl font-black uppercase tracking-tight text-white">Список пуст</h3>
-               <p className="text-neutral-500 font-medium text-sm">У вас пока нет созданных голосовых объявлений.</p>
+               <p className="text-neutral-500 font-medium text-sm">У вас пока нет созданных голосовых анонсов.</p>
              </div>
              <Button 
               onClick={() => setIsAdding(true)}
@@ -592,7 +592,7 @@ export default function AnnouncementsPage() {
           </div>
           <h4 className="text-lg font-black uppercase tracking-tight text-white">Как это работает?</h4>
           <p className="text-neutral-500 text-xs font-medium leading-relaxed uppercase tracking-tight">
-            Созданное объявление попадает в вашу личную библиотеку. Вы можете добавить его в любой плейлист прямо отсюда или через редактор плейлиста.
+            Созданный анонс попадает в вашу личную библиотеку. Вы можете добавить его в любой плейлист прямо отсюда или через редактор плейлиста.
           </p>
         </div>
         <div className="glass-dark p-8 rounded-[2rem] border border-white/5 space-y-4">
@@ -601,7 +601,7 @@ export default function AnnouncementsPage() {
           </div>
           <h4 className="text-lg font-black uppercase tracking-tight text-white">Преимущество</h4>
           <p className="text-neutral-500 text-xs font-medium leading-relaxed uppercase tracking-tight">
-            Голосовые объявления помогают увеличить средний чек, информируя гостей об акциях и новинках прямо в момент покупки.
+            Голосовые анонсы помогают увеличить средний чек, информируя гостей об акциях и новинках прямо в момент покупки.
           </p>
         </div>
       </div>

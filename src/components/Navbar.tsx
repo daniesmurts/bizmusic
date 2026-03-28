@@ -46,7 +46,7 @@ export const Navbar = () => {
   const dashboardNavItems = [
     { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
     { name: "Плеер", href: "/dashboard/player", icon: Play },
-    { name: "Объявления", href: "/dashboard/announcements", icon: Mic },
+    { name: "Анонсы", href: "/dashboard/announcements", icon: Mic },
     { name: "Подписка", href: "/dashboard/subscription", icon: CreditCard },
     { name: "Договор", href: "/dashboard/contract", icon: FileText },
     { name: "Настройки", href: "/dashboard/settings", icon: Settings },

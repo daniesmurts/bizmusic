@@ -60,7 +60,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !text) {
-      toast.error("Пожалуйста, заполните заголовок и текст объявления.");
+      toast.error("Пожалуйста, заполните заголовок и текст анонса.");
       return;
     }
 
@@ -81,15 +81,15 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
       });
 
       if (result.success) {
-        toast.success("Объявление успешно создано и добавлено в библиотеку.");
+        toast.success("Анонс успешно создан и добавлен в библиотеку.");
         setText("");
         setTitle("");
         onSuccess?.();
       } else {
-        toast.error(result.error || "Не удалось создать объявление.");
+        toast.error(result.error || "Не удалось создать анонс.");
       }
     } catch {
-      toast.error("Произошла ошибка при создании объявления.");
+      toast.error("Произошла ошибка при создании анонса.");
     } finally {
       setIsGenerating(false);
     }
@@ -97,12 +97,12 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
 
   const handleAiAssist = async () => {
     if (!text) {
-      toast.error("Пожалуйста, напишите черновик объявления.");
+      toast.error("Пожалуйста, напишите черновик анонса.");
       return;
     }
 
     if (text.length > 500) {
-      toast.error("Черновик объявления не должен превышать 500 символов.");
+      toast.error("Черновик анонса не должен превышать 500 символов.");
       return;
     }
 
@@ -115,7 +115,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
 
       if (result.success && result.data) {
         setText(result.data.refinedText);
-        toast.success("✨ Текст улучшен! Вы можете отредактировать и создать объявление.");
+        toast.success("✨ Текст улучшен! Вы можете отредактировать и создать анонс.");
       } else {
         toast.error(result.error || "Не удалось улучшить текст.");
       }
@@ -134,7 +134,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
             <Mic size={24} className="text-neon" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-black uppercase tracking-tighter text-white">Новое <span className="text-neon">объявление</span></CardTitle>
+            <CardTitle className="text-2xl font-black uppercase tracking-tighter text-white">Новый <span className="text-neon">анонс</span></CardTitle>
             <CardDescription className="text-neutral-400 font-medium">
               Создайте профессиональное аудиосообщение для вашего заведения
             </CardDescription>
@@ -156,7 +156,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
 
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <Label htmlFor="text" className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Текст объявления</Label>
+              <Label htmlFor="text" className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Текст анонса</Label>
               <span className={`text-[10px] font-black uppercase tracking-widest ${charCount > 500 ? 'text-red-500' : isOptimal ? 'text-neon' : 'text-neutral-600'}`}>
                 {charCount} / 500 {isOptimal && "• Оптимально"}
               </span>
@@ -305,7 +305,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
                 ) : (
                   <>
                     <Mic className="mr-2 h-5 w-5 fill-current" />
-                    Создать объявление
+                    Создать анонс
                   </>
                 )}
               </Button>

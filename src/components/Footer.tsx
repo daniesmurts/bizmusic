@@ -87,7 +87,8 @@ export function Footer({ variant = "default" }: FooterProps) {
                 { name: "О продукте", href: "/products" },
                 { name: "Тарифы", href: "/pricing" },
                 { name: "О нас", href: "/about" },
-                { name: "Блог", href: "/blog" }
+                { name: "Блог", href: "/blog" },
+                { name: "Записаться на демо", href: "/demo" }
               ].map((link) => (
                 <Link key={link.name} href={link.href} className="text-sm font-bold text-neutral-500 hover:text-neon transition-colors uppercase tracking-widest text-[11px]">
                   {link.name}

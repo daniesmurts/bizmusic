@@ -26,6 +26,7 @@ export const documentStatusEnum = pgEnum("document_status", ["GENERATING", "READ
 export const platformAnnouncementAccessEnum = pgEnum("platform_announcement_access", ["FREE", "PAID"]);
 export const platformAnnouncementSourceEnum = pgEnum("platform_announcement_source", ["UPLOAD", "TTS"]);
 export const trackReactionTypeEnum = pgEnum("track_reaction_type", ["LIKE", "DISLIKE"]);
+export const demoRequestStatusEnum = pgEnum("demo_request_status", ["PENDING", "CONTACTED", "COMPLETED", "CANCELLED"]);
 
 // Users Table
 export const users = pgTable("users", {
@@ -447,6 +448,25 @@ export const trackSkips = pgTable("track_skips", {
   trackIdIdx: index("idx_track_skips_track_id").on(t.trackId),
   businessIdIdx: index("idx_track_skips_business_id").on(t.businessId),
   locationIdIdx: index("idx_track_skips_location_id").on(t.locationId),
+}));
+
+// Demo Requests Table
+export const demoRequests = pgTable("demo_requests", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  company: text("company"),
+  interest: text("interest").notNull(), // Announcements, Music, Workflow, etc.
+  message: text("message"),
+  status: demoRequestStatusEnum("status").default("PENDING").notNull(),
+  consentAccepted: boolean("consentAccepted").default(false).notNull(),
+  consentAcceptedAt: timestamp("consentAcceptedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  emailIdx: index("idx_demo_requests_email").on(t.email),
+  statusIdx: index("idx_demo_requests_status").on(t.status),
 }));
 
 export const trackSkipsRelations = relations(trackSkips, ({ one }) => ({

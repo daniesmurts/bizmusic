@@ -116,7 +116,7 @@ export function PlaylistBuilderModal({ playlistId, playlistName, initialTrackIds
                     {track.isAnnouncement && (
                       <div className="flex items-center gap-1">
                         <span className="text-[8px] font-black uppercase tracking-widest bg-neon/10 text-neon px-1.5 py-0.5 rounded border border-neon/20">
-                          Объявление
+                          Анонс
                         </span>
                         {track.provider && (
                           <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
