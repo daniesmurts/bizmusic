@@ -44,10 +44,10 @@ export default function HomeClient() {
           src="/images/hero.png"
           alt="Hero Background"
           fill
-          className="object-cover brightness-[0.4]"
+          className="object-cover brightness-[0.45]"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0f1117] via-[#0f1117]/60 to-transparent" />
         
         <div className="relative z-10 max-w-2xl space-y-8 animate-in fade-in slide-in-from-left duration-1000">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon/30 bg-neon/10 backdrop-blur-md">
@@ -84,7 +84,7 @@ export default function HomeClient() {
       <section className="px-6 md:px-12 space-y-12">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">Наши <span className="text-neon">Продукты</span></h2>
+            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">Наши <span className="text-neon">Решения</span></h2>
             <p className="text-neutral-500 font-bold uppercase tracking-widest text-xs md:text-sm">Комплексные решения для вашего бизнеса</p>
           </div>
           <Link href="/products">
@@ -123,7 +123,7 @@ export default function HomeClient() {
           ].map((item, i) => (
             <Link key={i} href={item.link}>
               <div
-                className="group relative h-[380px] md:h-[450px] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-neon/20 transition-all duration-500"
+                className="group relative h-[380px] md:h-[450px] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border border-white/8 hover:border-neon/20 transition-all duration-500 shadow-lg shadow-black/20"
               >
                 <Image
                   src={item.img}
@@ -131,7 +131,7 @@ export default function HomeClient() {
                   fill
                   className="object-cover brightness-75 group-hover:scale-110 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f1117] via-[#0f1117]/30 to-transparent" />
 
                 <div className="absolute top-4 right-4 md:top-6 md:right-6 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
                   <Button size="icon" className="w-8 h-8 md:w-10 md:h-10 bg-white/10 backdrop-blur-xl border border-white/10 rounded-full hover:bg-neon hover:text-black transition-colors">
@@ -183,7 +183,7 @@ export default function HomeClient() {
 
       {/* Compliance & Features */}
       <section className="px-6 md:px-12">
-        <div className="glass-dark border border-white/10 rounded-[2rem] md:rounded-[3.5rem] p-8 md:p-16 relative overflow-hidden">
+        <div className="glass-surface border border-white/8 rounded-[2rem] md:rounded-[3.5rem] p-8 md:p-16 relative overflow-hidden shadow-xl shadow-black/10">
           <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-neon/10 blur-[120px] rounded-full" />
           
           <div className="relative z-10 grid md:grid-cols-2 gap-16 items-center">
@@ -260,7 +260,7 @@ function FAQItem({ question, answer }: { question: string, answer: string }) {
     <div 
       className={cn(
         "group border rounded-[1.5rem] md:rounded-[2rem] overflow-hidden transition-all duration-500",
-        isOpen ? "bg-white/[0.03] border-neon/30 ring-1 ring-neon/10" : "bg-white/[0.02] border-white/5 hover:border-white/10"
+        isOpen ? "bg-white/[0.05] border-neon/30 ring-1 ring-neon/10" : "bg-white/[0.03] border-white/8 hover:border-white/12"
       )}
     >
       <button 

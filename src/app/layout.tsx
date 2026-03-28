@@ -39,8 +39,43 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Бизмюзик",
+    "url": "https://bizmuzik.ru",
+    "logo": "https://bizmuzik.ru/icons/icon-512x512.png",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+7 (987) 065-59-63",
+      "contactType": "customer service",
+      "email": "info@boadtech.com",
+      "availableLanguage": ["Russian"]
+    },
+    "sameAs": [
+      "https://t.me/bizmusic_ru"
+    ]
+  };
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Бизмюзик",
+    "url": "https://bizmuzik.ru"
+  };
+
   return (
     <html lang="ru" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+      </head>
       <body className={`${inter.className} min-h-screen bg-black text-white antialiased`} suppressHydrationWarning>
         <Providers>
           <Suspense fallback={null}>

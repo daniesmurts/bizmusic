@@ -47,7 +47,7 @@ export function Footer({ variant = "default" }: FooterProps) {
 
   // Default variant for public pages
   return (
-    <footer className="bg-black border-t border-white/5 px-6 md:px-12 pt-20 pb-12 overflow-hidden relative">
+    <footer className="bg-[#0a0c12] border-t border-white/8 px-6 md:px-12 pt-20 pb-12 overflow-hidden relative">
       {/* Decorative Blur */}
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-neon/5 blur-[120px] rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
       
@@ -79,15 +79,34 @@ export function Footer({ variant = "default" }: FooterProps) {
             </div>
           </div>
 
-          {/* Column 2: Company */}
+          {/* Column 2: Solutions & Niches */}
+          <div className="space-y-6">
+            <h4 className="text-xs font-black uppercase tracking-[0.3em] text-white">Решения по нишам</h4>
+            <nav className="flex flex-col gap-4">
+              {[
+                { name: "Все решения", href: "/products" },
+                { name: "Для кафе", href: "/solutions/cafe" },
+                { name: "Для ресторанов", href: "/solutions/restaurant" },
+                { name: "Для ритейла", href: "/solutions/retail" },
+                { name: "Для офисов", href: "/solutions/office" },
+                { name: "Для ТЦ", href: "/solutions/mall" },
+              ].map((link) => (
+                <Link key={link.name} href={link.href} className="text-sm font-bold text-neutral-500 hover:text-neon transition-colors uppercase tracking-widest text-[11px]">
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          {/* Column 3: Company */}
           <div className="space-y-6">
             <h4 className="text-xs font-black uppercase tracking-[0.3em] text-white">Компания</h4>
             <nav className="flex flex-col gap-4">
               {[
-                { name: "О продукте", href: "/products" },
-                { name: "Тарифы", href: "/pricing" },
                 { name: "О нас", href: "/about" },
                 { name: "Блог", href: "/blog" },
+                { name: "Тарифы", href: "/pricing" },
+                { name: "База знаний", href: "/knowledge" },
                 { name: "Записаться на демо", href: "/demo" }
               ].map((link) => (
                 <Link key={link.name} href={link.href} className="text-sm font-bold text-neutral-500 hover:text-neon transition-colors uppercase tracking-widest text-[11px]">
@@ -97,31 +116,15 @@ export function Footer({ variant = "default" }: FooterProps) {
             </nav>
           </div>
 
-          {/* Column 3: Support */}
-          <div className="space-y-6">
-            <h4 className="text-xs font-black uppercase tracking-[0.3em] text-white">Поддержка</h4>
-            <nav className="flex flex-col gap-4">
-              {[
-                { name: "База знаний", href: "/knowledge" },
-                { name: "Личный кабинет", href: "/dashboard" },
-                { name: "Чат поддержки", href: "#" },
-                { name: "Вопросы и ответы", href: "/#faq" }
-              ].map((link) => (
-                <Link key={link.name} href={link.href} className="text-sm font-bold text-neutral-500 hover:text-neon transition-colors uppercase tracking-widest text-[11px]">
-                  {link.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          {/* Column 4: Legal */}
+          {/* Column 4: Legal & Support */}
           <div className="space-y-6">
              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-white">Юридические данные</h4>
              <nav className="flex flex-col gap-4">
               {[
                 { name: "Публичная оферта", href: "/legal/terms" },
                 { name: "Конфиденциальность", href: "/legal/privacy" },
-                { name: "Реквизиты компании", href: "/about#legal" }
+                { name: "Личный кабинет", href: "/dashboard" },
+                { name: "Вопросы и ответы", href: "/#faq" }
               ].map((link) => (
                 <Link key={link.name} href={link.href} className="text-sm font-bold text-neutral-500 hover:text-neon transition-colors uppercase tracking-widest text-[11px]">
                   {link.name}
