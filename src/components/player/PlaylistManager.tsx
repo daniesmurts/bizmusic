@@ -189,7 +189,7 @@ export function PlaylistManager({ playlists, businessId }: { playlists: any[], b
               <div className="mt-auto flex justify-between items-end">
                 <div>
                   <h4 className="text-xl font-black uppercase tracking-tight text-white mb-1 leading-tight">{list.name}</h4>
-                  <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">{list.trackCount} ТРЕКОВ • {list.duration || "2Ч 15М"}</p>
+                  <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">{list.trackCount} ТРЕКОВ • {list.duration || "0Ч 00М"}</p>
                 </div>
                 <Button 
                   onClick={(e) => handlePlaylistPlay(e, list)}
@@ -259,10 +259,7 @@ export function PlaylistManager({ playlists, businessId }: { playlists: any[], b
           initialTrackIds={builderPlaylist.initialTrackIds}
           onClose={() => setBuilderPlaylist(null)}
           onSuccess={() => {
-            // Optimistically update the track count to > 0 so the user can play it immediately
-            setLocalPlaylists(localPlaylists.map(p => 
-              p.id === builderPlaylist.id ? { ...p, trackCount: p.trackCount || 1 /* trigger play mode */ } : p
-            ));
+            // Dashboard query is invalidated by the modal; playlist stats are refreshed from server.
           }}
         />
       )}

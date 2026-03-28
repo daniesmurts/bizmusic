@@ -23,6 +23,26 @@ test("parseStorageObjectRef strips query string from signed URL", () => {
   assert.equal(ref.objectPath, "tracks/song.mp3");
 });
 
+test("parseStorageObjectRef supports legacy bucket names in full URL", () => {
+  const ref = parseStorageObjectRef(
+    "https://xyz.supabase.co/storage/v1/object/public/legacy-bucket/tracks/old-track.mp3"
+  );
+
+  assert.equal(ref.folder, "tracks");
+  assert.equal(ref.fileName, "old-track.mp3");
+  assert.equal(ref.objectPath, "tracks/old-track.mp3");
+});
+
+test("parseStorageObjectRef supports legacy bucket names in relative storage path", () => {
+  const ref = parseStorageObjectRef(
+    "storage/v1/object/sign/legacy-bucket/announcements/voice.mp3?token=abc"
+  );
+
+  assert.equal(ref.folder, "announcements");
+  assert.equal(ref.fileName, "voice.mp3");
+  assert.equal(ref.objectPath, "announcements/voice.mp3");
+});
+
 test("parseStorageObjectRef supports relative object paths", () => {
   const ref = parseStorageObjectRef("announcements/daily/promo.mp3");
 

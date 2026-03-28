@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { tracks, playLogs, businesses, users, artists, voiceAnnouncements } from "@/db/schema";
-import { eq, or, ilike, sql, desc, and, arrayContains, SQL, inArray } from "drizzle-orm";
+import { tracks, playLogs, businesses, users, artists, voiceAnnouncements, trackReactions } from "@/db/schema";
+import { eq, or, ilike, sql, desc, and, arrayContains, SQL, inArray, isNull } from "drizzle-orm";
 import {
   getUploadSignedUrl,
   generateUniqueFileName,
@@ -209,10 +209,6 @@ export async function getTracksAction(filters?: {
     
     const conditions: SQL[] = [];
 
-    // Base conditions: 
-    // 1. Featured tracks (global)
-    // 2. Business-specific tracks (if businessId is known)
-    
     let businessId: string | undefined = filters?.businessId;
     
     if (user && !businessId) {
@@ -222,12 +218,8 @@ export async function getTracksAction(filters?: {
       }
     }
 
-    const baseConditions: SQL[] = [eq(tracks.isFeatured, true)];
-    if (businessId) {
-      baseConditions.push(eq(tracks.businessId, businessId));
-    }
-
-    // Combine base conditions with an OR, unless we are specifically looking for announcements
+    // Combine base conditions with an OR, unless we are specifically looking for announcements.
+    // Business users should see the full global catalog (businessId IS NULL) plus their own tracks.
     if (filters?.isAnnouncement) {
       if (businessId) {
         conditions.push(and(eq(tracks.businessId, businessId), eq(tracks.isAnnouncement, true)) as SQL);
@@ -236,7 +228,12 @@ export async function getTracksAction(filters?: {
         conditions.push(eq(tracks.isAnnouncement, true));
       }
     } else {
-      conditions.push(or(...baseConditions) as SQL);
+      if (businessId) {
+        conditions.push(or(isNull(tracks.businessId), eq(tracks.businessId, businessId)) as SQL);
+      } else {
+        // Fallback for non-business context: expose global catalog tracks.
+        conditions.push(isNull(tracks.businessId));
+      }
       // Exclude announcements from general music search unless requested
       conditions.push(eq(tracks.isAnnouncement, false));
     }
@@ -540,9 +537,12 @@ export async function getAdminTracksAction(filters?: {
         track: tracks,
         artistProfile: artists,
         playLogsCount: sql<number>`cast(count(${playLogs.id}) as int)`,
+        likesCount: sql<number>`cast(count(${trackReactions.id}) filter (where ${trackReactions.reactionType} = 'LIKE') as int)`,
+        dislikesCount: sql<number>`cast(count(${trackReactions.id}) filter (where ${trackReactions.reactionType} = 'DISLIKE') as int)`,
       })
       .from(tracks)
       .leftJoin(playLogs, eq(playLogs.trackId, tracks.id))
+      .leftJoin(trackReactions, eq(trackReactions.trackId, tracks.id))
       .leftJoin(artists, eq(tracks.artistId, artists.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .groupBy(tracks.id, artists.id)
@@ -550,10 +550,14 @@ export async function getAdminTracksAction(filters?: {
       .limit(filters?.limit || 1000)
       .offset(filters?.offset || 0);
 
-    const tracksWithCount = tracksList.map(({ track, artistProfile, playLogsCount }) => ({
+    const tracksWithCount = tracksList.map(({ track, artistProfile, playLogsCount, likesCount, dislikesCount }) => ({
       ...track,
       artistProfile: artistProfile || null,
-      _count: { playLogs: playLogsCount || 0 },
+      _count: {
+        playLogs: playLogsCount || 0,
+        likes: likesCount || 0,
+        dislikes: dislikesCount || 0,
+      },
     }));
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

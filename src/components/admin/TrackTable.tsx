@@ -207,6 +207,9 @@ export const TrackTable = ({
                 <th className="text-left py-6 px-6 text-[10px] font-black uppercase tracking-widest text-neutral-500">
                   Проигрываний
                 </th>
+                <th className="text-left py-6 px-6 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                  Реакции
+                </th>
                 <th className="text-center py-6 px-6 text-[10px] font-black uppercase tracking-widest text-neutral-500">
                   Featured
                 </th>
@@ -218,7 +221,7 @@ export const TrackTable = ({
             <tbody>
               {filteredTracks.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center">
+                  <td colSpan={10} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
                         <Music className="w-8 h-8 text-neutral-600" />
@@ -341,6 +344,12 @@ export const TrackTable = ({
                       <span className="text-sm font-bold text-neutral-400">
                         {track._count?.playLogs || 0}
                       </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3 text-xs font-black uppercase tracking-widest">
+                        <span className="text-emerald-400">👍 {track._count?.likes || 0}</span>
+                        <span className="text-rose-400">👎 {track._count?.dislikes || 0}</span>
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center">

@@ -57,7 +57,11 @@ export default function PlayerPage() {
       </div>
 
       {/* Active Stream Component */}
-      <DashboardPlayer locationName={firstLocationName} />
+      <DashboardPlayer 
+        locationName={firstLocationName} 
+        locationId={dashboardData?.locations?.[0]?.id}
+      />
+
 
       {/* Grid Layout for Playlists & Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">

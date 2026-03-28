@@ -20,6 +20,8 @@ export interface AdminTrack {
   streamUrl?: string;
   _count?: {
     playLogs: number;
+    likes?: number;
+    dislikes?: number;
   };
 }
 
