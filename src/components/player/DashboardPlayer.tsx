@@ -18,13 +18,27 @@ import {
   ChevronUp,
   ChevronDown,
   Trash2,
-  ShieldCheck
+  ShieldCheck,
+  ThumbsDown,
+  Heart,
 } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { clearTrackReactionAction, getTrackReactionSummaryAction, setTrackReactionAction, type TrackReactionType } from "@/lib/actions/track-reactions";
+import { toast } from "sonner";
+import { logTrackSkipAction } from "@/lib/actions/track-skips";
 
-export function DashboardPlayer({ locationName }: { locationName: string }) {
+
+export function DashboardPlayer({ 
+  locationName, 
+  locationId 
+}: { 
+  locationName: string; 
+  locationId?: string; 
+}) {
+
   const {
     currentTrack,
     isPlaying,
@@ -43,9 +57,44 @@ export function DashboardPlayer({ locationName }: { locationName: string }) {
     reorderQueue,
     removeFromQueue
   } = usePlayerStore();
+  const queryClient = useQueryClient();
 
   const [isMuted, setIsMuted] = useState(volume === 0);
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const { data: reactionData } = useQuery({
+    queryKey: ["track-reaction", currentTrack?.id],
+    queryFn: async () => {
+      const res = await getTrackReactionSummaryAction(currentTrack!.id);
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    enabled: !!currentTrack?.id,
+    staleTime: 30_000,
+  });
+
+  const { mutate: mutateReaction, isPending: isReactionPending } = useMutation({
+    mutationFn: async (reactionType: TrackReactionType) => {
+      if (!currentTrack?.id) throw new Error("Трек не выбран");
+
+      if (reactionData?.userReaction === reactionType) {
+        const clearRes = await clearTrackReactionAction(currentTrack.id);
+        if (!clearRes.success) throw new Error(clearRes.error);
+        return clearRes.data;
+      }
+
+      const setRes = await setTrackReactionAction(currentTrack.id, reactionType);
+      if (!setRes.success) throw new Error(setRes.error);
+      return setRes.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["track-reaction", currentTrack?.id] });
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Не удалось сохранить реакцию";
+      toast.error(message);
+    },
+  });
 
   useEffect(() => {
     setIsMuted(volume === 0);
@@ -123,6 +172,29 @@ export function DashboardPlayer({ locationName }: { locationName: string }) {
       reorderQueue(index, index + 1);
     }
   };
+
+  const handleNext = async () => {
+    if (currentTrack) {
+      logTrackSkipAction({ 
+        trackId: currentTrack.id, 
+        locationId,
+        reason: 'manual_next' 
+      });
+    }
+    nextTrack();
+  };
+
+  const handlePrev = async () => {
+    if (currentTrack) {
+      logTrackSkipAction({ 
+        trackId: currentTrack.id, 
+        locationId,
+        reason: 'manual_prev' 
+      });
+    }
+    prevTrack();
+  };
+
 
   return (
     <div className="space-y-6">
@@ -207,6 +279,50 @@ export function DashboardPlayer({ locationName }: { locationName: string }) {
                 <p className="text-neon text-sm font-bold uppercase truncate tracking-widest mt-1">
                   {currentTrack ? currentTrack.artist : "Ожидание трека..."}
                 </p>
+                {currentTrack && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => mutateReaction("LIKE")}
+                      disabled={isReactionPending}
+                      className={cn(
+                        "h-8 rounded-full border text-xs font-black uppercase tracking-widest transition-colors",
+                        reactionData?.userReaction === "LIKE"
+                          ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                          : "border-white/10 text-neutral-400 hover:text-white"
+                      )}
+                    >
+                      <span className="relative flex items-center mr-1">
+                        <Heart
+                          className={cn(
+                            "w-4 h-4 transition-transform duration-300",
+                            reactionData?.userReaction === "LIKE"
+                              ? "text-emerald-400 scale-110 animate-pulse"
+                              : "text-neutral-400 group-hover:text-white scale-100"
+                          )}
+                          fill={reactionData?.userReaction === "LIKE" ? "#34d399" : "none"}
+                          strokeWidth={1.5}
+                        />
+                      </span>
+                      {reactionData?.likes ?? 0}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => mutateReaction("DISLIKE")}
+                      disabled={isReactionPending}
+                      className={cn(
+                        "h-8 rounded-full border text-xs font-black uppercase tracking-widest",
+                        reactionData?.userReaction === "DISLIKE"
+                          ? "border-rose-400/40 bg-rose-400/10 text-rose-300"
+                          : "border-white/10 text-neutral-400 hover:text-white"
+                      )}
+                    >
+                      <ThumbsDown className="w-3.5 h-3.5 mr-1" /> {reactionData?.dislikes ?? 0}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -217,7 +333,7 @@ export function DashboardPlayer({ locationName }: { locationName: string }) {
                 </Button>
                 
                 <div className="flex items-center gap-4">
-                  <Button variant="ghost" size="icon" className="text-white hover:text-neon transition-colors h-10 w-10" onClick={prevTrack}>
+                  <Button variant="ghost" size="icon" className="text-white hover:text-neon transition-colors h-10 w-10" onClick={handlePrev}>
                     <SkipBack className="w-6 h-6 fill-current" />
                   </Button>
                   <Button 
@@ -226,10 +342,11 @@ export function DashboardPlayer({ locationName }: { locationName: string }) {
                   >
                     {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
                   </Button>
-                  <Button variant="ghost" size="icon" className="text-white hover:text-neon transition-colors h-10 w-10" onClick={nextTrack}>
+                  <Button variant="ghost" size="icon" className="text-white hover:text-neon transition-colors h-10 w-10" onClick={handleNext}>
                     <SkipForward className="w-6 h-6 fill-current" />
                   </Button>
                 </div>
+
 
                 <Button variant="ghost" size="icon" className={cn("text-neutral-500 hover:text-white transition-colors h-8 w-8", repeatMode !== 'off' && "text-neon")} onClick={cycleRepeat}>
                   {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}

@@ -15,6 +15,27 @@ export function parseStorageObjectRef(
   const trimmed = input.trim();
   let pathCandidate = trimmed;
 
+  const stripSupabaseStoragePrefix = (value: string) => {
+    const normalized = value.replace(/^\/+/, "");
+    const bucketSpecific = new RegExp(
+      `^storage/v1/object/(?:public|sign|authenticated)/${bucketName}/(.+)$`,
+      "i"
+    );
+    const anyBucket = /^storage\/v1\/object\/(?:public|sign|authenticated)\/[^/]+\/(.+)$/i;
+
+    const bucketSpecificMatch = normalized.match(bucketSpecific);
+    if (bucketSpecificMatch?.[1]) {
+      return bucketSpecificMatch[1];
+    }
+
+    const anyBucketMatch = normalized.match(anyBucket);
+    if (anyBucketMatch?.[1]) {
+      return anyBucketMatch[1];
+    }
+
+    return value;
+  };
+
   if (/^https?:\/\//i.test(trimmed)) {
     try {
       const url = new URL(trimmed);
@@ -30,14 +51,16 @@ export function parseStorageObjectRef(
       if (matchedMarker) {
         pathCandidate = pathCandidate.slice(pathCandidate.indexOf(matchedMarker) + matchedMarker.length);
       } else {
-        pathCandidate = pathCandidate.replace(/^\/+/, "");
+        pathCandidate = stripSupabaseStoragePrefix(pathCandidate);
       }
     } catch {
       pathCandidate = trimmed;
     }
   }
 
-  pathCandidate = pathCandidate.replace(/^\/+/, "").replace(/[?#].*$/, "");
+  pathCandidate = stripSupabaseStoragePrefix(pathCandidate)
+    .replace(/^\/+/, "")
+    .replace(/[?#].*$/, "");
 
   const objectPath = pathCandidate.includes("/")
     ? pathCandidate

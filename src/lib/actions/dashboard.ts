@@ -1,9 +1,18 @@
 "use server";
 
 import { db } from "@/db";
-import { businesses, locations, licenses, playlistTracks } from "@/db/schema";
+import { businesses, locations, licenses, playlistTracks, tracks } from "@/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
+
+function formatDurationRu(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const totalMinutes = Math.floor(safeSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${hours}Ч ${String(minutes).padStart(2, "0")}М`;
+}
 
 export async function getDashboardDataAction() {
   try {
@@ -52,15 +61,21 @@ export async function getDashboardDataAction() {
 
     // Fetch playlists with track counts separately
     const playlistsList = await Promise.all(business.playlists.map(async (p) => {
-      const [{ count }] = await db
-        .select({ count: sql`count(*)`.mapWith(Number) })
+      const [{ count, totalDurationSeconds }] = await db
+        .select({
+          count: sql`count(${playlistTracks.id})`.mapWith(Number),
+          totalDurationSeconds: sql`coalesce(sum(${tracks.duration}), 0)`.mapWith(Number),
+        })
         .from(playlistTracks)
+        .leftJoin(tracks, eq(playlistTracks.trackId, tracks.id))
         .where(eq(playlistTracks.playlistId, p.id));
       
       return {
         id: p.id,
         name: p.name,
-        trackCount: count || 0
+        trackCount: count || 0,
+        durationSeconds: totalDurationSeconds || 0,
+        duration: formatDurationRu(totalDurationSeconds || 0),
       };
     }));
 

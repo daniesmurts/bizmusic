@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, jsonb, pgEnum, uniqueIndex, index, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, jsonb, pgEnum, uniqueIndex, index, doublePrecision, serial, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // DB Types
@@ -25,6 +25,7 @@ export const userTypeEnum = pgEnum("user_type", ["BUSINESS", "CREATOR"]);
 export const documentStatusEnum = pgEnum("document_status", ["GENERATING", "READY", "FAILED"]);
 export const platformAnnouncementAccessEnum = pgEnum("platform_announcement_access", ["FREE", "PAID"]);
 export const platformAnnouncementSourceEnum = pgEnum("platform_announcement_source", ["UPLOAD", "TTS"]);
+export const trackReactionTypeEnum = pgEnum("track_reaction_type", ["LIKE", "DISLIKE"]);
 
 // Users Table
 export const users = pgTable("users", {
@@ -186,6 +187,19 @@ export const playLogs = pgTable("play_logs", {
   playedAt: timestamp("playedAt").defaultNow().notNull(),
 });
 
+export const trackReactions = pgTable("track_reactions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("userId").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
+  reactionType: trackReactionTypeEnum("reactionType").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  userTrackUnique: uniqueIndex("track_reactions_user_track_unique").on(t.userId, t.trackId),
+  trackReactionTypeIdx: index("track_reactions_track_type_idx").on(t.trackId, t.reactionType),
+  trackReactionCreatedAtIdx: index("track_reactions_created_at_idx").on(t.createdAt),
+}));
+
 // Licenses Table
 export const licenses = pgTable("licenses", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -204,6 +218,7 @@ export const licenses = pgTable("licenses", {
   agreementAcceptedIp: text("agreementAcceptedIp"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
 // VoiceAnnouncements Table
 export const voiceAnnouncements = pgTable("voice_announcements", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -358,6 +373,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   blogPosts: many(blogPosts),
   legalAcceptanceEvents: many(legalAcceptanceEvents),
   platformAnnouncementProducts: many(platformAnnouncementProducts),
+  trackReactions: many(trackReactions),
 }));
 
 export const businessesRelations = relations(businesses, ({ one, many }) => ({
@@ -383,6 +399,7 @@ export const tracksRelations = relations(tracks, ({ one, many }) => ({
   album: one(albums, { fields: [tracks.albumId], references: [albums.id] }),
   business: one(businesses, { fields: [tracks.businessId], references: [businesses.id] }),
   playLogs: many(playLogs),
+  reactions: many(trackReactions),
   playlistTracks: many(playlistTracks),
   voiceAnnouncement: one(voiceAnnouncements, { fields: [tracks.id], references: [voiceAnnouncements.trackId] }),
   platformAnnouncementProduct: one(platformAnnouncementProducts, { fields: [tracks.id], references: [platformAnnouncementProducts.trackId] }),
@@ -412,6 +429,37 @@ export const playLogsRelations = relations(playLogs, ({ one }) => ({
   location: one(locations, { fields: [playLogs.locationId], references: [locations.id] }),
   business: one(businesses, { fields: [playLogs.businessId], references: [businesses.id] }),
   track: one(tracks, { fields: [playLogs.trackId], references: [tracks.id] }),
+}));
+
+// Track Skips Table for Analytics
+export const trackSkips = pgTable("track_skips", {
+  id: serial("id").primaryKey(),
+  trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
+  userId: text("userId").references(() => users.id, { onDelete: "set null" }),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "set null" }),
+  locationId: text("locationId").references(() => locations.id, { onDelete: "set null" }),
+  skippedAt: timestamp("skippedAt").defaultNow().notNull(),
+  playedAt: timestamp("playedAt"),
+  device: varchar("device", { length: 64 }),
+  reason: varchar("reason", { length: 128 }),
+}, (t) => ({
+  skippedAtIdx: index("idx_track_skips_skipped_at").on(t.skippedAt),
+  trackIdIdx: index("idx_track_skips_track_id").on(t.trackId),
+  businessIdIdx: index("idx_track_skips_business_id").on(t.businessId),
+  locationIdIdx: index("idx_track_skips_location_id").on(t.locationId),
+}));
+
+export const trackSkipsRelations = relations(trackSkips, ({ one }) => ({
+  track: one(tracks, { fields: [trackSkips.trackId], references: [tracks.id] }),
+  user: one(users, { fields: [trackSkips.userId], references: [users.id] }),
+  business: one(businesses, { fields: [trackSkips.businessId], references: [businesses.id] }),
+  location: one(locations, { fields: [trackSkips.locationId], references: [locations.id] }),
+}));
+
+export const trackReactionsRelations = relations(trackReactions, ({ one }) => ({
+
+  user: one(users, { fields: [trackReactions.userId], references: [users.id] }),
+  track: one(tracks, { fields: [trackReactions.trackId], references: [tracks.id] }),
 }));
 
 export const licensesRelations = relations(licenses, ({ one }) => ({
