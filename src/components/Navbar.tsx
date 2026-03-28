@@ -16,11 +16,24 @@ import {
   Settings,
   ChevronRight,
   Mic,
-  ChevronDown
+  ChevronDown,
+  Coffee,
+  Utensils,
+  Building2,
+  ShoppingBag,
+  Gem,
+  Scissors,
+  Car,
+  ShoppingCart
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
 import { niches } from "@/lib/data/niches";
+import type { LucideIcon } from "lucide-react";
+
+const NicheIconMap: Record<string, LucideIcon> = {
+  Coffee, Utensils, Building2, ShoppingBag, Gem, Scissors, Car, ShoppingCart
+};
 
 export const Navbar = () => {
   const { user, role, signOut } = useAuth();
@@ -90,7 +103,7 @@ export const Navbar = () => {
                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-72 p-5 glass-dark rounded-[2.5rem] border border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-[110]">
                     <div className="grid gap-2">
                       {Object.values(niches).map((niche) => {
-                        const Icon = niche.icon;
+                        const Icon = NicheIconMap[niche.icon] || Music;
                         return (
                           <Link 
                             key={niche.slug} 
@@ -98,7 +111,7 @@ export const Navbar = () => {
                             className="flex items-center gap-4 p-4 rounded-2xl hover:bg-white/[0.03] text-neutral-400 hover:text-white transition-all group/item border border-transparent hover:border-white/5"
                           >
                             <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover/item:border-neon/30 border border-transparent transition-all shadow-inner">
-                               <niche.icon className="w-5 h-5 text-neutral-500 group-hover/item:text-neon transition-colors" />
+                               <Icon className="w-5 h-5 text-neutral-500 group-hover/item:text-neon transition-colors" />
                             </div>
                             <span className="text-[11px] font-black uppercase tracking-widest">{niche.name}</span>
                           </Link>
@@ -244,7 +257,7 @@ export const Navbar = () => {
                             }}
                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-neutral-400 hover:text-white transition-colors"
                           >
-                            <niche.icon className="w-3.5 h-3.5" />
+                            {(() => { const Icon = NicheIconMap[niche.icon] || Music; return <Icon className="w-3.5 h-3.5" />; })()}
                             <span className="text-[10px] font-black uppercase tracking-widest">{niche.name}</span>
                           </Link>
                         ))}
