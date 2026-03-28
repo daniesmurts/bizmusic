@@ -42,7 +42,7 @@ export function PlatformAnnouncementCatalogSection() {
         toast.error(result.error);
         return;
       }
-      toast.success("Объявление добавлено в вашу библиотеку");
+      toast.success("Анонс добавлен в вашу библиотеку");
       queryClient.invalidateQueries({ queryKey: ["featured-platform-announcements"] });
       queryClient.invalidateQueries({ queryKey: ["announcements-library"] });
     },
@@ -76,7 +76,7 @@ export function PlatformAnnouncementCatalogSection() {
             <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">Featured Library</span>
           </div>
           <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white">
-            Готовые <span className="text-neon">объявления</span>
+            Готовые <span className="text-neon">анонсы</span>
           </h2>
           <p className="text-neutral-400 text-base md:text-lg font-medium leading-relaxed">
             Бесплатные и платные платформенные анонсы, которые можно сразу добавить в библиотеку бизнеса и использовать в плейлистах.
@@ -122,7 +122,7 @@ export function PlatformAnnouncementCatalogSection() {
 
               {item.transcript && (
                 <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Текст объявления</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Текст анонса</p>
                   <p className="text-sm text-neutral-300 leading-relaxed">{item.transcript}</p>
                 </div>
               )}

@@ -62,7 +62,7 @@ export default function DashboardLayout({
       icon: Play,
     },
     {
-      name: "Объявления",
+      name: "Анонсы",
       href: "/dashboard/announcements",
       icon: Mic,
     },

@@ -4,7 +4,7 @@ export default function AdvertisingConsentPage() {
       <div className="mb-12">
         <span className="text-neon text-xs font-black uppercase tracking-[0.3em] mb-4 block">Согласие на рассылку</span>
         <h2 className="text-5xl md:text-6xl font-black mb-4 uppercase tracking-tighter leading-tight">
-          Согласие на получение рекламных <br />и информационных рассылок
+          Согласие на получение информационных <br />рассылок и анонсов
         </h2>
         <p className="text-neutral-500 font-bold uppercase tracking-widest text-sm italic">
           г. Казань, Республика Татарстан, Российская Федерация
@@ -20,7 +20,7 @@ export default function AdvertisingConsentPage() {
           в соответствии со <strong>ст. 18 Федерального закона от 13.03.2006 № 38-ФЗ «О рекламе»</strong> и 
           <strong> ст. 9 Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных»</strong>, даю своё согласие 
           Индивидуальному предпринимателю Бугембе Даниелу (далее — Оператор), 
-          <strong> ИНН 165510859142, ОГРНИП 322169000192683</strong>, на получение рекламных, информационных и маркетинговых материалов 
+          <strong> ИНН 165510859142, ОГРНИП 322169000192683</strong>, на получение информационных материалов и анонсов 
           и на обработку моих контактных данных в этих целях.
         </p>
 
@@ -87,7 +87,7 @@ export default function AdvertisingConsentPage() {
             <li>
               Субъект вправе отозвать настоящее Согласие в любой момент следующими способами:
               <ul>
-                <li>Нажатием на ссылку «Отписаться» (Unsubscribe) в любом рекламном письме.</li>
+                <li>Нажатием на ссылку «Отписаться» (Unsubscribe) в любом письме с анонсом.</li>
                 <li>Направлением сообщения «СТОП» на SMS-номер рассылки.</li>
                 <li>Направлением письменного уведомления на email: <a href="mailto:daniel@boadtech.com" className="text-neon hover:underline">daniel@boadtech.com</a>.</li>
                 <li>Через настройки Личного кабинета на сайте <a href="https://bizmuzik.ru" className="text-neon hover:underline" target="_blank" rel="noopener noreferrer">https://bizmuzik.ru</a>.</li>
@@ -106,7 +106,7 @@ export default function AdvertisingConsentPage() {
             <li>
               Настоящее Согласие является добровольным. Отказ в предоставлении Согласия 
               не ограничивает право Субъекта на заключение лицензионного договора-оферты, 
-              за исключением невозможности получения маркетинговой информации.
+              за исключением невозможности получения информации об анонсах.
             </li>
             <li>
               Актуальная версия Согласия размещена по адресу: 

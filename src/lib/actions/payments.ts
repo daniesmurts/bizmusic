@@ -433,11 +433,11 @@ export async function purchasePlatformAnnouncementAction(platformAnnouncementId:
     });
 
     if (!product || !product.isPublished) {
-      return { success: false, error: "Объявление недоступно" };
+      return { success: false, error: "Анонс недоступен" };
     }
 
     if (product.accessModel !== "PAID") {
-      return { success: false, error: "Это объявление доступно бесплатно" };
+      return { success: false, error: "Этот анонс доступен бесплатно" };
     }
 
     const existingAcquisition = await db.query.businessAnnouncementAcquisitions.findFirst({
@@ -449,7 +449,7 @@ export async function purchasePlatformAnnouncementAction(platformAnnouncementId:
     });
 
     if (existingAcquisition) {
-      return { success: false, error: "Это объявление уже есть в вашей библиотеке" };
+      return { success: false, error: "Этот анонс уже есть в вашей библиотеке" };
     }
 
     if (!process.env.TBANK_TERMINAL_KEY || !process.env.TBANK_PASSWORD) {
@@ -464,7 +464,7 @@ export async function purchasePlatformAnnouncementAction(platformAnnouncementId:
     const initResult = await tbank.init({
       Amount: product.priceKopeks,
       OrderId: orderId,
-      Description: `Готовое объявление: ${product.track.title}`,
+      Description: `Готовый анонс: ${product.track.title}`,
       Recurrent: "N",
       CustomerKey: safeCustomerKey,
       SuccessURL: `${appUrl}/dashboard/announcements?announcement=success`,
@@ -475,7 +475,7 @@ export async function purchasePlatformAnnouncementAction(platformAnnouncementId:
         Taxation: "usn_income_outcome",
         Items: [
           {
-            Name: `Готовое объявление ${product.track.title}`,
+            Name: `Готовый анонс ${product.track.title}`,
             Price: product.priceKopeks,
             Quantity: 1,
             Amount: product.priceKopeks,

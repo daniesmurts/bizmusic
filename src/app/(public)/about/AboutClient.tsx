@@ -454,7 +454,7 @@ export default function AboutClient() {
                     <Link href="/legal/terms" target="_blank" className="text-neon hover:underline">Пользовательским соглашением</Link>,{" "}
                     <Link href="/legal/privacy" target="_blank" className="text-neon hover:underline">Политикой конфиденциальности</Link>,{" "}
                     <Link href="/legal/data-processing" target="_blank" className="text-neon hover:underline">Согласием на обработку персональных данных</Link>,{" "}
-                    <Link href="/legal/advertising-consent" target="_blank" className="text-neon hover:underline">Согласием на рекламную рассылку</Link>
+                    <Link href="/legal/advertising-consent" target="_blank" className="text-neon hover:underline">Согласием на рассылку анонсов</Link>
                     {" "}и{" "}
                     <Link href="/legal/cookies" target="_blank" className="text-neon hover:underline">Политикой использования Cookie</Link>
                   </label>

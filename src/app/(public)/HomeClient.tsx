@@ -109,8 +109,8 @@ export default function HomeClient() {
               link: "/products/content-creators"
             },
             {
-              title: "Голосовые объявления",
-              description: "Аудиореклама и информирование",
+              title: "Голосовые анонсы",
+              description: "Аудиоанонсы и информирование",
               img: "/images/voice_announcements.png",
               link: "/products/voice-announcements"
             },

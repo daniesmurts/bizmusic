@@ -171,7 +171,7 @@ export function PlatformAnnouncementManager() {
         toast.error(result.error);
         return;
       }
-      toast.success("Платформенное объявление создано");
+      toast.success("Платформенный анонс создан");
       invalidate();
       resetCreateForm();
     },
@@ -197,7 +197,7 @@ export function PlatformAnnouncementManager() {
         toast.error(result.error);
         return;
       }
-      toast.success("Платформенное объявление сгенерировано");
+      toast.success("Платформенный анонс сгенерирован");
       invalidate();
       resetCreateForm();
     },
@@ -220,7 +220,7 @@ export function PlatformAnnouncementManager() {
         toast.error(result.error);
         return;
       }
-      toast.success("Объявление обновлено");
+      toast.success("Анонс обновлен");
       invalidate();
     },
   });
@@ -232,7 +232,7 @@ export function PlatformAnnouncementManager() {
         toast.error(result.error);
         return;
       }
-      toast.success("Объявление удалено");
+      toast.success("Анонс удален");
       invalidate();
     },
   });
@@ -269,7 +269,7 @@ export function PlatformAnnouncementManager() {
     <div className="space-y-10">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="glass-dark border border-white/5 rounded-2xl p-6">
-          <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Всего объявлений</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Всего анонсов</p>
           <p className="text-4xl font-black text-white">{stats.total}</p>
         </div>
         <div className="glass-dark border border-white/5 rounded-2xl p-6">
@@ -369,7 +369,7 @@ export function PlatformAnnouncementManager() {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Текст / транскрипт</p>
-              <Textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} placeholder="Текст объявления или транскрипт загруженного файла" className="min-h-32" />
+              <Textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} placeholder="Текст анонса или транскрипт загруженного файла" className="min-h-32" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -404,7 +404,7 @@ export function PlatformAnnouncementManager() {
               className="w-full bg-neon text-black hover:bg-neon/90 rounded-2xl h-14 font-black uppercase tracking-widest gap-2"
             >
               <Plus className="w-4 h-4" />
-              Создать объявление
+              Создать анонс
             </Button>
           </div>
         </div>
@@ -459,7 +459,7 @@ export function PlatformAnnouncementManager() {
                       size="icon"
                       disabled={deleteMutation.isPending}
                       onClick={() => {
-                        if (confirm("Удалить платформенное объявление?")) {
+                        if (confirm("Удалить платформенный анонс?")) {
                           deleteMutation.mutate(item.id);
                         }
                       }}

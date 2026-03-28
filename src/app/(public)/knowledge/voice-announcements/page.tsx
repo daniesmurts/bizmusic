@@ -27,7 +27,7 @@ export default function VoiceAnnouncementsKnowledgePage() {
       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-6 px-2 sm:px-4">
         <Link href="/knowledge" className="hover:text-neon transition-colors">База знаний</Link>
         <span className="opacity-30">/</span>
-        <span className="text-white">Голосовые объявления</span>
+        <span className="text-white">Голосовые анонсы</span>
       </div>
 
       {/* Header */}
@@ -38,7 +38,7 @@ export default function VoiceAnnouncementsKnowledgePage() {
                <Mic className="w-6 h-6 text-neon" />
              </div>
              <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-white">
-               Голосовые <span className="text-neon">объявления</span>
+               Голосовые <span className="text-neon">анонсы</span>
              </h2>
           </div>
           <p className="text-neutral-400 font-medium text-xs sm:text-sm italic max-w-2xl">
@@ -61,7 +61,7 @@ export default function VoiceAnnouncementsKnowledgePage() {
                  <Zap className="w-5 h-5 text-neon" /> Описание функции
                </h3>
                <p className="text-neutral-400 leading-relaxed font-medium">
-                 Функция синтеза речи позволяет создавать голосовые объявления, рекламные сообщения и аудио‑анонсы для вашего пространства. 
+                 Функция синтеза речи позволяет создавать голосовые анонсы и информационные сообщения для вашего пространства. 
                  Вы пишете текст (до 500 символов), а система преобразует его в готовый аудиофайл, который можно использовать в плейлистах, 
                  трансляциях или скачать.
                </p>
@@ -79,7 +79,7 @@ export default function VoiceAnnouncementsKnowledgePage() {
                  <Sparkles className="w-5 h-5 text-violet-400" /> Помощь ИИ в создании текста
                </h3>
                <p className="text-neutral-400 leading-relaxed font-medium">
-                 Чтобы сделать текст объявления более чётким, убедительным или просто быстрее его составить, вы можете воспользоваться встроенной помощью искусственного интеллекта. 
+                 Чтобы сделать текст анонса более чётким, убедительным или просто быстрее его составить, вы можете воспользоваться встроенной помощью искусственного интеллекта. 
                  Нажмите кнопку <span className="text-violet-400 font-bold">«✨ Улучшить с ИИ»</span> – и система предложит отредактированный вариант вашего текста, соблюдая лимит в 500 символов. 
                  Вы сможете принять предложение, доработать его вручную и затем использовать для синтеза речи.
                </p>
@@ -200,7 +200,7 @@ export default function VoiceAnnouncementsKnowledgePage() {
                  <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center text-neon font-black italic">3</div>
                  <div className="space-y-1">
                    <p className="text-sm font-black text-white uppercase tracking-tight">Лимит 500 символов</p>
-                   <p className="text-[11px] text-neutral-400 leading-relaxed font-medium">Включая пробелы и знаки препинания. Если текст длиннее, токен не будет списан, и система выдаст предупреждение.</p>
+                   <p className="text-[11px] text-neutral-400 leading-relaxed font-medium">Включая пробелы и знаки препинания. Если заголовок или текст анонса длиннее, токен не будет списан, и система выдаст предупреждение.</p>
                  </div>
                </li>
                <li className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-lg shadow-neon/5">

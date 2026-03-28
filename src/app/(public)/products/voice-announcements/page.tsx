@@ -58,7 +58,7 @@ export default function VoiceAnnouncementsPage() {
       <section className="relative min-h-[70vh] flex items-center px-6 md:px-12 py-12 md:py-20 overflow-hidden rounded-[2.5rem] md:rounded-[3.5rem] mx-4 md:mx-6 border border-white/5 bg-black/40 backdrop-blur-xl">
         <Image
           src="/images/voice_announcements.png"
-          alt="Voice Announcements"
+          alt="Голосовые анонсы"
           fill
           className="object-cover brightness-[0.3]"
           priority
@@ -74,7 +74,7 @@ export default function VoiceAnnouncementsPage() {
           <div className="space-y-4">
             <h1 className="text-[clamp(2rem,10vw,4.5rem)] sm:text-7xl md:text-8xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.9] text-white">
               Голосовые <br />
-              <span className="text-neon outline-text">объявления</span>
+              <span className="text-neon outline-text">анонсы</span>
             </h1>
             <p className="text-base md:text-2xl text-neutral-300 font-medium leading-relaxed max-w-2xl break-words">
               Автоматически объявляйте об акциях, скидках и важных новостях — прямо в вашем помещении. 
@@ -106,7 +106,7 @@ export default function VoiceAnnouncementsPage() {
             
             <div className="space-y-6">
               {[
-                "73% посетителей не замечают рекламные плакаты",
+                "73% посетителей не замечают анонсы на плакатах",
                 "Персонал забывает рассказывать об акциях",
                 "Клиенты уходят, не узнав о специальных предложениях"
               ].map((text, i) => (
@@ -124,7 +124,7 @@ export default function VoiceAnnouncementsPage() {
                   <Zap className="w-6 h-6 text-neon fill-neon" /> Решение
                 </h3>
                 <p className="text-neutral-300 text-lg leading-relaxed">
-                  Голосовое объявление невозможно проигнорировать. Оно звучит в нужный момент, 
+                  Голосовой анонс невозможно проигнорировать. Оно звучит в нужный момент, 
                   работает 24/7 и увеличивает средний чек на <span className="text-neon font-black">15-25%</span>.
                 </p>
               </div>
@@ -152,7 +152,7 @@ export default function VoiceAnnouncementsPage() {
           <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-white">
             Как это <span className="text-neon outline-text">работает</span>
           </h2>
-          <p className="text-neutral-500 font-bold uppercase tracking-widest text-sm">Процесс создания идеального объявления</p>
+          <p className="text-neutral-500 font-bold uppercase tracking-widest text-sm">Процесс создания идеального анонса</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -174,7 +174,7 @@ export default function VoiceAnnouncementsPage() {
             },
             {
               title: "Готово!",
-              description: "Объявление начнёт работать сразу после оплаты. Отслеживайте статистику в кабинете.",
+              description: "Анонс начнёт работать сразу после оплаты. Отслеживайте статистику в кабинете.",
               step: "04"
             }
           ].map((item, i) => (
@@ -305,10 +305,10 @@ export default function VoiceAnnouncementsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               { icon: Calendar, title: "Умное расписание", desc: "Утром — приветствия, днём — акции, вечером — напоминания." },
-              { icon: Volume2, title: "Авто громкость", desc: "Снижаем громкость музыки во время объявления автоматически." },
-              { icon: BarChart3, title: "Статистика", desc: "Отслеживайте, сколько раз прозвучало каждое объявление." },
+              { icon: Volume2, title: "Авто громкость", desc: "Снижаем громкость музыки во время анонса автоматически." },
+              { icon: BarChart3, title: "Статистика", desc: "Отслеживайте, сколько раз прозвучал каждый анонс." },
               { icon: Split, title: "A/B тестирование", desc: "Протестируйте два варианта текста и выберите лучший." },
-              { icon: Globe, title: "Мультилокация", desc: "Управляйте объявлениями во всей сети из одного кабинета." },
+              { icon: Globe, title: "Мультилокация", desc: "Управляйте анонсами во всей сети из одного кабинета." },
               { icon: AlertTriangle, title: "Экстренные", desc: "Мгновенно транслируйте важные сообщения." }
             ].map((feature, i) => (
               <div key={i} className="flex gap-6 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all group">
@@ -375,7 +375,7 @@ export default function VoiceAnnouncementsPage() {
                 </thead>
                 <tbody className="text-sm font-medium">
                   {[
-                    { label: "Цена", ai: "99 ₽/объявление", pro: "от 990 ₽/объявление" },
+                    { label: "Цена", ai: "99 ₽/анонс", pro: "от 990 ₽/анонс" },
                     { label: "Голос", ai: "AI (нейросеть)", pro: "Живой диктор" },
                     { label: "Срок", ai: "Мгновенно", pro: "24-48 часов" },
                     { label: "Шаблоны", ai: "10+ готовых", pro: "Индивидуально" },
@@ -440,8 +440,8 @@ export default function VoiceAnnouncementsPage() {
               a: "Да! Вы можете написать любой текст (в рамках закона о рекламе). Наш AI-редактор подскажет, как сделать его эффективнее."
             },
             {
-              q: "Как часто могут звучать объявления?",
-              a: "Вы сами настраиваете расписание. Рекомендуем не более 3-4 объявлений в час, чтобы не перегружать посетителей."
+              q: "Как часто могут звучать анонсы?",
+              a: "Вы сами настраиваете расписание. Рекомендуем не более 3-4 анонсов в час, чтобы не перегружать посетителей."
             },
             {
               q: "Можно ли объявлять на разных языках?",
@@ -449,15 +449,15 @@ export default function VoiceAnnouncementsPage() {
             },
             {
               q: "Что если мне не понравится запись?",
-              a: "На тарифе «AI Студия» вы можете перегенерировать объявление до 5 раз. На «Профессиональном» — включено 2 бесплатные правки."
+              a: "На тарифе «AI Студия» вы можете перегенерировать анонс до 5 раз. На «Профессиональном» — включено 2 бесплатные правки."
             },
             {
               q: "Нужно ли дополнительное оборудование?",
-              a: "Нет! Объявления звучат через тот же плеер, что и музыка. Ничего устанавливать не нужно."
+              a: "Нет! Анонсы звучат через тот же плеер, что и музыка. Ничего устанавливать не нужно."
             },
             {
-              q: "Можно ли отключить объявления в любое время?",
-              a: "Да, вы можете приостановить или удалить любое объявление в личном кабинете."
+              q: "Можно ли отключить анонсы в любое время?",
+              a: "Да, вы можете приостановить или удалить любой анонс в личном кабинете."
             }
           ].map((item, i) => (
             <div 
@@ -508,7 +508,7 @@ export default function VoiceAnnouncementsPage() {
             <div className="space-y-3">
               <h4 className="text-xl font-black uppercase text-white tracking-tight">Важно знать</h4>
               <p className="text-neutral-400 text-sm leading-relaxed font-medium">
-                Согласно ФЗ «О рекламе» (ст. 9), объявления о скидках и акциях должны содержать: <br />
+                Согласно ФЗ «О рекламе» (ст. 9), анонсы о скидках и акциях должны содержать: <br />
                 • Срок проведения акции <br />
                 • Источники дополнительной информации
               </p>
@@ -526,7 +526,7 @@ export default function VoiceAnnouncementsPage() {
               Готовы <span className="text-neon underline decoration-neon/20 underline-offset-8">начать?</span>
             </h2>
             <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">
-              Увеличьте продажи вашего бизнеса уже сегодня с помощью автоматических голосовых объявлений.
+              Увеличьте продажи вашего бизнеса уже сегодня с помощью автоматических голосовых анонсов.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6">
               <Link href="/register" className="w-full sm:w-auto">

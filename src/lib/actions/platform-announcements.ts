@@ -106,7 +106,7 @@ function normalizePaidPrice(accessModel: AccessModel, priceKopeks?: number | nul
 
   const safePrice = Math.max(0, Math.floor(priceKopeks ?? 0));
   if (safePrice <= 0) {
-    throw new Error("Для платного объявления укажите цену больше 0");
+    throw new Error("Для платного анонса укажите цену больше 0");
   }
 
   return safePrice;
@@ -168,7 +168,7 @@ export async function grantPlatformAnnouncementToBusiness(params: {
 }) {
   const product = await getPlatformProductById(params.platformAnnouncementId);
   if (!product) {
-    throw new Error("Платформенное объявление не найдено");
+    throw new Error("Платформенный анонс не найден");
   }
 
   const importedAnnouncement = await ensureImportedAnnouncement({
@@ -269,7 +269,7 @@ export async function createPlatformAnnouncementUploadAction(input: {
 
     return { success: true, data: result };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Не удалось создать платформенное объявление";
+    const message = error instanceof Error ? error.message : "Не удалось создать платформенный анонс";
     return { success: false, error: message };
   }
 }
@@ -344,7 +344,7 @@ export async function createPlatformAnnouncementTtsAction(input: {
 
     return { success: true, data: result };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Не удалось создать платформенное объявление";
+    const message = error instanceof Error ? error.message : "Не удалось создать платформенный анонс";
     return { success: false, error: message };
   }
 }
@@ -364,7 +364,7 @@ export async function updatePlatformAnnouncementAction(input: {
 
     const existing = await getPlatformProductById(input.id);
     if (!existing) {
-      return { success: false, error: "Объявление не найдено" };
+      return { success: false, error: "Анонс не найден" };
     }
 
     const nextAccessModel = input.accessModel ?? existing.accessModel;
@@ -393,7 +393,7 @@ export async function updatePlatformAnnouncementAction(input: {
 
     return { success: true, data: updated };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Не удалось обновить платформенное объявление";
+    const message = error instanceof Error ? error.message : "Не удалось обновить платформенный анонс";
     return { success: false, error: message };
   }
 }
@@ -414,13 +414,13 @@ export async function deletePlatformAnnouncementAction(platformAnnouncementId: s
     });
 
     if (!product) {
-      return { success: false, error: "Объявление не найдено" };
+      return { success: false, error: "Анонс не найден" };
     }
 
     if (product.acquisitions.length > 0) {
       return {
         success: false,
-        error: "У объявления уже есть приобретения. Снимите его с публикации вместо удаления.",
+        error: "У анонса уже есть приобретения. Снимите его с публикации вместо удаления.",
       };
     }
 
@@ -440,7 +440,7 @@ export async function deletePlatformAnnouncementAction(platformAnnouncementId: s
 
     return { success: true };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Не удалось удалить платформенное объявление";
+    const message = error instanceof Error ? error.message : "Не удалось удалить платформенный анонс";
     return { success: false, error: message };
   }
 }
@@ -465,7 +465,7 @@ export async function getAdminPlatformAnnouncementsAction() {
 
     return { success: true, data };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Не удалось загрузить платформенные объявления";
+    const message = error instanceof Error ? error.message : "Не удалось загрузить платформенные анонсы";
     return { success: false, error: message };
   }
 }
@@ -507,7 +507,7 @@ export async function getFeaturedPlatformAnnouncementsAction(limit: number = 6) 
 
     return { success: true, data };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Не удалось загрузить подборку объявлений";
+    const message = error instanceof Error ? error.message : "Не удалось загрузить подборку анонсов";
     return { success: false, error: message };
   }
 }
@@ -521,11 +521,11 @@ export async function claimFreePlatformAnnouncementAction(platformAnnouncementId
 
     const product = await getPlatformProductById(platformAnnouncementId);
     if (!product || !product.isPublished) {
-      return { success: false, error: "Объявление недоступно" };
+      return { success: false, error: "Анонс недоступен" };
     }
 
     if (product.accessModel !== "FREE") {
-      return { success: false, error: "Это объявление доступно только после покупки" };
+      return { success: false, error: "Этот анонс доступен только после покупки" };
     }
 
     const result = await grantPlatformAnnouncementToBusiness({
@@ -536,7 +536,7 @@ export async function claimFreePlatformAnnouncementAction(platformAnnouncementId
 
     return { success: true, data: result };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Не удалось добавить объявление в библиотеку";
+    const message = error instanceof Error ? error.message : "Не удалось добавить анонс в библиотеку";
     return { success: false, error: message };
   }
 }
@@ -570,7 +570,7 @@ export async function getBusinessAnnouncementsLibraryAction() {
       },
     };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Не удалось загрузить библиотеку объявлений";
+    const message = error instanceof Error ? error.message : "Не удалось загрузить библиотеку анонсов";
     return { success: false, error: message };
   }
 }
