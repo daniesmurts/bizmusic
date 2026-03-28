@@ -572,23 +572,32 @@ export async function getAdminTracksAction(filters?: {
       };
     }
 
-    const tracksWithUrls = await Promise.all(
-      tracksWithCount.map(async (track) => {
-        const isFullUrl = track.fileUrl.startsWith('http');
-        const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
-        const fallbackUrl = (isFullUrl || !supabaseUrl)
-          ? track.fileUrl 
-          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
+    // Process in batches of 5 to avoid overwhelming Supabase with parallel signed URL requests
+    const tracksWithUrls: typeof tracksWithCount extends (infer T)[] ? (T & { streamUrl?: string })[] : never[] = [];
+    const BATCH_SIZE = 5;
 
-        try {
-          const streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
-          return { ...track, fileUrl: fallbackUrl, streamUrl };
-        } catch (err: unknown) {
-          console.error(`[Admin Tracks] Failed to generate signed URL for track ${track.id}:`, err);
-          return { ...track, fileUrl: fallbackUrl };
-        }
-      })
-    );
+    for (let i = 0; i < tracksWithCount.length; i += BATCH_SIZE) {
+      const batch = tracksWithCount.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (track) => {
+          const isFullUrl = track.fileUrl.startsWith('http');
+          const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
+          const fallbackUrl = (isFullUrl || !supabaseUrl)
+            ? track.fileUrl 
+            : getFilePublicUrl(fileRef.fileName, fileRef.folder);
+
+          try {
+            const streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
+            return { ...track, fileUrl: fallbackUrl, streamUrl };
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            console.warn(`[Admin Tracks] Signed URL failed for track ${track.id}: ${errMsg}`);
+            return { ...track, fileUrl: fallbackUrl };
+          }
+        })
+      );
+      tracksWithUrls.push(...batchResults);
+    }
 
     return {
       success: true,

@@ -53,7 +53,7 @@ export default function RootLayout({
       "availableLanguage": ["Russian"]
     },
     "sameAs": [
-      "https://t.me/bizmusic_ru"
+      "https://t.me/bizmuzik_ru"
     ]
   };
 

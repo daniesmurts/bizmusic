@@ -72,7 +72,11 @@ export default function PlayerPage() {
                <Skeleton className="h-[200px] bg-white/5 rounded-[2.5rem]" />
             </div>
           ) : (
-            <PlaylistManager playlists={playlists} businessId={businessId} />
+          <PlaylistManager 
+            playlists={playlists} 
+            globalPlaylists={dashboardData?.globalPlaylists || []}
+            businessId={businessId} 
+          />
           )}
         </div>
 
