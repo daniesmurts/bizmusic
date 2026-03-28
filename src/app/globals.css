@@ -49,57 +49,64 @@
 }
 
 :root {
-  --background: oklch(0 0 0); /* Pure Black */
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --background: oklch(0.13 0.005 260); /* Dark charcoal with cool undertone ~#0f1117 */
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.17 0.005 260); /* Slightly elevated surface ~#191c24 */
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.17 0.005 260);
+  --popover-foreground: oklch(0.95 0 0);
   --primary: oklch(0.841 0.222 147.92); /* Neon Green #5cf387 */
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.841 0.222 147.92 / 15%);
+  --secondary: oklch(0.22 0.005 260); /* Softer secondary ~#1e2130 */
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.22 0.005 260);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.841 0.222 147.92 / 12%);
   --accent-foreground: oklch(0.841 0.222 147.92);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.841 0.222 147.92);
   --radius: 1rem;
   --neon-green: #5cf387;
 }
 
 .dark {
-  --background: oklch(0 0 0);
-  --foreground: oklch(0.985 0 0);
+  --background: oklch(0.13 0.005 260);
+  --foreground: oklch(0.95 0 0);
   --primary: oklch(0.841 0.222 147.92);
 }
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(15, 17, 23, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
   
   .glass-dark {
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(20, 22, 30, 0.9);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-surface {
+    background: rgba(25, 28, 36, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .text-neon {
     color: var(--neon-green);
-    text-shadow: 0 0 10px rgba(92, 243, 135, 0.3);
+    text-shadow: 0 0 10px rgba(92, 243, 135, 0.25);
   }
 
   .bg-neon {
     background-color: var(--neon-green);
-    box-shadow: 0 0 20px rgba(92, 243, 135, 0.4);
+    box-shadow: 0 0 20px rgba(92, 243, 135, 0.35);
   }
 }
 

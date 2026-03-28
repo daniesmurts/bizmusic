@@ -15,14 +15,30 @@ import {
   FileText, 
   Settings,
   ChevronRight,
-  Mic
+  Mic,
+  ChevronDown,
+  Coffee,
+  Utensils,
+  Building2,
+  ShoppingBag,
+  Gem,
+  Scissors,
+  Car,
+  ShoppingCart
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
+import { niches } from "@/lib/data/niches";
+import type { LucideIcon } from "lucide-react";
+
+const NicheIconMap: Record<string, LucideIcon> = {
+  Coffee, Utensils, Building2, ShoppingBag, Gem, Scissors, Car, ShoppingCart
+};
 
 export const Navbar = () => {
   const { user, role, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNicheOpen, setIsNicheOpen] = useState(false);
   const pathname = usePathname();
   const isDashboard = pathname.startsWith('/dashboard');
 
@@ -53,8 +69,8 @@ export const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
-      <div className="max-w-7xl mx-auto glass rounded-full px-6 py-3 flex items-center justify-between border border-white/10 shadow-2xl">
+    <nav className="fixed top-0 left-0 right-0 z-[100] px-6 py-4">
+      <div className="max-w-7xl mx-auto glass rounded-full px-6 py-3 flex items-center justify-between border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <div className="w-10 h-10 bg-neon rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-lg shadow-neon/20">
@@ -66,7 +82,7 @@ export const Navbar = () => {
         </Link>
 
         {/* Links - Desktop */}
-        <div className="hidden md:flex items-center gap-8 text-sm font-black uppercase tracking-widest">
+        <div className="hidden md:flex items-center gap-8 text-sm font-black uppercase tracking-widest leading-none">
           {role === 'ADMIN' && (
             <Link href="/admin/content" className="text-neon hover:text-white transition-colors">Админ</Link>
           )}
@@ -77,11 +93,37 @@ export const Navbar = () => {
             </>
           ) : (
             <>
-              <Link href="/products" className="text-neutral-400 hover:text-neon transition-colors">Продукты</Link>
-              <Link href="/blog" className="text-neutral-400 hover:text-neon transition-colors">Блог</Link>
-              <Link href="/about" className="text-neutral-400 hover:text-neon transition-colors">О нас</Link>
-              <Link href="/pricing" className="text-neutral-400 hover:text-neon transition-colors">Тарифы</Link>
-              <Link href="/knowledge" className="text-neutral-400 hover:text-neon transition-colors">База знаний</Link>
+               <Link href="/products" className="text-neutral-400 hover:text-neon transition-colors">Решения</Link>
+               
+               {/* Niche Dropdown */}
+               <div className="relative group py-4">
+                 <button className="flex items-center gap-1.5 text-neutral-400 group-hover:text-neon transition-all duration-300 font-black uppercase tracking-widest">
+                   Ниши <ChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
+                 </button>
+                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-72 p-5 glass-dark rounded-[2.5rem] border border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-[110]">
+                    <div className="grid gap-2">
+                      {Object.values(niches).map((niche) => {
+                        const Icon = NicheIconMap[niche.icon] || Music;
+                        return (
+                          <Link 
+                            key={niche.slug} 
+                            href={`/solutions/${niche.slug}`}
+                            className="flex items-center gap-4 p-4 rounded-2xl hover:bg-white/[0.03] text-neutral-400 hover:text-white transition-all group/item border border-transparent hover:border-white/5"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover/item:border-neon/30 border border-transparent transition-all shadow-inner">
+                               <Icon className="w-5 h-5 text-neutral-500 group-hover/item:text-neon transition-colors" />
+                            </div>
+                            <span className="text-[11px] font-black uppercase tracking-widest">{niche.name}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                 </div>
+               </div>
+
+               <Link href="/blog" className="text-neutral-400 hover:text-neon transition-colors">Блог</Link>
+               <Link href="/about" className="text-neutral-400 hover:text-neon transition-colors">О нас</Link>
+               <Link href="/pricing" className="text-neutral-400 hover:text-neon transition-colors">Тарифы</Link>
             </>
           )}
         </div>
@@ -89,32 +131,32 @@ export const Navbar = () => {
         {/* Actions */}
         <div className="flex items-center gap-4">
           {user ? (
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors overflow-hidden">
-                {user.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-5 h-5 text-neutral-400" />
-                )}
-              </Link>
-              <Button 
-                variant="ghost" 
-                className="text-neutral-400 hover:text-neon font-black uppercase tracking-widest text-xs md:flex hidden"
-                onClick={() => signOut()}
-              >
-                Выйти
-              </Button>
-            </div>
-          ) : (
-            <>
-              <Link href="/login" className="text-sm font-black uppercase tracking-widest text-neutral-400 hover:text-neon transition-colors md:block hidden">
-                Войти
-              </Link>
-              <Button asChild className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-8 font-black uppercase tracking-widest text-xs h-11 border-none outline-none">
-                <Link href="/register">Регистрация</Link>
-              </Button>
-            </>
-          )}
+             <div className="flex items-center gap-4">
+               <Link href="/dashboard" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors overflow-hidden">
+                 {user.user_metadata?.avatar_url ? (
+                   <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                 ) : (
+                   <User className="w-5 h-5 text-neutral-400" />
+                 )}
+               </Link>
+               <Button 
+                 variant="ghost" 
+                 className="text-neutral-400 hover:text-neon font-black uppercase tracking-widest text-xs md:flex hidden"
+                 onClick={() => signOut()}
+               >
+                 Выйти
+               </Button>
+             </div>
+           ) : (
+             <>
+               <Link href="/login" className="text-sm font-black uppercase tracking-widest text-neutral-400 hover:text-neon transition-colors md:block hidden">
+                 Войти
+               </Link>
+               <Button asChild className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-8 font-black uppercase tracking-widest text-xs h-11 border-none outline-none">
+                 <Link href="/register">Регистрация</Link>
+               </Button>
+             </>
+           )}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -190,9 +232,39 @@ export const Navbar = () => {
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
                   >
-                    <span className="font-black uppercase tracking-widest text-xs">Продукты</span>
+                    <span className="font-black uppercase tracking-widest text-xs">Решения</span>
                     <ChevronRight className="w-4 h-4" />
                   </Link>
+                  
+                  {/* Mobile Niche Accordion */}
+                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
+                    <button 
+                      onClick={() => setIsNicheOpen(!isNicheOpen)}
+                      className="w-full flex items-center justify-between p-4 text-white/70 hover:text-white transition-all"
+                    >
+                      <span className="font-black uppercase tracking-widest text-xs">Ниши для бизнеса</span>
+                      <ChevronRight className={cn("w-4 h-4 transition-transform", isNicheOpen && "rotate-90")} />
+                    </button>
+                    {isNicheOpen && (
+                      <div className="px-4 pb-4 grid gap-1 border-t border-white/5 pt-2">
+                        {Object.values(niches).map((niche) => (
+                          <Link 
+                            key={niche.slug} 
+                            href={`/solutions/${niche.slug}`}
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setIsNicheOpen(false);
+                            }}
+                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-neutral-400 hover:text-white transition-colors"
+                          >
+                            {(() => { const Icon = NicheIconMap[niche.icon] || Music; return <Icon className="w-3.5 h-3.5" />; })()}
+                            <span className="text-[10px] font-black uppercase tracking-widest">{niche.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <Link 
                     href="/pricing" 
                     onClick={() => setIsMenuOpen(false)}
@@ -207,14 +279,6 @@ export const Navbar = () => {
                     className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
                   >
                     <span className="font-black uppercase tracking-widest text-xs">О компании</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                  <Link 
-                    href="/knowledge" 
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all font-black uppercase tracking-widest text-xs"
-                  >
-                    <span>База знаний</span>
                     <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>

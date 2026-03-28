@@ -177,12 +177,12 @@ export default function ProductsClient() {
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon/30 bg-neon/10 backdrop-blur-md">
           <Zap className="w-4 h-4 text-neon" />
           <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">
-            Продукты и решения
+            Комплексные решения
           </span>
         </div>
 
         <h1 className="text-[clamp(2rem,10vw,4.5rem)] sm:text-7xl md:text-8xl lg:text-8xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.85] text-white">
-          Наши <span className="text-neon">продукты</span>
+          Наши <span className="text-neon">решения</span>
         </h1>
 
         <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">

@@ -181,7 +181,7 @@ export async function POST(req: Request) {
           });
           await sendEmail({
             to: user.email,
-            subject: "Подписка активирована — BizMusic",
+            subject: "Подписка активирована — Бизмюзик",
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                 <h1 style="color: #333;">Подписка активирована!</h1>
@@ -189,12 +189,12 @@ export async function POST(req: Request) {
                 <p>Ваш платёж успешно обработан. Пробный период активен до <strong>${trialEndFormatted}</strong>.</p>
                 <p>Теперь вам доступен полный функционал платформы BizMusic для легального музыкального оформления вашего заведения.</p>
                 <p style="margin-top: 24px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://bizmusic.ru'}/dashboard" 
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://bizmuzik.ru'}/dashboard" 
                      style="background: #c6f135; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
                     Перейти в кабинет
                   </a>
                 </p>
-                <p style="color: #999; font-size: 12px; margin-top: 32px;">© BizMusic — легальная музыка для бизнеса</p>
+                <p style="color: #999; font-size: 12px; margin-top: 32px;">© Бизмюзик — легальная музыка для бизнеса</p>
               </div>
             `,
           });

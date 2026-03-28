@@ -238,7 +238,7 @@ export function DemoRequestForm() {
         {isSubmitting ? (
           <Loader2 className="w-6 h-6 animate-spin" />
         ) : (
-          "Получить доступ к демо"
+          "Записаться на демо"
         )}
       </Button>
     </form>
