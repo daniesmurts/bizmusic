@@ -1,5 +1,7 @@
+"use server";
+
 import { db } from "@/db";
-import { trackSkips } from "@/db/schema";
+import { trackSkips, businesses } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function logTrackSkipAction({
