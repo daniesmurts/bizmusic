@@ -20,7 +20,10 @@ interface PlayerState {
   isShuffle: boolean;
   repeatMode: 'off' | 'one' | 'all';
   
-  
+  // Wave Mode
+  isWaveMode: boolean;
+  waveBusinessId: string | null;
+  isFetchingWave: boolean;
   // Actions
   setTrack: (track: Track) => void;
   loadPlaylist: (tracks: Track[], startIndex?: number) => void;
@@ -35,6 +38,10 @@ interface PlayerState {
   prevTrack: () => void;
   toggleShuffle: () => void;
   setRepeatMode: (mode: 'off' | 'one' | 'all') => void;
+
+  setWaveMode: (active: boolean, businessId?: string) => void;
+  fetchNextWaveBatch: () => Promise<void>;
+  skipWaveTrack: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -46,6 +53,9 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   history: [],
   isShuffle: false,
   repeatMode: 'off',
+  isWaveMode: false,
+  waveBusinessId: null,
+  isFetchingWave: false,
 
   setTrack: (track) => set({ currentTrack: track, isPlaying: true, progress: 0 }),
   loadPlaylist: (tracks, startIndex = 0) => set({
@@ -71,40 +81,104 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   })),
   toggleShuffle: () => set((state) => ({ isShuffle: !state.isShuffle })),
   setRepeatMode: (mode) => set({ repeatMode: mode }),
-  
-  nextTrack: () => set((state) => {
-    if (state.repeatMode === 'one' && state.currentTrack) {
-      return { progress: 0, isPlaying: true };
+
+  setWaveMode: (active, businessId) => {
+    set({ isWaveMode: active, waveBusinessId: businessId || null });
+    if (active) {
+       set({ queue: [], currentTrack: null, isPlaying: false, progress: 0 });
+       usePlayerStore.getState().fetchNextWaveBatch();
     }
+  },
+
+  fetchNextWaveBatch: async () => {
+    const state = usePlayerStore.getState();
+    if (!state.isWaveMode || !state.waveBusinessId || state.isFetchingWave) return;
     
-    if (state.queue.length === 0) {
-      if (state.repeatMode === 'all' && state.currentTrack) {
-        // Here we'd ideally loop the original playlist, but queue is exhausted.
-        // For now, just stop or replay current if it's the only one.
-        return { progress: 0, isPlaying: false }; 
+    set({ isFetchingWave: true });
+    try {
+      const response = await fetch('/api/wave/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: state.waveBusinessId,
+          excludeTrackIds: state.queue.map(t => t.id)
+        })
+      });
+      const data = await response.json();
+      if (data.success && data.tracks.length > 0) {
+        const mappedTracks = data.tracks.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          artist: t.artist,
+          fileUrl: t.fileUrl,
+          streamUrl: t.streamUrl,
+          duration: t.duration,
+          cover_url: t.coverUrl,
+        }));
+        set((s) => ({ queue: [...s.queue, ...mappedTracks] }));
+        
+        const updatedState = usePlayerStore.getState();
+        if (!updatedState.currentTrack && updatedState.queue.length > 0) {
+          updatedState.nextTrack();
+        }
       }
-      return { isPlaying: false, progress: 0 };
+    } catch(err) {
+      console.error("Failed to fetch wave batch:", err);
+    } finally {
+      set({ isFetchingWave: false });
     }
-    
-    let nextIndex = 0;
-    if (state.isShuffle && state.queue.length > 1) {
-      nextIndex = Math.floor(Math.random() * state.queue.length);
+  },
+
+  skipWaveTrack: () => {
+    const state = usePlayerStore.getState();
+    if (state.isWaveMode && state.waveBusinessId && state.currentTrack) {
+       fetch('/api/wave/skip', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ businessId: state.waveBusinessId, trackId: state.currentTrack.id, reason: "Manual Skip in Wave Mode" })
+       }).catch(console.error);
     }
-    
-    const next = state.queue[nextIndex];
-    const newQueue = state.queue.filter((_, i) => i !== nextIndex);
-    const newHistory = state.currentTrack
-      ? [...state.history, state.currentTrack]
-      : state.history;
-    
-    return {
-      currentTrack: next,
-      queue: newQueue,
-      history: newHistory,
-      progress: 0,
-      isPlaying: true
-    };
-  }),
+    state.nextTrack();
+  },
+  
+  nextTrack: () => {
+    const currentState = usePlayerStore.getState();
+    if (currentState.isWaveMode && currentState.queue.length <= 3 && !currentState.isFetchingWave) {
+      setTimeout(() => usePlayerStore.getState().fetchNextWaveBatch(), 0);
+    }
+
+    set((state) => {
+      if (state.repeatMode === 'one' && state.currentTrack) {
+        return { progress: 0, isPlaying: true };
+      }
+      
+      if (state.queue.length === 0) {
+        if (state.repeatMode === 'all' && state.currentTrack) {
+          return { progress: 0, isPlaying: false }; 
+        }
+        return { isPlaying: false, progress: 0 };
+      }
+      
+      let nextIndex = 0;
+      if (state.isShuffle && state.queue.length > 1) {
+        nextIndex = Math.floor(Math.random() * state.queue.length);
+      }
+      
+      const next = state.queue[nextIndex];
+      const newQueue = state.queue.filter((_, i) => i !== nextIndex);
+      const newHistory = state.currentTrack
+        ? [...state.history, state.currentTrack]
+        : state.history;
+      
+      return {
+        currentTrack: next,
+        queue: newQueue,
+        history: newHistory,
+        progress: 0,
+        isPlaying: true
+      };
+    });
+  },
   
   prevTrack: () => set((state) => {
     if (state.history.length === 0) {

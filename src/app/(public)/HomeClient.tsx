@@ -3,10 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { 
-  ShieldCheck, 
-  Zap, 
-  ArrowRight, 
+import {
+  ShieldCheck,
+  Zap,
+  ArrowRight,
   Play,
   Heart,
   ExternalLink,
@@ -14,7 +14,12 @@ import {
   Star,
   HelpCircle,
   Plus,
-  Minus
+  Minus,
+  Waves,
+  WifiOff,
+  Mic,
+  BarChart3,
+  LayoutDashboard
 } from "lucide-react";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
 import { useState } from "react";
@@ -48,18 +53,18 @@ export default function HomeClient() {
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#0f1117] via-[#0f1117]/60 to-transparent" />
-        
+
         <div className="relative z-10 max-w-2xl space-y-8 animate-in fade-in slide-in-from-left duration-1000">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon/30 bg-neon/10 backdrop-blur-md">
             <Zap className="w-4 h-4 text-neon fill-neon" />
             <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">Новое поколение звука</span>
           </div>
-          
+
           <h1 className="text-[clamp(2rem,10vw,4.5rem)] sm:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-[1.1] md:leading-[0.85] text-white">
             Атмосфера <br />
             <span className="text-neon outline-text">вашего успеха</span>
           </h1>
-          
+
           <p className="text-lg md:text-xl text-neutral-300 font-medium leading-relaxed max-w-xl">
             Легальное музыкальное оформление для бизнеса. <br />
             100% уверенность. Полная безопасность. В одно касание.
@@ -160,6 +165,130 @@ export default function HomeClient() {
         </div>
       </section>
 
+      {/* Features Grid Section */}
+      <section className="px-6 md:px-12 space-y-16">
+        <div className="text-center space-y-4 max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon/30 bg-neon/10 backdrop-blur-md">
+            <Star className="w-4 h-4 text-neon fill-neon" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neon">Технологии будущего</span>
+          </div>
+          <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none text-white">
+            Больше, чем просто <span className="text-neon outline-text">стриминг</span>
+          </h2>
+          <p className="text-neutral-500 font-medium text-sm md:text-lg italic">
+            Мы объединили музыкальный интеллект с юридической безопасностью, чтобы ваш бизнес звучал безупречно.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          {[
+            {
+              index: "01",
+              title: "Бизнес-Волна",
+              description: "Умная музыка, которая чувствует ритм вашего бизнеса. Система мгновенно создает идеальную атмосферу, адаптируясь под время дня и настроение гостей.",
+              icon: Waves,
+              color: "text-neon",
+              shadow: "shadow-neon/20",
+              border: "group-hover:border-neon/50",
+              bg: "bg-neon/10"
+            },
+            {
+              index: "02",
+              title: "Полный Оффлайн",
+              description: "Ваша музыка не остановится никогда. Безупречное звучание даже при полном отсутствии интернета — мы гарантируем стабильность вашего эфира.",
+              icon: WifiOff,
+              color: "text-blue-400",
+              shadow: "shadow-blue-400/20",
+              border: "group-hover:border-blue-400/50",
+              bg: "bg-blue-400/10"
+            },
+            {
+              index: "03",
+              title: "Юридический щит",
+              description: "Забудьте о проверках, штрафах и отчислениях в РАО и ВОИС. Получите полную юридическую свободу и прямые лицензии для вашего спокойствия.",
+              icon: ShieldCheck,
+              color: "text-indigo-400",
+              shadow: "shadow-indigo-400/20",
+              border: "group-hover:border-indigo-400/50",
+              bg: "bg-indigo-400/10"
+            },
+            {
+              index: "04",
+              title: "Голосовой ИИ",
+              description: "Ваш персональный голос бренда. Мгновенно превращайте текст в профессиональные аудио-объявления, которые увеличивают средний чек.",
+              icon: Mic,
+              color: "text-violet-400",
+              shadow: "shadow-violet-400/20",
+              border: "group-hover:border-violet-400/50",
+              bg: "bg-violet-400/10"
+            },
+            {
+              index: "05",
+              title: "Умная Аналитика",
+              description: "Секреты успеха вашего заведения. Узнайте, какая музыка заставляет клиентов возвращаться к вам снова и снова, благодаря глубоким инсайтам.",
+              icon: BarChart3,
+              color: "text-orange-400",
+              shadow: "shadow-orange-400/20",
+              border: "group-hover:border-orange-400/50",
+              bg: "bg-orange-400/10"
+            },
+            {
+              index: "06",
+              title: "Единая Панель",
+              description: "Масштабируйте успех без границ. Легкое управление всей сетью заведений из любой точки мира — полный контроль в ваших руках в один клик.",
+              icon: LayoutDashboard,
+              color: "text-cyan-400",
+              shadow: "shadow-cyan-400/20",
+              border: "group-hover:border-cyan-400/50",
+              bg: "bg-cyan-400/10"
+            }
+          ].map((feature, i) => (
+            <div 
+              key={i} 
+              className={cn(
+                "group relative glass-dark border border-white/10 rounded-[2.5rem] p-8 md:p-10 space-y-8 transition-all duration-500 overflow-hidden shadow-2xl hover:-translate-y-2",
+                feature.border,
+                feature.shadow
+              )}
+            >
+              {/* Animated Glow Background */}
+              <div className={cn("absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[100px] opacity-0 group-hover:opacity-20 transition-all duration-1000", feature.bg)} />
+              
+              <div className="flex items-center justify-between">
+                <div className={cn(
+                  "w-16 h-16 rounded-[1.5rem] flex items-center justify-center border border-white/10 shadow-inner group-hover:scale-110 transition-all duration-500 relative overflow-hidden",
+                  feature.bg
+                )}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
+                  <feature.icon className={cn("w-8 h-8 relative z-10", feature.color)} />
+                </div>
+                <span className="text-4xl font-black text-white/5 group-hover:text-white/10 transition-colors duration-500 italic tracking-tighter">
+                  {feature.index}
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-white leading-tight">
+                  {feature.title.split(' ')[0]} <br className="hidden md:block" />
+                  <span className="text-neon group-hover:text-white transition-colors">{feature.title.split(' ').slice(1).join(' ')}</span>
+                </h3>
+                <p className="text-neutral-500 text-sm md:text-base leading-relaxed font-medium transition-colors group-hover:text-neutral-400">
+                  {feature.description}
+                </p>
+              </div>
+
+              <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-neutral-600 group-hover:text-neon transition-colors">
+                  <div className="w-1.5 h-1.5 rounded-full bg-neutral-800 group-hover:bg-neon group-hover:animate-pulse" />
+                  Подробнее
+                </div>
+                <ArrowRight className="w-4 h-4 text-neutral-800 group-hover:text-neon group-hover:translate-x-1 transition-all" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Featured Music Section */}
       <section className="px-6 md:px-12 space-y-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -185,7 +314,7 @@ export default function HomeClient() {
       <section className="px-6 md:px-12">
         <div className="glass-surface border border-white/8 rounded-[2rem] md:rounded-[3.5rem] p-8 md:p-16 relative overflow-hidden shadow-xl shadow-black/10">
           <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-neon/10 blur-[120px] rounded-full" />
-          
+
           <div className="relative z-10 grid md:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <h2 className="text-3xl md:text-6xl font-black uppercase tracking-tighter leading-[0.9]">
@@ -198,18 +327,18 @@ export default function HomeClient() {
               </p>
             </div>
             <div className="relative h-[300px] md:h-[500px] rounded-3xl overflow-hidden border border-white/10">
-              <Image 
-                src="/images/mood-2.png" 
-                alt="Compliance" 
-                fill 
-                className="object-cover grayscale hover:grayscale-0 transition-all duration-1000" 
+              <Image
+                src="/images/mood-2.png"
+                alt="Compliance"
+                fill
+                className="object-cover grayscale hover:grayscale-0 transition-all duration-1000"
               />
               <div className="absolute inset-0 bg-neon/10 mix-blend-overlay" />
             </div>
           </div>
         </div>
       </section>
- 
+
       {/* FAQ Section */}
       <section className="px-6 md:px-12 max-w-5xl mx-auto w-full space-y-16">
         <div className="text-center space-y-4">
@@ -221,30 +350,30 @@ export default function HomeClient() {
             Часто задаваемые <span className="text-neon outline-text">вопросы</span>
           </h2>
         </div>
- 
+
         <div className="space-y-4">
-          <FAQItem 
-            question="Как начать пользоваться сервисом?" 
+          <FAQItem
+            question="Как начать пользоваться сервисом?"
             answer="Зарегистрируйтесь, выберите подходящий тариф и привяжите карту. Вы получите 14 дней бесплатного периода для тестирования всех функций без ограничений."
           />
-          <FAQItem 
-            question="Нужно ли платить в РАО и ВОИС?" 
+          <FAQItem
+            question="Нужно ли платить в РАО и ВОИС?"
             answer="Нет. Бизмюзик предоставляет музыку по прямым лицензионным договорам с правообладателями. Мы берем на себя всю юридическую ответственность, и вам не нужно делать дополнительные отчисления в аккредитованные организации."
           />
-          <FAQItem 
-            question="Есть ли мобильное приложение?" 
+          <FAQItem
+            question="Есть ли мобильное приложение?"
             answer="Да, наш сервис — это PWA (Progressive Web App). Вы можете установить его на любой смартфон или планшет прямо из браузера, и оно будет работать как нативное приложение даже при нестабильном интернете."
           />
-          <FAQItem 
-            question="Могу ли я использовать музыку оффлайн?" 
+          <FAQItem
+            question="Могу ли я использовать музыку оффлайн?"
             answer="Да, наше приложение автоматически кэширует треки. Если интернет временно пропадет, воспроизведение продолжится без прерываний из локального хранилища устройства."
           />
-          <FAQItem 
-            question="Как я получу документы для проверки?" 
+          <FAQItem
+            question="Как я получу документы для проверки?"
             answer="Все необходимые документы (договор оферты, лицензионный сертификат с QR-кодом) доступны в вашем личном кабинете. Вы можете скачать или распечатать их в любой момент для предъявления инспекторам."
           />
-          <FAQItem 
-            question="Можно ли менять тариф?" 
+          <FAQItem
+            question="Можно ли менять тариф?"
             answer="Да, вы можете сменить тарифный план или период оплаты (месяц/год) в личном кабинете в любое время. Все перерасчеты произойдут автоматически."
           />
         </div>
@@ -252,18 +381,18 @@ export default function HomeClient() {
     </div>
   );
 }
- 
+
 function FAQItem({ question, answer }: { question: string, answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
- 
+
   return (
-    <div 
+    <div
       className={cn(
         "group border rounded-[1.5rem] md:rounded-[2rem] overflow-hidden transition-all duration-500",
         isOpen ? "bg-white/[0.05] border-neon/30 ring-1 ring-neon/10" : "bg-white/[0.03] border-white/8 hover:border-white/12"
       )}
     >
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-6 py-6 md:px-8 md:py-8 flex items-center justify-between gap-4 text-left"
       >
@@ -280,7 +409,7 @@ function FAQItem({ question, answer }: { question: string, answer: string }) {
           {isOpen ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
         </div>
       </button>
-      
+
       <div className={cn(
         "grid transition-all duration-500 ease-in-out",
         isOpen ? "grid-rows-[1fr] opacity-100 pb-8" : "grid-rows-[0fr] opacity-0"

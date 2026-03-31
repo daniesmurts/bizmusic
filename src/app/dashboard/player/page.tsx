@@ -18,6 +18,7 @@ import { DashboardPlayer } from "@/components/player/DashboardPlayer";
 import { ConnectionStatus } from "@/components/player/ConnectionStatus";
 import { PlayHistory } from "@/components/player/PlayHistory";
 import { PlaylistManager } from "@/components/player/PlaylistManager";
+import { WaveControls } from "@/components/player/WaveControls";
 import { toast } from "sonner";
 
 export default function PlayerPage() {
@@ -62,6 +63,7 @@ export default function PlayerPage() {
         locationId={dashboardData?.locations?.[0]?.id}
       />
 
+      {businessId && <WaveControls businessId={businessId} />}
 
       {/* Grid Layout for Playlists & Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">

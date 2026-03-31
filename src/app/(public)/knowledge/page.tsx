@@ -13,7 +13,8 @@ import {
   FileText,
   Search,
   MessageCircle,
-  Play
+  Play,
+  Sliders
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,14 @@ export default function KnowledgeBasePage() {
       articles: [
         { title: "Управление подпиской", href: "#" },
         { title: "Бухгалтерские документы", href: "#" }
+      ]
+    },
+    {
+      title: "Управление эфиром",
+      icon: Sliders,
+      articles: [
+        { title: "Бизнес-Волна: Что это?", href: "/knowledge/business-wave" },
+        { title: "Тайм-зона и расписание", href: "#" }
       ]
     }
   ];
