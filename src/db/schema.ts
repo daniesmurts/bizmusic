@@ -100,6 +100,17 @@ export const locations = pgTable("locations", {
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
 
+// Wave Settings Table
+export const waveSettings = pgTable("wave_settings", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull().unique(),
+  energyPreference: integer("energyPreference").default(5).notNull(),
+  vocalPreference: text("vocalPreference").default('both').notNull(),
+  focusProfile: text("focusProfile").default('none').notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+});
+
 // Tracks Table
 export const tracks = pgTable("tracks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -393,6 +404,7 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   ttsUsageEvents: many(ttsUsageEvents),
   aiUsageEvents: many(aiUsageEvents),
   announcementAcquisitions: many(businessAnnouncementAcquisitions),
+  waveSettings: one(waveSettings),
 }));
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({
@@ -435,6 +447,10 @@ export const playLogsRelations = relations(playLogs, ({ one }) => ({
   location: one(locations, { fields: [playLogs.locationId], references: [locations.id] }),
   business: one(businesses, { fields: [playLogs.businessId], references: [businesses.id] }),
   track: one(tracks, { fields: [playLogs.trackId], references: [tracks.id] }),
+}));
+
+export const waveSettingsRelations = relations(waveSettings, ({ one }) => ({
+  business: one(businesses, { fields: [waveSettings.businessId], references: [businesses.id] }),
 }));
 
 // Track Skips Table for Analytics

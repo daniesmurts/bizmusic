@@ -37,6 +37,8 @@ export const Player = () => {
     toggleShuffle,
     repeatMode,
     setRepeatMode,
+    isWaveMode,
+    skipWaveTrack
   } = usePlayerStore();
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -48,11 +50,17 @@ export const Player = () => {
 
   // Load from local IDB cache if available
   useEffect(() => {
-    if (!currentTrack) return;
+    if (!currentTrack) {
+      setAudioSource(undefined);
+      return;
+    }
     
     let isActive = true;
     let objectUrl: string | null = null;
     const fallbackSrc = currentTrack.streamUrl || currentTrack.fileUrl;
+    
+    // Clear instantly to prevent React from playing the old source
+    setAudioSource(undefined);
     
     async function loadAudioSource() {
       try {
@@ -84,7 +92,7 @@ export const Player = () => {
   useEffect(() => {
     if (!audioRef.current) return;
     
-    if (isPlaying) {
+    if (isPlaying && audioSource) {
       audioRef.current.play().then(() => {
         // Log the play event when playback actually starts AND it's a new track session
         if (currentTrack && lastLoggedTrackIdRef.current !== currentTrack.id) {
@@ -108,16 +116,17 @@ export const Player = () => {
           });
         }
       }).catch((err) => {
+        if (err.name === 'AbortError') return;
         console.error("Playback failed:", err);
         // Sometimes browsers block autoplay
         if (err.name === 'NotAllowedError') {
           toast.error("Нажмите Play для начала воспроизведения");
         }
       });
-    } else {
+    } else if (!isPlaying) {
       audioRef.current.pause();
     }
-  }, [isPlaying, currentTrack]);
+  }, [isPlaying, currentTrack, audioSource]);
 
   useEffect(() => {
     if (!audioRef.current) return;
@@ -194,7 +203,7 @@ export const Player = () => {
       <div className="max-w-7xl mx-auto glass-dark border border-white/10 rounded-3xl p-4 flex items-center justify-between shadow-2xl shadow-neon/10 gap-8">
         <audio 
           ref={audioRef}
-          src={audioSource || (currentTrack.streamUrl || currentTrack.fileUrl)}
+          src={audioSource || undefined}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={nextTrack}
@@ -217,7 +226,14 @@ export const Player = () => {
             )}
           </div>
           <div className="min-w-0">
-            <h4 className="text-white font-black text-sm uppercase truncate tracking-tight">{currentTrack.title}</h4>
+            <div className="flex items-center gap-2">
+              <h4 className="text-white font-black text-sm uppercase truncate tracking-tight">{currentTrack.title}</h4>
+              {isWaveMode && (
+                <span className="bg-neon/20 text-neon px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border border-neon/30 flex-shrink-0">
+                  Wave Active
+                </span>
+              )}
+            </div>
             <p className="text-neutral-500 text-xs font-bold uppercase truncate tracking-widest">{currentTrack.artist}</p>
           </div>
         </div>
@@ -251,7 +267,7 @@ export const Player = () => {
               variant="ghost" 
               size="icon" 
               className="text-white hover:text-neon transition-colors h-10 w-10 p-0"
-              onClick={nextTrack}
+              onClick={isWaveMode ? skipWaveTrack : nextTrack}
             >
               <SkipForward className="w-6 h-6 fill-current" />
             </Button>
