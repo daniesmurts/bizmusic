@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { businesses, locations, licenses, playlistTracks, tracks } from "@/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { businesses, locations, licenses, playlistTracks, tracks, playlists, users } from "@/db/schema";
+import { eq, desc, sql, or, inArray } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 
 function formatDurationRu(totalSeconds: number) {
@@ -59,8 +59,41 @@ export async function getDashboardDataAction() {
       };
     }
 
-    // Fetch playlists with track counts separately
-    const playlistsList = await Promise.all(business.playlists.map(async (p) => {
+    // Find all businesses owned by ADMIN or CREATOR users to include their playlists as curated
+    const admins = await db.select({ id: users.id })
+      .from(users)
+      .where(or(eq(users.role, "ADMIN"), eq(users.userType, "CREATOR")));
+    
+    const adminUserIds = admins.map(u => u.id);
+    
+    let adminBusinessIds: string[] = [];
+    if (adminUserIds.length > 0) {
+      const adminBiz = await db.select({ id: businesses.id })
+        .from(businesses)
+        .where(inArray(businesses.userId, adminUserIds));
+      adminBusinessIds = adminBiz.map(b => b.id);
+    }
+
+    // Fetch global (admin) playlists where businessId is null OR belongs to an admin business
+    const globalPlaylistsFromDb = await db.query.playlists.findMany({
+      where: (p, { isNull, inArray, or }) => {
+        const conditions = [isNull(p.businessId)];
+        if (adminBusinessIds.length > 0) {
+          conditions.push(inArray(p.businessId, adminBusinessIds));
+        }
+        return or(...conditions);
+      },
+      columns: {
+        id: true,
+        name: true,
+        businessId: true,
+      }
+    });
+
+    // filter out playlists that already belong to THIS specific business (from the current logged in business context)
+    const filteredGlobalPlaylists = globalPlaylistsFromDb.filter(p => p.businessId !== business.id);
+
+    const processPlaylist = async (p: any) => {
       const [{ count, totalDurationSeconds }] = await db
         .select({
           count: sql`count(${playlistTracks.id})`.mapWith(Number),
@@ -77,7 +110,11 @@ export async function getDashboardDataAction() {
         durationSeconds: totalDurationSeconds || 0,
         duration: formatDurationRu(totalDurationSeconds || 0),
       };
-    }));
+    };
+
+    // Fetch playlists with track counts separately
+    const playlistsList = await Promise.all(business.playlists.map(processPlaylist));
+    const globalPlaylistsList = await Promise.all(filteredGlobalPlaylists.map(processPlaylist));
 
     const totalTrackCount = playlistsList.reduce((acc, p) => acc + p.trackCount, 0);
 
@@ -88,6 +125,7 @@ export async function getDashboardDataAction() {
         businessName: business.legalName,
         locations: business.locations,
         playlists: playlistsList,
+        globalPlaylists: globalPlaylistsList,
         stats: {
           locationCount: business.locations.length,
           trackCount: totalTrackCount,

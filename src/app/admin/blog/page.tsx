@@ -142,18 +142,18 @@ export default function AdminBlogPage() {
           </h1>
         </div>
 
-        <div className="flex gap-4">
-          <Link href="/blog" target="_blank">
+        <div className="flex flex-wrap items-center gap-4 shrink-0">
+          <Link href="/blog" target="_blank" className="flex-1 sm:flex-none">
             <Button
               variant="outline"
-              className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2"
+              className="w-full sm:w-auto bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2"
             >
               <Eye className="w-5 h-5" />
               Просмотр
             </Button>
           </Link>
-          <Link href="/admin/blog/new">
-            <Button className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 h-14 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)] gap-3">
+          <Link href="/admin/blog/new" className="flex-1 sm:flex-none">
+            <Button className="w-full sm:w-auto bg-neon text-black hover:scale-[1.02] transition-transform rounded-2xl px-8 h-14 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)] gap-3">
               <Plus className="w-5 h-5" />
               Добавить
             </Button>

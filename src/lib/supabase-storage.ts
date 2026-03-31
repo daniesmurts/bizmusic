@@ -99,8 +99,10 @@ export function getFilePublicUrl(fileName: string, folder: string = 'tracks'): s
 }
 
 /**
- * Generate a signed URL for downloading/streaming a file
+ * Generate a signed URL for downloading/streaming a file.
+ * Includes retry logic for transient network failures (e.g. Cloudflare timeouts).
  * @param fileName - The name of the file
+ * @param folder - The folder in the bucket
  * @param expiresIn - URL expiration time in seconds (default: 24 hours for streaming)
  * @returns Signed URL for download
  */
@@ -109,15 +111,36 @@ export async function getDownloadSignedUrl(
   folder: string = 'tracks',
   expiresIn: number = 86400
 ): Promise<string> {
-  const { data, error } = await supabaseAdmin.storage
-    .from(BUCKET_NAME)
-    .createSignedUrl(`${folder}/${fileName}`, expiresIn);
+  const maxRetries = 2;
+  let lastError: Error | null = null;
 
-  if (error) {
-    throw new Error(`Failed to create download URL: ${error.message}`);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const { data, error } = await supabaseAdmin.storage
+        .from(BUCKET_NAME)
+        .createSignedUrl(`${folder}/${fileName}`, expiresIn);
+
+      if (error) {
+        throw new Error(`Failed to create download URL: ${error.message}`);
+      }
+
+      return data.signedUrl;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      const isFetchError = lastError.message.includes('fetch failed') ||
+        lastError.message.includes('ConnectTimeout') ||
+        lastError.message.includes('ECONNRESET');
+
+      if (!isFetchError || attempt === maxRetries) {
+        throw lastError;
+      }
+
+      // Exponential backoff: 500ms, 1000ms
+      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+    }
   }
 
-  return data.signedUrl;
+  throw lastError!;
 }
 
 /**

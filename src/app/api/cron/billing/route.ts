@@ -69,7 +69,7 @@ export async function GET(req: Request) {
               const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
               await sendEmail({
                 to: owner.email,
-                subject: "Подписка завершена — BizMusic",
+                subject: "Срок действия лицензии истекает — Бизмюзик",
                 html: `
                   <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                     <h1 style="color: #333;">Подписка завершена</h1>

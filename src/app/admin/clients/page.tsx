@@ -70,8 +70,8 @@ export default function ClientsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden lg:flex items-center gap-6 px-8 py-4 glass-dark border border-white/5 rounded-2xl mr-4">
+        <div className="flex flex-wrap items-center gap-4 shrink-0">
+          <div className="hidden lg:flex items-center gap-6 px-8 py-4 glass-dark border border-white/5 rounded-2xl mr-2">
             <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
                 Всего клиентов
@@ -93,7 +93,7 @@ export default function ClientsPage() {
             onClick={handleRetryFailed}
             disabled={retryingFailed || failedDocsCount === 0}
             variant="outline"
-            className="border-amber-500/30 text-amber-300 rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2"
+            className="border-amber-500/30 text-amber-300 rounded-2xl h-14 px-5 font-black uppercase tracking-widest gap-2 flex-1 sm:flex-none"
           >
             <RefreshCcw className={`w-4 h-4 ${retryingFailed ? "animate-spin" : ""}`} />
             Повторить Ошибки ({failedDocsCount})
@@ -110,13 +110,13 @@ export default function ClientsPage() {
               }
             }}
             variant="outline"
-            className="border-white/10 text-white rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2"
+            className="border-white/10 text-white rounded-2xl h-14 px-6 font-black uppercase tracking-widest gap-2 flex-1 sm:flex-none"
           >
             Сидинг
           </Button>
 
           <Button
-            className="bg-neon text-black hover:scale-[1.02] transition-transform rounded-2xl h-14 px-8 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)] gap-2"
+            className="bg-neon text-black hover:scale-[1.02] transition-transform rounded-2xl h-14 px-8 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(92,243,135,0.3)] gap-2 flex-1 sm:flex-none"
           >
             <Plus className="w-5 h-5" />
             Добавить ИНН

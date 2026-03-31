@@ -83,7 +83,7 @@ export default function AdminAnalyticsPage() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `bizmusic-analytics-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `bizmuzik-analytics-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

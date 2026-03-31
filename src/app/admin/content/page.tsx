@@ -461,71 +461,7 @@ export default function AdminContentPage() {
           </h1>
         </div>
 
-        <div className="flex gap-4">
-          {/* View Toggle */}
-          <div className="flex bg-white/[0.02] border border-white/10 rounded-2xl p-1">
-            <button
-              onClick={() => setCurrentView("tracks")}
-              className={cn(
-                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                currentView === "tracks"
-                  ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <Music className="w-4 h-4" />
-              Треки
-            </button>
-            <button
-              onClick={() => setCurrentView("albums")}
-              className={cn(
-                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                currentView === "albums"
-                  ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <Library className="w-4 h-4" />
-              Альбомы
-            </button>
-            <button
-              onClick={() => setCurrentView("playlists")}
-              className={cn(
-                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                currentView === "playlists"
-                  ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <ListMusic className="w-4 h-4" />
-              Плейлисты
-            </button>
-            <button
-              onClick={() => setCurrentView("artists")}
-              className={cn(
-                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                currentView === "artists"
-                  ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <Users className="w-4 h-4" />
-              Артисты
-            </button>
-            <button
-              onClick={() => setCurrentView("announcements")}
-              className={cn(
-                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                currentView === "announcements"
-                  ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
-                  : "text-neutral-400 hover:text-white"
-              )}
-            >
-              <Music className="w-4 h-4" />
-              Анонсы
-            </button>
-          </div>
-
+        <div className="flex items-center gap-4 shrink-0">
           {currentView === "tracks" && (
             <Button
               onClick={() => setShowUploadModal(true)}
@@ -555,6 +491,72 @@ export default function AdminContentPage() {
               Новый артист
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* View Toggle Tabs */}
+      <div className="flex overflow-x-auto scrollbar-hide">
+        <div className="flex bg-white/[0.02] border border-white/10 rounded-2xl p-1 shrink-0">
+          <button
+            onClick={() => setCurrentView("tracks")}
+            className={cn(
+              "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+              currentView === "tracks"
+                ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+                : "text-neutral-400 hover:text-white"
+            )}
+          >
+            <Music className="w-4 h-4" />
+            Треки
+          </button>
+          <button
+            onClick={() => setCurrentView("albums")}
+            className={cn(
+              "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+              currentView === "albums"
+                ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+                : "text-neutral-400 hover:text-white"
+            )}
+          >
+            <Library className="w-4 h-4" />
+            Альбомы
+          </button>
+          <button
+            onClick={() => setCurrentView("playlists")}
+            className={cn(
+              "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+              currentView === "playlists"
+                ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+                : "text-neutral-400 hover:text-white"
+            )}
+          >
+            <ListMusic className="w-4 h-4" />
+            Плейлисты
+          </button>
+          <button
+            onClick={() => setCurrentView("artists")}
+            className={cn(
+              "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+              currentView === "artists"
+                ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+                : "text-neutral-400 hover:text-white"
+            )}
+          >
+            <Users className="w-4 h-4" />
+            Артисты
+          </button>
+          <button
+            onClick={() => setCurrentView("announcements")}
+            className={cn(
+              "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+              currentView === "announcements"
+                ? "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.3)]"
+                : "text-neutral-400 hover:text-white"
+            )}
+          >
+            <Music className="w-4 h-4" />
+            Анонсы
+          </button>
         </div>
       </div>
 
