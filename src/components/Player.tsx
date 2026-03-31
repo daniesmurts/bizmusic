@@ -17,8 +17,10 @@ import {
   Music
 } from "lucide-react";
 import Image from "next/image";
-import { logPlayAction } from "@/lib/actions/play-logs";
+
 import { toast } from "sonner";
+import { OfflineManager } from "./player/OfflineManager";
+import { getCachedAudioUrl } from "@/lib/services/offline-audio";
 
 export const Player = () => {
   const { 
@@ -40,8 +42,43 @@ export const Player = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [audioSource, setAudioSource] = useState<string | undefined>(undefined);
 
   const lastLoggedTrackIdRef = useRef<string | null>(null);
+
+  // Load from local IDB cache if available
+  useEffect(() => {
+    if (!currentTrack) return;
+    
+    let isActive = true;
+    let objectUrl: string | null = null;
+    const fallbackSrc = currentTrack.streamUrl || currentTrack.fileUrl;
+    
+    async function loadAudioSource() {
+      try {
+        const cachedUrl = await getCachedAudioUrl(currentTrack!.id);
+        if (!isActive) return;
+        
+        if (cachedUrl) {
+          objectUrl = cachedUrl;
+          setAudioSource(cachedUrl);
+        } else {
+          setAudioSource(fallbackSrc);
+        }
+      } catch (err) {
+        if (isActive) setAudioSource(fallbackSrc);
+      }
+    }
+    
+    loadAudioSource();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [currentTrack]);
 
   // Sync audio element with store
   useEffect(() => {
@@ -51,12 +88,23 @@ export const Player = () => {
       audioRef.current.play().then(() => {
         // Log the play event when playback actually starts AND it's a new track session
         if (currentTrack && lastLoggedTrackIdRef.current !== currentTrack.id) {
-          logPlayAction(currentTrack.id).then(() => {
-            lastLoggedTrackIdRef.current = currentTrack.id;
-            // Dispatch event to refresh UI
-            window.dispatchEvent(new CustomEvent('track-played', { detail: { trackId: currentTrack.id } }));
-          }).catch(err => {
-            console.error("Failed to log play:", err);
+          fetch('/api/player/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trackId: currentTrack.id })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              lastLoggedTrackIdRef.current = currentTrack.id;
+              // Dispatch event to refresh UI
+              window.dispatchEvent(new CustomEvent('track-played', { detail: { trackId: currentTrack.id } }));
+            } else {
+              console.error("Failed to log play (API):", data.error);
+            }
+          })
+          .catch(err => {
+            console.error("Failed to log play (Network):", err);
           });
         }
       }).catch((err) => {
@@ -142,10 +190,11 @@ export const Player = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 animate-slide-up">
+      <OfflineManager />
       <div className="max-w-7xl mx-auto glass-dark border border-white/10 rounded-3xl p-4 flex items-center justify-between shadow-2xl shadow-neon/10 gap-8">
         <audio 
           ref={audioRef}
-          src={currentTrack.streamUrl || currentTrack.fileUrl}
+          src={audioSource || (currentTrack.streamUrl || currentTrack.fileUrl)}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={nextTrack}
