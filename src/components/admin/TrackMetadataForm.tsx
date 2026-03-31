@@ -30,6 +30,11 @@ interface TrackMetadataFormProps {
     isExplicit: boolean;
     isFeatured: boolean;
     coverUrl?: string;
+    rightsStatus?: string;
+    territoryRestriction?: string[];
+    vocalType?: string;
+    language?: string;
+    timeSuitability?: string[];
   }) => void;
   onCancel: () => void;
   initialData?: {
@@ -44,8 +49,24 @@ interface TrackMetadataFormProps {
     isExplicit?: boolean;
     isFeatured?: boolean;
     coverUrl?: string | null;
+    rightsStatus?: string | null;
+    territoryRestriction?: string[] | null;
+    vocalType?: string | null;
+    language?: string | null;
+    timeSuitability?: string[] | null;
   };
 }
+
+const RIGHTS_OPTIONS = ["Direct Owner", "Exclusive License", "Non-Exclusive"];
+const VOCAL_OPTIONS = ["Instrumental", "Low Vocal", "Full Vocal"];
+const LANGUAGE_OPTIONS = ["Russian", "English", "French", "Spanish", "Tatar"];
+const TERRITORY_OPTIONS = ["Russian Federation", "CIS", "Global"];
+const TIME_OPTIONS = [
+  { id: "Morning", label: "Morning ☀️" },
+  { id: "Day", label: "Day ☀️" },
+  { id: "Evening", label: "Evening 🌙" },
+  { id: "Night", label: "Night 🌙" }
+];
 
 const PREDEFINED_MOOD_TAGS = [
   "Morning",
@@ -103,6 +124,12 @@ export const TrackMetadataForm = ({
   const [isExplicit, setIsExplicit] = useState(initialData?.isExplicit || false);
   const [isFeatured, setIsFeatured] = useState(initialData?.isFeatured || false);
   const [coverUrl, setCoverUrl] = useState(initialData?.coverUrl || extractedCoverUrl || "");
+  const [rightsStatus, setRightsStatus] = useState(initialData?.rightsStatus || "Direct Owner");
+  const [territoryRestriction, setTerritoryRestriction] = useState<string[]>(initialData?.territoryRestriction || ["Russian Federation"]);
+  const [vocalType, setVocalType] = useState(initialData?.vocalType || "Instrumental");
+  const [language, setLanguage] = useState(initialData?.language || "Russian");
+  const [timeSuitability, setTimeSuitability] = useState<string[]>(initialData?.timeSuitability || []);
+
   const [customTag, setCustomTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showArtistDropdown, setShowArtistDropdown] = useState(false);
@@ -149,6 +176,11 @@ export const TrackMetadataForm = ({
       isExplicit,
       isFeatured,
       coverUrl: coverUrl || undefined,
+      rightsStatus,
+      territoryRestriction,
+      vocalType,
+      language,
+      timeSuitability,
     });
   };
 
@@ -361,6 +393,92 @@ export const TrackMetadataForm = ({
             </div>
           </div>
         </div>
+
+        {/* Rights, Territory, Vocal, Language, Time */}
+        <div className="space-y-6 pt-6 border-t border-white/5">
+          <div>
+            <Label className="text-white font-black uppercase tracking-widest text-xs">Rights Status *</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+              {RIGHTS_OPTIONS.map((opt) => (
+                <button
+                  key={opt} type="button" onClick={() => setRightsStatus(opt)}
+                  className={cn("px-4 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                    rightsStatus === opt ? "bg-neon text-black border-neon" : "bg-white/[0.02] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <Label className="text-white font-black uppercase tracking-widest text-xs">Vocal Type *</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+              {VOCAL_OPTIONS.map((opt) => (
+                <button
+                  key={opt} type="button" onClick={() => setVocalType(opt)}
+                  className={cn("px-4 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                    vocalType === opt ? "bg-neon text-black border-neon" : "bg-white/[0.02] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-white font-black uppercase tracking-widest text-xs">Language *</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+              {LANGUAGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt} type="button" onClick={() => setLanguage(opt)}
+                  className={cn("px-4 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                    language === opt ? "bg-neon text-black border-neon" : "bg-white/[0.02] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <Label className="text-white font-black uppercase tracking-widest text-xs">Territory Restriction</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+              {TERRITORY_OPTIONS.map((opt) => (
+                <button
+                  key={opt} type="button" 
+                  onClick={() => setTerritoryRestriction(prev => prev.includes(opt) ? prev.filter(t => t !== opt) : [...prev, opt])}
+                  className={cn("px-4 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                    territoryRestriction.includes(opt) ? "bg-neon text-black border-neon" : "bg-white/[0.02] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-white font-black uppercase tracking-widest text-xs">Time Suitability</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+              {TIME_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id} type="button" 
+                  onClick={() => setTimeSuitability(prev => prev.includes(opt.id) ? prev.filter(t => t !== opt.id) : [...prev, opt.id])}
+                  className={cn("px-4 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                    timeSuitability.includes(opt.id) ? "bg-neon text-black border-neon" : "bg-white/[0.02] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* Energy Level */}

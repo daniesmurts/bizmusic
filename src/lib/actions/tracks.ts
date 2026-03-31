@@ -28,6 +28,11 @@ export interface TrackInput {
   fileName: string;
   artistId?: string;
   coverUrl?: string;
+  rightsStatus?: string;
+  territoryRestriction?: string[];
+  vocalType?: string;
+  language?: string;
+  timeSuitability?: string[];
 }
 
 /**
@@ -84,6 +89,11 @@ export async function createTrackAction(data: TrackInput) {
       energyLevel: data.energyLevel,
       artistId: data.artistId,
       coverUrl: data.coverUrl,
+      rightsStatus: data.rightsStatus || "Direct Owner",
+      territoryRestriction: data.territoryRestriction || ["Russian Federation"],
+      vocalType: data.vocalType || "Instrumental",
+      language: data.language || "Russian",
+      timeSuitability: data.timeSuitability || [],
     }).returning();
 
     revalidatePath("/admin/content");
@@ -124,6 +134,11 @@ export async function updateTrackAction(
     if (data.fileUrl !== undefined) updateData.fileUrl = data.fileUrl;
     if (data.artistId !== undefined) updateData.artistId = data.artistId;
     if (data.coverUrl !== undefined) updateData.coverUrl = data.coverUrl;
+    if (data.rightsStatus !== undefined) updateData.rightsStatus = data.rightsStatus;
+    if (data.territoryRestriction !== undefined) updateData.territoryRestriction = data.territoryRestriction;
+    if (data.vocalType !== undefined) updateData.vocalType = data.vocalType;
+    if (data.language !== undefined) updateData.language = data.language;
+    if (data.timeSuitability !== undefined) updateData.timeSuitability = data.timeSuitability;
 
     const [track] = await db.update(tracks)
       .set(updateData)
