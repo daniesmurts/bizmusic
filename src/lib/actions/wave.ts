@@ -1,12 +1,25 @@
 "use server";
 
 import { db } from "@/db";
-import { waveSettings, tracks, trackSkips } from "@/db/schema";
+import { waveSettings, tracks, trackSkips, businesses } from "@/db/schema";
 import { eq, and, not, sql, inArray } from "drizzle-orm";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
 
+async function checkWaveSubscriptionStatus(businessId: string) {
+  const biz = await db.query.businesses.findFirst({
+    where: eq(businesses.id, businessId),
+    columns: { subscriptionStatus: true },
+  });
+  return biz?.subscriptionStatus === "ACTIVE";
+}
+
 export async function getWaveSettingsAction(businessId: string) {
   try {
+    const isSubscribed = await checkWaveSubscriptionStatus(businessId);
+    if (!isSubscribed) {
+      return { success: false, error: "Feature restricted. Subscription required." };
+    }
+
     const settings = await db.query.waveSettings.findFirst({
       where: eq(waveSettings.businessId, businessId),
     });
@@ -35,6 +48,11 @@ export async function updateWaveSettingsAction(
   data: { energyPreference?: number; vocalPreference?: string; focusProfile?: string }
 ) {
   try {
+    const isSubscribed = await checkWaveSubscriptionStatus(businessId);
+    if (!isSubscribed) {
+      return { success: false, error: "Feature restricted. Subscription required." };
+    }
+
     const [updated] = await db.update(waveSettings)
       .set({
         ...data,
@@ -50,6 +68,11 @@ export async function updateWaveSettingsAction(
 
 export async function generateWaveBatchAction(businessId: string, excludeTrackIds: string[] = []) {
   try {
+    const isSubscribed = await checkWaveSubscriptionStatus(businessId);
+    if (!isSubscribed) {
+      return { success: false, error: "Feature restricted. Subscription required." };
+    }
+
     // 1. Get settings
     const settingsRes = await getWaveSettingsAction(businessId);
     if (!settingsRes.success || !settingsRes.settings) {

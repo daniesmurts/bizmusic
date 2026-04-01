@@ -15,7 +15,10 @@ import {
   Send,
   AlertCircle,
   CheckCircle,
+  BadgeCent,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -190,13 +193,19 @@ export default function BranchesPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black uppercase tracking-widest text-white">
-            Филиалы
-          </h1>
-          <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest mt-1">
-            Управление локациями и менеджерами
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-neon shadow-[0_0_15px_#5cf387] animate-pulse" />
+            <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-white">
+              Филиалы
+            </h1>
+            <Badge variant="outline" className="hidden sm:flex ml-3 px-3 py-1 bg-neon/10 text-neon border-neon/30 rounded-full text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(92,243,135,0.1)]">
+              {locations.length} {locations.length === 1 ? "ЛОКАЦИЯ" : [2,3,4].includes(locations.length % 10) ? "ЛОКАЦИИ" : "ЛОКАЦИЙ"}
+            </Badge>
+          </div>
+          <p className="text-neutral-400 font-medium text-xs sm:text-sm italic">
+            Управление иерархией ваших заведений и менеджерами
           </p>
         </div>
         <Button
@@ -205,9 +214,11 @@ export default function BranchesPage() {
             setEditingId(null);
             setInvitingFor(null);
           }}
-          className="bg-neon text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-neon/90 gap-2"
+          className="bg-neon text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:scale-105 hover:bg-neon transition-all h-14 px-8 gap-3 shadow-lg shadow-neon/20 border-b-4 border-black/10 active:border-b-0 active:translate-y-1"
         >
-          <Plus className="w-4 h-4" />
+          <div className="w-6 h-6 rounded-lg bg-black/5 flex items-center justify-center">
+            <Plus className="w-4 h-4" />
+          </div>
           Добавить филиал
         </Button>
       </div>

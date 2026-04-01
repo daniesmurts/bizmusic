@@ -217,7 +217,12 @@ export async function getBusinessDetailsAction() {
       data: business
     };
   } catch (error: unknown) {
-    console.error("Get business details error:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Failed to fetch details" };
+    const message = error instanceof Error ? error.message : "Failed to fetch details";
+    console.error("[DB] Get business details critical error:", {
+      message,
+      error,
+      timestamp: new Date().toISOString()
+    });
+    return { success: false, error: message };
   }
 }

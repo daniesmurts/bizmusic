@@ -192,7 +192,7 @@ export default function SubscriptionPage() {
   ];
 
   return (
-    <div className="space-y-12 pb-20 relative z-0 min-h-screen">
+    <div className="space-y-8 lg:space-y-12 pb-20 relative z-0 min-h-screen">
       {/* Background gradients for depth */}
       <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-neon/15 rounded-full blur-[150px] pointer-events-none -z-10" />
       <div className="fixed top-[20%] right-[-5%] w-[600px] h-[600px] bg-purple-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
@@ -214,14 +214,14 @@ export default function SubscriptionPage() {
       </div>
 
       {/* Trial Banner / Current Status */}
-      <div className="glass-dark border border-white/10 rounded-[3rem] p-12 relative overflow-hidden backdrop-blur-2xl">
+      <div className="glass-dark border border-white/10 rounded-[2rem] lg:rounded-[3.5rem] p-6 md:p-10 lg:p-12 relative overflow-hidden backdrop-blur-2xl">
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-neon/10 blur-[100px] rounded-full" />
         
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
           <div className="space-y-6">
             <div className="space-y-2">
               <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">Статус аккаунта</span>
-              <h3 className="text-6xl font-black uppercase tracking-tighter text-white">
+              <h3 className="text-3xl md:text-5xl lg:text-7xl font-black uppercase tracking-tighter text-white">
                 {businessData?.subscriptionStatus === 'ACTIVE' ? 'Активирован' : 'БЕСПЛАТНО'}
               </h3>
             </div>
@@ -291,7 +291,7 @@ export default function SubscriptionPage() {
       </div>
 
       {/* Plans Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto w-full">
         {PLANS_UI.map((tier) => (
           <div key={tier.slug} className={cn(
             "glass-dark border p-8 rounded-[2.5rem] flex flex-col transition-all duration-500 h-full",
@@ -309,7 +309,7 @@ export default function SubscriptionPage() {
                 <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest">{tier.description}</p>
               </div>
               <div className="pt-2">
-                 <div className="text-4xl font-black">{tier.price} <span className="text-xs text-neutral-500 font-bold lowercase">/ {isYearly ? "год" : "мес"}</span></div>
+                 <div className="text-3xl md:text-4xl font-black">{tier.price} <span className="text-[10px] text-neutral-500 font-bold lowercase">/ {isYearly ? "год" : "мес"}</span></div>
                  <p className="text-neon text-[10px] font-black uppercase tracking-widest mt-1">14 дней бесплатно</p>
                   <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest mt-2">TTS: {tier.ttsMonthlyLimit} генераций / мес</p>
               </div>

@@ -50,23 +50,30 @@ export default function DashboardLayout({
         const result = await getBusinessDetailsAction();
         const isSetupRoute = pathname.startsWith("/dashboard/setup");
 
-        if (result.success && result.data?.subscriptionStatus === "ACTIVE") {
-          setIsSigned(true);
+        // Only handle success/failure of data explicitly
+        if (result.success) {
+          if (result.data?.subscriptionStatus === "ACTIVE") {
+            setIsSigned(true);
+          } else {
+            setIsSigned(false);
+          }
+
+          const needsSetup = !result.data || !isBusinessProfileComplete({
+            inn: result.data.inn,
+            legalName: result.data.legalName,
+            address: result.data.address,
+          });
+
+          if (needsSetup && !isSetupRoute) {
+            router.push("/dashboard/setup");
+          }
         } else {
-          setIsSigned(false);
-        }
-
-        const needsSetup = !result.data || !isBusinessProfileComplete({
-          inn: result.data.inn,
-          legalName: result.data.legalName,
-          address: result.data.address,
-        });
-
-        if (needsSetup && !isSetupRoute) {
-          router.push("/dashboard/setup");
+          // If fetch fails part-way (e.g. auth issue or network),
+          // don't force a redirect to setup because we don't know yet.
+          console.warn("Could not determine business setup status, skipping redirect (fetch failed)", result.error);
         }
       } catch (err) {
-        console.error("Failed to check business status in layout", err);
+        console.error("Critical error in business status check in layout", err);
       }
     }
     // Wait until role is resolved before running checks
@@ -109,7 +116,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex flex-col min-h-screen bg-black">
-      <div className="flex flex-1 gap-6 lg:gap-8 p-6 lg:p-12">
+      <div className="flex flex-1 gap-4 lg:gap-8 p-4 sm:p-6 lg:p-12">
         {/* Sidebar Desktop */}
         <aside className="hidden lg:flex w-72 flex-col gap-6">
           <div className="glass-dark border border-white/10 rounded-[2.5rem] p-6 space-y-2">

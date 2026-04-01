@@ -113,7 +113,12 @@ export default function PlayerPage() {
         locationId={selectedLocation?.id}
       />
 
-      {businessId && <WaveControls businessId={businessId} />}
+      {businessId && (
+        <WaveControls 
+          businessId={businessId} 
+          subscriptionStatus={dashboardData?.stats?.licenseStatus || "INACTIVE"}
+        />
+      )}
 
       {/* Grid Layout for Playlists & Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">
@@ -128,6 +133,7 @@ export default function PlayerPage() {
             playlists={playlists} 
             globalPlaylists={dashboardData?.globalPlaylists || []}
             businessId={businessId} 
+            subscriptionStatus={dashboardData?.stats?.licenseStatus || "INACTIVE"}
           />
           )}
         </div>

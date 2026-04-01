@@ -169,11 +169,11 @@ export default function DashboardSetupPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
-          <Button type="submit" disabled={saving} className="font-black uppercase tracking-widest">
+        <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+          <Button type="submit" disabled={saving} className="w-full sm:w-auto font-black uppercase tracking-widest">
             {saving ? "Сохраняем..." : "Сохранить и продолжить"}
           </Button>
-          <Button type="button" variant="ghost" onClick={() => router.push("/dashboard/settings")}>
+          <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => router.push("/dashboard/settings")}>
             Перейти в полные настройки
           </Button>
         </div>

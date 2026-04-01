@@ -15,7 +15,10 @@ if (!process.env.DATABASE_URL) {
 // Auto-switch to Supabase transaction pooler (port 6543) if using direct port 5432
 function getConnectionString(): string | undefined {
   const url = process.env.DATABASE_URL;
-  if (url && url.includes("supabase.co") && url.includes(":5432")) {
+  const isDev = process.env.NODE_ENV === "development";
+  // Only auto-switch to pooler (6543) in production.
+  // In development, direct port 5432 is more stable for single-user latency.
+  if (!isDev && url && (url.includes("supabase.co") || url.includes("supabase.com")) && url.includes(":5432")) {
     console.log("[DB] Auto-switching from port 5432 (session) to 6543 (transaction pooler)");
     return url.replace(":5432", ":6543");
   }
@@ -26,8 +29,8 @@ const poolConfig = {
   connectionString: getConnectionString(),
   ssl: { rejectUnauthorized: false },
   max: 10,
-  idleTimeoutMillis: 20000,
-  connectionTimeoutMillis: 15000,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 60000,
   allowExitOnIdle: true,
 };
 

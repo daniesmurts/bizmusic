@@ -9,6 +9,7 @@ import {
   getBusinessAiEntitlementState,
   getAiEntitlementStatus,
 } from "@/lib/ai-entitlements";
+import { resolveAccessScope } from "@/lib/auth/scope";
 import { refineAnnouncementText } from "@/lib/groq-ai";
 
 export interface GenerateAiAssistInput {
@@ -28,13 +29,12 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Get business ID for the user
-    const business = await db.query.businesses.findFirst({
-      where: eq(businesses.userId, user.id),
-    });
+    // Resolve business ID for owner or staff
+    const scope = await resolveAccessScope(user.id);
+    const businessId = scope?.businessId;
 
-    if (!business) {
-      return { success: false, error: "Business not found for this user." };
+    if (!businessId) {
+      return { success: false, error: "Бизнес или филиал не найден." };
     }
 
     // Validation
@@ -47,7 +47,7 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
     }
 
     // Check entitlement
-    const entitlement = await getAiEntitlementStatus(business.id);
+    const entitlement = await getAiEntitlementStatus(businessId);
     if (!entitlement.canAssist) {
       return { success: false, error: entitlement.denialReason || "Лимит помощи ИИ исчерпан." };
     }
@@ -58,14 +58,14 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
     // 2. Consume AI assist credit in transaction
     await db.transaction(async (tx) => {
       await consumeAiAssistCredit(tx, {
-        businessId: business.id,
+        businessId: businessId,
         provider: "groq",
         charsCount: refinedText.length,
       });
     });
 
     // 3. Get updated entitlement status
-    const nextEntitlement = await getAiEntitlementStatus(business.id);
+    const nextEntitlement = await getAiEntitlementStatus(businessId);
 
     return {
       success: true,
@@ -96,16 +96,14 @@ export async function getAiAssistStatusAction() {
       return { success: false, error: "Unauthorized" };
     }
 
-    const business = await db.query.businesses.findFirst({
-      where: eq(businesses.userId, user.id),
-      columns: { id: true },
-    });
+    const scope = await resolveAccessScope(user.id);
+    const businessId = scope?.businessId;
 
-    if (!business) {
-      return { success: false, error: "Business not found" };
+    if (!businessId) {
+      return { success: false, error: "Бизнес не найден" };
     }
 
-    const data = await getAiEntitlementStatus(business.id);
+    const data = await getAiEntitlementStatus(businessId);
     return { success: true, data };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to load AI assist status";

@@ -12,6 +12,7 @@ import { getPlaylistsAction, addTrackToPlaylistAction } from "@/lib/actions/play
 import { purchaseTtsTokensAction } from "@/lib/actions/payments";
 import { TTS_TOKEN_PACKS } from "@/lib/payments/plans";
 import { VoiceAnnouncementForm } from "@/components/dashboard/VoiceAnnouncementForm";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -28,7 +29,12 @@ import {
   ListPlus,
   X,
   Sparkles,
+  CreditCard,
+  Zap,
+  Info,
+  TrendingUp,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -199,6 +205,58 @@ export default function AnnouncementsPage() {
   const generatedAnnouncements = announcementLibrary?.generatedByBusiness ?? [];
   const platformAnnouncements = announcementLibrary?.fromPlatform ?? [];
   const totalAnnouncements = generatedAnnouncements.length + platformAnnouncements.length;
+
+  const ResourceCard = ({ 
+    title, 
+    value, 
+    total, 
+    unit, 
+    icon: Icon, 
+    colorClass,
+    subtitle 
+  }: { 
+    title: string; 
+    value: number; 
+    total?: number; 
+    unit: string; 
+    icon: any; 
+    colorClass: string;
+    subtitle?: string;
+  }) => {
+    const percentage = total ? Math.min((value / total) * 100, 100) : 0;
+    
+    return (
+      <div className="glass-dark border border-white/5 p-5 rounded-3xl relative overflow-hidden group hover:border-white/10 transition-all">
+        <div className="flex justify-between items-start mb-4">
+          <div className={cn("p-2.5 rounded-xl border", colorClass)}>
+            <Icon className="w-4 h-4" />
+          </div>
+          {total !== undefined && (
+             <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+               {value} / {total}
+             </span>
+          )}
+        </div>
+        <div className="space-y-1">
+          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">{title}</p>
+          <div className="flex items-baseline gap-1">
+            <h4 className="text-2xl font-black text-white tabular-nums">{value}</h4>
+            <span className="text-[10px] font-black uppercase tracking-tight text-neutral-500">{unit}</span>
+          </div>
+        </div>
+        {total !== undefined && (
+          <div className="mt-4 space-y-1.5">
+            <Progress value={percentage} className="h-1 bg-white/5" indicatorClassName={cn("transition-all duration-1000", colorClass.split(' ')[0].replace('text-', 'bg-').replace('border-', ''))} />
+            <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter text-neutral-600">
+               <span>Использовано: {Math.round(percentage)}%</span>
+               <span>План: {total}</span>
+            </div>
+          </div>
+        )}
+        {subtitle && <p className="mt-3 text-[9px] text-neutral-600 font-bold uppercase tracking-widest">{subtitle}</p>}
+      </div>
+    );
+  };
 
   const renderAnnouncementCards = (items: AnnouncementItem[], options: { title: string; subtitle: string; emptyTitle: string; emptyDescription: string; badgeTone: "neon" | "blue"; canDelete: boolean; }) => {
     if (items.length === 0) {
@@ -402,112 +460,108 @@ export default function AnnouncementsPage() {
         )}
       </div>
 
-      <section className="glass-dark border border-white/10 rounded-[2rem] p-6 sm:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white">Лимиты TTS</h3>
-            <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">1 токен = 1 генерация (до 500 символов)</p>
+      {/* Integrated Quota Dashboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* TTS Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-neon shadow-[0_0_8px_#00ffaa]" />
+              <h3 className="text-xl font-black uppercase tracking-tighter">Лимиты <span className="text-neon">TTS</span></h3>
+            </div>
+            <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-widest border-neon/30 text-neon bg-neon/5", !entitlement?.canGenerate && "border-red-500/30 text-red-400 bg-red-500/5")}>
+              {entitlement?.canGenerate ? "Активен" : "Лимит исчерпан"}
+            </Badge>
           </div>
-          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-neon/30 text-neon bg-neon/10 w-fit">
-            {entitlement?.canGenerate ? "Генерация доступна" : "Требуется пакет токенов"}
-          </Badge>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Месячный лимит</p>
-            <p className="text-2xl font-black text-white mt-1">{entitlement?.monthlyUsed ?? 0} / {entitlement?.monthlyLimit ?? 0}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ResourceCard 
+              title="Месячный Лимит"
+              value={entitlement?.monthlyUsed ?? 0}
+              total={entitlement?.monthlyLimit ?? 0}
+              unit="токенов"
+              icon={TrendingUp}
+              colorClass="bg-neon/10 border-neon/20 text-neon"
+            />
+            <ResourceCard 
+              title="Пакетные Токены"
+              value={entitlement?.paidTokens ?? 0}
+              unit="Генераций"
+              icon={Zap}
+              colorClass="bg-blue-500/10 border-blue-500/20 text-blue-400"
+              subtitle={`Сброс: ${formatRuDate(entitlement?.nextMonthlyResetAt)}`}
+            />
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Осталось в месяце</p>
-            <p className="text-2xl font-black text-neon mt-1">{entitlement?.monthlyRemaining ?? 0}</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Пакетные токены</p>
-            <p className="text-2xl font-black text-white mt-1">{entitlement?.paidTokens ?? 0}</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Сброс месячного лимита</p>
-            <p className="text-sm font-black text-white mt-1">{formatRuDate(entitlement?.nextMonthlyResetAt)}</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Ближайшее истечение пакета</p>
-            <p className="text-sm font-black text-white mt-1">{formatRuDate(entitlement?.nearestPackExpiryAt)}</p>
-          </div>
-        </div>
-
-        {!entitlement?.canGenerate && entitlement?.denialReason && (
-          <p className="text-sm font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
-            {entitlement.denialReason}
-          </p>
-        )}
-
-        <div className="space-y-3">
-          <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Пакеты токенов</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {TTS_TOKEN_PACKS.map((pack) => (
-              <Button
-                key={pack.id}
-                type="button"
-                variant="outline"
-                disabled={purchaseTokensMutation.isPending}
-                onClick={() => purchaseTokensMutation.mutate(pack.id)}
-                className="h-auto py-4 border-white/15 text-white hover:bg-neon hover:text-black rounded-2xl flex flex-col items-start gap-1"
-              >
-                <span className="text-sm font-black uppercase tracking-widest">{pack.label}</span>
-                <span className="text-xs font-bold text-neutral-400">{formatRubFromKopeks(pack.price)}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="glass-dark border border-white/10 rounded-[2rem] p-6 sm:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white">🤖 Помощь ИИ</h3>
-            <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">1 ассистирование = 1 токен или бесплатный ежемесячный лимит</p>
-          </div>
-          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-violet-500/30 text-violet-300 bg-violet-500/10 w-fit">
-            {aiEntitlement?.canAssist ? "Ассистирование доступно" : "Требуется пакет токенов"}
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Месячный лимит</p>
-            <p className="text-2xl font-black text-white mt-1">{aiEntitlement?.monthlyUsed ?? 0} / {aiEntitlement?.monthlyLimit ?? 0}</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Осталось в месяце</p>
-            <p className="text-2xl font-black text-violet-300 mt-1">{aiEntitlement?.monthlyRemaining ?? 0}</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Пакетные токены</p>
-            <p className="text-2xl font-black text-white mt-1">{aiEntitlement?.paidTokens ?? 0}</p>
+          {/* Token Packs Marketplace */}
+          <div className="glass-dark border border-white/5 rounded-[2.5rem] p-6 space-y-6">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                   <CreditCard className="w-4 h-4 text-neutral-500" />
+                   <h4 className="text-xs font-black uppercase tracking-widest text-neutral-400">Пополнить Баланс</h4>
+                </div>
+                <Info className="w-3 h-3 text-neutral-700 cursor-help" />
+             </div>
+             <div className="grid grid-cols-2 gap-3">
+                {TTS_TOKEN_PACKS.map((pack) => (
+                  <button
+                    key={pack.id}
+                    disabled={purchaseTokensMutation.isPending}
+                    onClick={() => purchaseTokensMutation.mutate(pack.id)}
+                    className="flex flex-col items-center justify-center p-4 rounded-3xl border border-white/10 bg-white/5 hover:bg-neon hover:border-neon group transition-all"
+                  >
+                    <span className="text-lg font-black text-white group-hover:text-black">{pack.label.split(' ')[0]}</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500 group-hover:text-black/70 mb-2">Токенов</span>
+                    <div className="px-3 py-1 bg-white/10 rounded-full border border-white/10 group-hover:bg-black/10 group-hover:border-black/20">
+                       <span className="text-[10px] font-black text-white group-hover:text-black">{formatRubFromKopeks(pack.price)}</span>
+                    </div>
+                  </button>
+                ))}
+             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Сброс месячного лимита</p>
-            <p className="text-sm font-black text-white mt-1">{formatRuDate(aiEntitlement?.nextMonthlyResetAt)}</p>
+        {/* AI Assist Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-violet-400 shadow-[0_0_8px_#a78bfa]" />
+              <h3 className="text-xl font-black uppercase tracking-tighter">Помощь <span className="text-violet-400">ИИ</span></h3>
+            </div>
+            <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-widest border-violet-500/30 text-violet-300 bg-violet-500/5", !aiEntitlement?.canAssist && "border-red-500/30 text-red-400 bg-red-500/5")}>
+              {aiEntitlement?.canAssist ? "Активен" : "Пополните пакет"}
+            </Badge>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">Ближайшее истечение пакета</p>
-            <p className="text-sm font-black text-white mt-1">{formatRuDate(aiEntitlement?.nearestPackExpiryAt)}</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ResourceCard 
+              title="Месячный Лимит"
+              value={aiEntitlement?.monthlyUsed ?? 0}
+              total={aiEntitlement?.monthlyLimit ?? 0}
+              unit="Ассистов"
+              icon={TrendingUp}
+              colorClass="bg-violet-500/10 border-violet-500/20 text-violet-400"
+            />
+            <ResourceCard 
+              title="Пакетные Токены"
+              value={aiEntitlement?.paidTokens ?? 0}
+              unit="Ассистов"
+              icon={Sparkles}
+              colorClass="bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+              subtitle={`Сброс: ${formatRuDate(aiEntitlement?.nextMonthlyResetAt)}`}
+            />
+          </div>
+
+          <div className="glass-dark border border-white/5 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center space-y-4 h-[190px]">
+             <div className="w-12 h-12 bg-violet-500/10 rounded-2xl flex items-center justify-center border border-violet-500/20">
+                <Info className="w-6 h-6 text-violet-400" />
+             </div>
+             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 leading-relaxed max-w-[200px]">
+                Подписка покрывает основные запросы. Пакеты токенов используются только после исчерпания лимита.
+             </p>
           </div>
         </div>
-
-        {!aiEntitlement?.canAssist && aiEntitlement?.denialReason && (
-          <p className="text-sm font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
-            {aiEntitlement.denialReason}
-          </p>
-        )}
-      </section>
+      </div>
 
       {isAdding && (
         <div ref={formRef} className="animate-in fade-in slide-in-from-top-4 duration-500">
