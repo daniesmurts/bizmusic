@@ -160,7 +160,7 @@ export const Navbar = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="md:hidden text-white hover:bg-white/5 rounded-full"
+            className="md:hidden text-white hover:bg-white/5 rounded-full touch-manipulation z-10"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -184,7 +184,7 @@ export const Navbar = () => {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-white hover:bg-white/10 rounded-full w-10 h-10"
+                className="text-white hover:bg-white/10 rounded-full w-10 h-10 touch-manipulation z-10"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <X className="w-6 h-6" />

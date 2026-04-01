@@ -23,6 +23,7 @@ interface PlayerState {
   // Wave Mode
   isWaveMode: boolean;
   waveBusinessId: string | null;
+  activeLocationId: string | null;
   isFetchingWave: boolean;
   // Actions
   setTrack: (track: Track) => void;
@@ -40,6 +41,7 @@ interface PlayerState {
   setRepeatMode: (mode: 'off' | 'one' | 'all') => void;
 
   setWaveMode: (active: boolean, businessId?: string) => void;
+  setActiveLocationId: (locationId: string | null) => void;
   fetchNextWaveBatch: () => Promise<void>;
   skipWaveTrack: () => void;
 }
@@ -55,6 +57,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   repeatMode: 'off',
   isWaveMode: false,
   waveBusinessId: null,
+  activeLocationId: null,
   isFetchingWave: false,
 
   setTrack: (track) => set({ currentTrack: track, isPlaying: true, progress: 0 }),
@@ -89,6 +92,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
        usePlayerStore.getState().fetchNextWaveBatch();
     }
   },
+
+  setActiveLocationId: (locationId) => set({ activeLocationId: locationId }),
 
   fetchNextWaveBatch: async () => {
     const state = usePlayerStore.getState();
@@ -135,7 +140,12 @@ export const usePlayerStore = create<PlayerState>((set) => ({
        fetch('/api/wave/skip', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ businessId: state.waveBusinessId, trackId: state.currentTrack.id, reason: "Manual Skip in Wave Mode" })
+         body: JSON.stringify({
+           businessId: state.waveBusinessId,
+           locationId: state.activeLocationId,
+           trackId: state.currentTrack.id,
+           reason: "Manual Skip in Wave Mode"
+         })
        }).catch(console.error);
     }
     state.nextTrack();

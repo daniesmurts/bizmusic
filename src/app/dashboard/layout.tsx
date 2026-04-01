@@ -17,7 +17,8 @@ import {
   LogOut,
   Settings,
   Mic,
-  BookOpen
+  BookOpen,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
@@ -33,11 +34,18 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { signOut, user } = useAuth();
+  const { signOut, user, role } = useAuth();
   const [isSigned, setIsSigned] = useState(false);
+  const isBranchManager = role === "STAFF";
 
   useEffect(() => {
     async function checkStatus() {
+      // Branch managers don't own a business — skip setup redirect
+      if (isBranchManager) {
+        setIsSigned(true);
+        return;
+      }
+
       try {
         const result = await getBusinessDetailsAction();
         const isSetupRoute = pathname.startsWith("/dashboard/setup");
@@ -61,48 +69,43 @@ export default function DashboardLayout({
         console.error("Failed to check business status in layout", err);
       }
     }
-    checkStatus();
-  }, [pathname]);
+    // Wait until role is resolved before running checks
+    if (role !== null) checkStatus();
+  }, [pathname, role, isBranchManager]);
 
-  const navItems = [
-    {
-      name: "Обзор",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Плеер",
-      href: "/dashboard/player",
-      icon: Play,
-    },
-    {
-      name: "Анонсы",
-      href: "/dashboard/announcements",
-      icon: Mic,
-    },
-    {
-      name: "Подписка",
-      href: "/dashboard/subscription",
-      icon: CreditCard,
-    },
+  type NavItem = {
+    name: string;
+    href: string;
+    icon: any;
+    hasAction?: boolean;
+    status?: "success" | "action";
+  };
+
+  // Items visible to branch managers (STAFF role) only
+  const staffNavItems: NavItem[] = [
+    { name: "Плеер", href: "/dashboard/player", icon: Play },
+    { name: "Анонсы", href: "/dashboard/announcements", icon: Mic },
+  ];
+
+  // Items visible to business owners
+  const ownerNavItems: NavItem[] = [
+    { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Плеер", href: "/dashboard/player", icon: Play },
+    { name: "Анонсы", href: "/dashboard/announcements", icon: Mic },
+    { name: "Филиалы", href: "/dashboard/branches", icon: Building2 },
+    { name: "Подписка", href: "/dashboard/subscription", icon: CreditCard },
     {
       name: "Договор",
       href: "/dashboard/contract",
       icon: FileText,
       hasAction: true,
-      status: isSigned ? 'success' : 'action'
+      status: isSigned ? "success" : "action",
     },
-    {
-      name: "База знаний",
-      href: "/knowledge",
-      icon: BookOpen,
-    },
-    {
-      name: "Настройки",
-      href: "/dashboard/settings",
-      icon: Settings,
-    },
+    { name: "База знаний", href: "/knowledge", icon: BookOpen },
+    { name: "Настройки", href: "/dashboard/settings", icon: Settings },
   ];
+
+  const navItems = isBranchManager ? staffNavItems : ownerNavItems;
 
   return (
     <div className="flex flex-col min-h-screen bg-black">

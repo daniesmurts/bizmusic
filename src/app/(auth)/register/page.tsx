@@ -241,7 +241,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neon transition-colors p-2 rounded-xl hover:bg-white/5"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neon transition-colors p-3 rounded-xl hover:bg-white/5 z-10 touch-manipulation"
                 disabled={loading}
               >
                 {showPassword ? (
@@ -348,17 +348,19 @@ export default function Register() {
             </div>
           </div>
 
-          <div className="flex items-start space-x-3 pt-2">
-            <Checkbox 
-              id="terms" 
-              checked={agreed}
-              onCheckedChange={(checked) => setAgreed(checked as boolean)}
-              className="mt-1 border-white/20 data-[state=checked]:bg-neon data-[state=checked]:text-black"
-            />
+          <div className="flex items-start space-x-3 pt-2 relative z-10">
+            <div className="pt-0.5 flex-shrink-0">
+              <Checkbox 
+                id="terms" 
+                checked={agreed}
+                onCheckedChange={(checked) => setAgreed(checked as boolean)}
+                className="w-5 h-5 border-white/20 data-[state=checked]:bg-neon data-[state=checked]:text-black border-2 touch-manipulation cursor-pointer"
+              />
+            </div>
             <div className="grid gap-1.5 leading-none">
               <label
                 htmlFor="terms"
-                className="text-xs font-bold leading-relaxed text-neutral-400 cursor-pointer select-none"
+                className="text-xs font-bold leading-relaxed text-neutral-400 cursor-pointer select-none touch-manipulation"
               >
                 Я соглашаюсь с{" "}
                 <Link href="/legal/public-offer" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Публичной офертой</Link>,{" "}
