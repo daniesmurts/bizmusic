@@ -6,7 +6,7 @@ const isDev = process.env.NODE_ENV === "development";
 const pwaConfig = withPWA({
   dest: "public",
   disable: isDev,
-  register: !isDev,
+  register: false,
   skipWaiting: !isDev,
 });
 

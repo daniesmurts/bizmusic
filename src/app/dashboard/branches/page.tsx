@@ -201,7 +201,15 @@ export default function BranchesPage() {
               Филиалы
             </h1>
             <Badge variant="outline" className="hidden sm:flex ml-3 px-3 py-1 bg-neon/10 text-neon border-neon/30 rounded-full text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(92,243,135,0.1)]">
-              {locations.length} {locations.length === 1 ? "ЛОКАЦИЯ" : [2,3,4].includes(locations.length % 10) ? "ЛОКАЦИИ" : "ЛОКАЦИЙ"}
+              {locations.length} {(() => {
+                const n = locations.length;
+                const mod100 = n % 100;
+                const mod10 = n % 10;
+                if (mod100 >= 11 && mod100 <= 14) return "ЛОКАЦИЙ";
+                if (mod10 === 1) return "ЛОКАЦИЯ";
+                if (mod10 >= 2 && mod10 <= 4) return "ЛОКАЦИИ";
+                return "ЛОКАЦИЙ";
+              })()}
             </Badge>
           </div>
           <p className="text-neutral-400 font-medium text-xs sm:text-sm italic">

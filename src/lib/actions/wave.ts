@@ -1,9 +1,40 @@
 "use server";
 
 import { db } from "@/db";
-import { waveSettings, tracks, trackSkips, businesses } from "@/db/schema";
+import { waveSettings, tracks, trackSkips, businesses, users } from "@/db/schema";
 import { eq, and, not, sql, inArray } from "drizzle-orm";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { createClient } from "@/utils/supabase/server";
+
+/**
+ * Resolve the businessId for the authenticated user and verify they belong
+ * to the given businessId. Throws if the user is unauthenticated or if
+ * the businessId does not match the caller's business.
+ */
+async function resolveAndAuthorizeBusinessId(businessId: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Не авторизован");
+
+  const dbUser = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    columns: { role: true },
+  });
+  if (!dbUser) throw new Error("Пользователь не найден");
+
+  if (dbUser.role === "ADMIN") return; // Admins can access any business
+
+  const business = await db.query.businesses.findFirst({
+    where: eq(businesses.userId, user.id),
+    columns: { id: true },
+  });
+
+  if (!business || business.id !== businessId) {
+    throw new Error("Доступ запрещён");
+  }
+}
 
 async function checkWaveSubscriptionStatus(businessId: string) {
   const biz = await db.query.businesses.findFirst({
@@ -15,6 +46,8 @@ async function checkWaveSubscriptionStatus(businessId: string) {
 
 export async function getWaveSettingsAction(businessId: string) {
   try {
+    await resolveAndAuthorizeBusinessId(businessId);
+
     const isSubscribed = await checkWaveSubscriptionStatus(businessId);
     if (!isSubscribed) {
       return { success: false, error: "Feature restricted. Subscription required." };
@@ -48,6 +81,8 @@ export async function updateWaveSettingsAction(
   data: { energyPreference?: number; vocalPreference?: string; focusProfile?: string }
 ) {
   try {
+    await resolveAndAuthorizeBusinessId(businessId);
+
     const isSubscribed = await checkWaveSubscriptionStatus(businessId);
     if (!isSubscribed) {
       return { success: false, error: "Feature restricted. Subscription required." };
@@ -68,6 +103,8 @@ export async function updateWaveSettingsAction(
 
 export async function generateWaveBatchAction(businessId: string, excludeTrackIds: string[] = []) {
   try {
+    await resolveAndAuthorizeBusinessId(businessId);
+
     const isSubscribed = await checkWaveSubscriptionStatus(businessId);
     if (!isSubscribed) {
       return { success: false, error: "Feature restricted. Subscription required." };

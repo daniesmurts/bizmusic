@@ -1,8 +1,5 @@
 "use server";
 
-// Allow Sberbank's SSL (Russian National CA)
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
 // Google Cloud TTS configuration
@@ -39,7 +36,7 @@ interface SaluteTokenResponse {
   expires_at?: number | string;
 }
 
-export async function normalizeExpiryMs(expiresAt?: number | string): Promise<number> {
+export function normalizeExpiryMs(expiresAt?: number | string): number {
   if (typeof expiresAt === "number") {
     // Sber responses can contain either unix seconds or milliseconds.
     return expiresAt > 1_000_000_000_000 ? expiresAt : expiresAt * 1000;
@@ -148,7 +145,7 @@ async function getSaluteToken(): Promise<string | null> {
 
     saluteToken = {
       token: data.access_token,
-      expires: await normalizeExpiryMs(data.expires_at),
+      expires: normalizeExpiryMs(data.expires_at),
     };
 
     return data.access_token;

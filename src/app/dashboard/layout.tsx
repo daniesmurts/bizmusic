@@ -78,7 +78,7 @@ export default function DashboardLayout({
     }
     // Wait until role is resolved before running checks
     if (role !== null) checkStatus();
-  }, [pathname, role, isBranchManager]);
+  }, [pathname, role, isBranchManager, router]);
 
   type NavItem = {
     name: string;
