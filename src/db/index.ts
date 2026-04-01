@@ -29,8 +29,8 @@ const poolConfig = {
   connectionString: getConnectionString(),
   ssl: { rejectUnauthorized: false },
   max: 10,
-  idleTimeoutMillis: 60000,
-  connectionTimeoutMillis: 60000,
+  idleTimeoutMillis: 120000,
+  connectionTimeoutMillis: 120000,
   allowExitOnIdle: true,
 };
 

@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mic, Loader2, Info, Sparkles } from "lucide-react";
-import { generateVoiceAnnouncementAction } from "@/lib/actions/voice-announcements";
+import { Mic, Loader2, Info, Sparkles, AlertTriangle } from "lucide-react";
+import { generateVoiceAnnouncementAction, getTtsProvidersStatusAction } from "@/lib/actions/voice-announcements";
 import { generateAiAssistAction } from "@/lib/actions/ai-assists";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const PROVIDERS = [
   { id: "google", name: "Google Cloud", description: "Премиальные голоса. Если возникают ошибки, используйте VPN.", showTooltip: true },
@@ -44,6 +45,24 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
   const [pitch, setPitch] = useState(0.0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [providerStatus, setProviderStatus] = useState<{google: boolean, sberbank: boolean} | null>(null);
+
+  useEffect(() => {
+    async function checkStatus() {
+      const result = await getTtsProvidersStatusAction();
+      if (result.success && result.data) {
+        setProviderStatus(result.data);
+        
+        // Auto-select first available provider
+        if (!result.data.sberbank && result.data.google) {
+          setProvider("google");
+        } else if (!result.data.sberbank && !result.data.google) {
+          // If none are configured, stay on default but buttons will be disabled
+        }
+      }
+    }
+    checkStatus();
+  }, []);
 
   // Update voice if provider changes
   useEffect(() => {
@@ -182,25 +201,35 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
                 <Label className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Провайдер</Label>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {PROVIDERS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setProvider(p.id)}
-                    className={`group relative px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                      provider === p.id
-                        ? 'bg-neon text-black border-neon shadow-lg shadow-neon/20'
-                        : 'bg-white/5 border-white/10 text-neutral-400 hover:border-white/20'
-                    }`}
-                  >
-                    {p.name}
-                    {p.showTooltip && (
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black border border-white/10 rounded-lg text-[8px] leading-tight text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
-                        {p.description}
+                {PROVIDERS.map((p) => {
+                  const isConfigured = providerStatus ? providerStatus[p.id] : true; // Assume true while loading
+                  
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={!isConfigured}
+                      onClick={() => setProvider(p.id)}
+                      className={cn(
+                        "group relative px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                        provider === p.id
+                          ? "bg-neon text-black border-neon shadow-lg shadow-neon/20"
+                          : isConfigured 
+                            ? "bg-white/5 border-white/10 text-neutral-400 hover:border-white/20"
+                            : "bg-white/[0.02] border-white/5 text-neutral-700 cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        {p.name}
+                        {!isConfigured && <AlertTriangle size={10} className="text-amber-500" />}
                       </div>
-                    )}
-                  </button>
-                ))}
+                      
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black border border-white/10 rounded-lg text-[8px] leading-tight text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                        {!isConfigured ? "Провайдер не настроен. Добавьте API ключи в .env" : p.description}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
               <p className="text-[9px] text-neutral-500 font-medium italic">
                 {PROVIDERS.find(p => p.id === provider)?.description}

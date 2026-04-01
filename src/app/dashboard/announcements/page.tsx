@@ -274,77 +274,91 @@ export default function AnnouncementsPage() {
     }
 
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-4">
           <div>
-            <h3 className="text-lg font-black uppercase tracking-tight text-white">{options.title}</h3>
+            <h3 className="text-xl font-black uppercase tracking-tight text-white">{options.title}</h3>
             <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest mt-1">{options.subtitle}</p>
           </div>
-          <div className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">
-            {items.length} записей
+          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full">
+            <span className="text-[10px] text-neutral-400 font-black uppercase tracking-widest">
+              {items.length} активных
+            </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-5">
           {items.map((item) => (
             <div
               key={item.id}
-              className="p-5 sm:p-7 glass-dark border border-white/5 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-4 group hover:border-white/20 transition-all"
+              className="p-6 sm:p-8 glass-dark border border-white/5 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-neon/30 hover:ring-1 hover:ring-neon/20 transition-all duration-500 relative overflow-hidden"
             >
-              <div className="flex items-center gap-5 w-full">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform shrink-0">
-                  <Volume2 className="text-neon/60 w-7 h-7" />
+              {/* Card Glow Effect */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-neon/5 blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              
+              <div className="flex items-center gap-6 w-full">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-[1.75rem] flex items-center justify-center border border-white/8 relative overflow-hidden group-hover:scale-105 transition-transform shrink-0 shadow-inner">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-50" />
+                  <Volume2 className="text-neon/80 w-8 h-8 relative z-10" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white truncate">
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white truncate">
                       {item.track.title}
                     </h3>
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-2 py-0.5 bg-neon/10 text-neon text-[8px] font-black uppercase tracking-widest rounded-full border border-neon/20">
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 bg-neon/10 text-neon text-[9px] font-black uppercase tracking-widest rounded-full border border-neon/20 shadow-sm shadow-neon/10">
                         {item.track.duration} СЕК
                       </span>
-                      <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-2 py-0 border-white/10 ${
+                      <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-0.5 border-white/10",
                         item.platformAnnouncementId
-                          ? "text-blue-300 bg-blue-500/10"
+                          ? "text-blue-300 bg-blue-500/10 border-blue-500/20"
                           : item.provider === "google"
-                          ? "text-indigo-400 bg-indigo-500/5"
-                          : "text-amber-400 bg-amber-500/5"
-                      }`}>
-                        {item.platformAnnouncementId ? "Платформа" : item.provider === "google" ? "Google" : "Salute"}
+                          ? "text-indigo-300 bg-indigo-500/10 border-indigo-500/20"
+                          : "text-amber-300 bg-amber-500/10 border-amber-500/20"
+                      )}>
+                        {item.platformAnnouncementId ? "Платформа" : item.provider === "google" ? "Google AI" : "Salute AI"}
                       </Badge>
                       {item.platformAnnouncement?.accessModel === "PAID" && (
-                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest px-2 py-0 border-amber-500/20 text-amber-300 bg-amber-500/10">
+                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-3 py-0.5 border-amber-500/30 text-amber-300 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
                           {formatRubFromKopeks(item.platformAnnouncement.priceKopeks)}
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <p className="text-neutral-500 text-xs font-medium italic truncate mb-2">
-                    &quot;{item.text}&quot;
-                  </p>
-                  <div className="flex items-center gap-4 text-[10px] text-neutral-600 font-bold uppercase tracking-widest">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-neon/40" />
-                      {format(new Date(item.createdAt), 'dd MMM yyyy', { locale: ru })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="w-3 h-3 text-neon/40" />
-                      {item.voiceName.split('-').pop()}
-                    </span>
+                  
+                  <div className="relative">
+                    <p className="text-neutral-400 text-sm font-medium leading-relaxed italic line-clamp-1 border-l-2 border-neon/20 pl-4 py-0.5 group-hover:border-neon transition-colors">
+                      &quot;{item.text}&quot;
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-5 pt-1">
+                    <div className="flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-lg border border-white/5 transition-colors group-hover:border-white/10">
+                      <Calendar className="w-3.5 h-3.5 text-neutral-500 group-hover:text-neon transition-colors" />
+                      <span className="text-[10px] text-neutral-500 font-black uppercase tracking-widest tabular-nums group-hover:text-neutral-300 transition-colors">
+                        {format(new Date(item.createdAt), 'dd MMMM yyyy', { locale: ru })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-lg border border-white/5 transition-colors group-hover:border-white/10">
+                      <Zap className="w-3.5 h-3.5 text-neutral-500 group-hover:text-neon transition-colors" />
+                      <span className="text-[10px] text-neutral-500 font-black uppercase tracking-widest group-hover:text-neutral-300 transition-colors">
+                        VOICE {item.voiceName.split('-').pop()?.toUpperCase() || 'A'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <div className="flex items-center gap-4 w-full md:w-auto justify-end mt-4 md:mt-0 pl-0 md:pl-6 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setAddingToPlaylist(item)}
-                  className="w-12 h-12 bg-neon/5 border border-neon/10 text-neon rounded-2xl hover:bg-neon hover:text-black hover:border-neon transition-all"
+                  className="w-14 h-14 bg-neon/5 border border-neon/10 text-neon rounded-[1.25rem] hover:bg-neon hover:text-black hover:border-neon transition-all shadow-lg hover:shadow-neon/20 group/btn"
                   title="Добавить в плейлист"
                 >
-                  <ListPlus className="w-5 h-5" />
+                  <ListPlus className="w-6 h-6 group-hover/btn:scale-110 transition-transform" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -353,9 +367,10 @@ export default function AnnouncementsPage() {
                     const audio = new Audio(item.track.fileUrl);
                     audio.play();
                   }}
-                  className="w-12 h-12 bg-white/5 border border-white/10 text-white rounded-2xl hover:bg-neon hover:text-black hover:border-neon transition-all"
+                  className="w-14 h-14 bg-white/5 border border-white/10 text-white rounded-[1.25rem] hover:bg-white hover:text-black hover:border-white transition-all shadow-lg group/btn"
+                  title="Прослушать"
                 >
-                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                  <Play className="w-6 h-6 fill-current ml-1 group-hover/btn:scale-110 transition-transform" />
                 </Button>
                 {options.canDelete && (
                   <Button
@@ -367,9 +382,10 @@ export default function AnnouncementsPage() {
                       }
                     }}
                     disabled={deleteMutation.isPending}
-                    className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
+                    className="w-14 h-14 bg-red-500/10 border border-red-500/20 text-red-500 rounded-[1.25rem] hover:bg-red-500 hover:text-white transition-all shadow-lg group/btn"
+                    title="Удалить"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-6 h-6 group-hover/btn:scale-110 transition-transform" />
                   </Button>
                 )}
               </div>
