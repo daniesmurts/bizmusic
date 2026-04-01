@@ -9,6 +9,7 @@ const pwaConfig = withPWA({
 });
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   output: 'standalone',
   serverExternalPackages: ["pg", "drizzle-orm"],
   headers: async () => [

@@ -11,8 +11,10 @@ import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
+const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(appBaseUrl),
   title: "Бизнес Музыка - Музыкальное Лицензирование",
   description: "Легальное музыкальное лицензирование для бизнеса в РФ (100% соответствие 152-ФЗ и 54-ФЗ).",
   manifest: "/manifest.json",

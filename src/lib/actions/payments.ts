@@ -7,6 +7,7 @@ import { tbank } from "@/lib/payments/tbank";
 import { getPlanBySlug, getTtsTokenPackById } from "@/lib/payments/plans";
 import { createClient } from "@/utils/supabase/server";
 import { sendEmail } from "@/lib/email";
+import { validateBusinessLegalData } from "@/lib/validation/business";
 
 export async function startFreeTrial(businessId: string, planSlug: string, interval: "monthly" | "yearly" = "monthly") {
   try {
@@ -33,14 +34,19 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
       return { success: false, error: "Отказано в доступе: вы не являетесь владельцем" };
     }
 
-    const hasRequiredBusinessData = Boolean(
-      business.inn?.trim() && business.legalName?.trim() && business.address?.trim()
+    const legalValidation = validateBusinessLegalData(
+      {
+        inn: business.inn,
+        legalName: business.legalName,
+        address: business.address,
+      },
+      { requireAll: true }
     );
 
-    if (!hasRequiredBusinessData) {
+    if (!legalValidation.isValid) {
       return {
         success: false,
-        error: "Перед покупкой заполните обязательные реквизиты компании (ИНН, название и адрес)",
+        error: `${legalValidation.error || "Перед покупкой заполните обязательные реквизиты компании"}. Перейдите в /dashboard/setup`,
       };
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   BarChart3,
@@ -24,6 +24,7 @@ import { Footer } from "@/components/Footer";
 import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { isBusinessProfileComplete } from "@/lib/validation/business";
 
 export default function DashboardLayout({
   children,
@@ -31,6 +32,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { signOut, user } = useAuth();
   const [isSigned, setIsSigned] = useState(false);
 
@@ -38,10 +40,22 @@ export default function DashboardLayout({
     async function checkStatus() {
       try {
         const result = await getBusinessDetailsAction();
+        const isSetupRoute = pathname.startsWith("/dashboard/setup");
+
         if (result.success && result.data?.subscriptionStatus === "ACTIVE") {
           setIsSigned(true);
         } else {
           setIsSigned(false);
+        }
+
+        const needsSetup = !result.data || !isBusinessProfileComplete({
+          inn: result.data.inn,
+          legalName: result.data.legalName,
+          address: result.data.address,
+        });
+
+        if (needsSetup && !isSetupRoute) {
+          router.push("/dashboard/setup");
         }
       } catch (err) {
         console.error("Failed to check business status in layout", err);

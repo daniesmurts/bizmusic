@@ -1,6 +1,6 @@
 const https = require('https');
 
-module.exports.handler = async function(event, context) {
+module.exports.handler = async function() {
     console.log("Cron triggered! Calling https://bizmuzik.ru/api/cron/billing");
     
     const CRON_SECRET = process.env.CRON_SECRET;

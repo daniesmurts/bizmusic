@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
+import { isBusinessProfileComplete } from "@/lib/validation/business";
 
 interface BusinessData {
   id: string;
@@ -65,12 +66,13 @@ export default function SubscriptionPage() {
         return;
     }
 
-    const hasRequiredBusinessData = Boolean(
-      businessData.inn?.trim() && businessData.legalName?.trim() && businessData.address?.trim()
-    );
-
-    if (!hasRequiredBusinessData) {
-      toast.error("Перед покупкой заполните ИНН, название компании и адрес в настройках");
+    if (!isBusinessProfileComplete({
+      inn: businessData.inn,
+      legalName: businessData.legalName,
+      address: businessData.address,
+    })) {
+      toast.error("Перед покупкой заполните ИНН, название компании и адрес");
+      router.push('/dashboard/setup');
       return;
     }
     
