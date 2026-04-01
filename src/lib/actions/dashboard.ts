@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { businesses, locations, licenses, playlistTracks, tracks, playlists, users } from "@/db/schema";
 import { eq, desc, sql, or, inArray } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
+import { resolveAccessScope } from "@/lib/auth/scope";
 
 function formatDurationRu(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
@@ -14,6 +15,25 @@ function formatDurationRu(totalSeconds: number) {
   return `${hours}Ч ${String(minutes).padStart(2, "0")}М`;
 }
 
+async function processPlaylist(p: { id: string; name: string }) {
+  const [{ count, totalDurationSeconds }] = await db
+    .select({
+      count: sql`count(${playlistTracks.id})`.mapWith(Number),
+      totalDurationSeconds: sql`coalesce(sum(${tracks.duration}), 0)`.mapWith(Number),
+    })
+    .from(playlistTracks)
+    .leftJoin(tracks, eq(playlistTracks.trackId, tracks.id))
+    .where(eq(playlistTracks.playlistId, p.id));
+
+  return {
+    id: p.id,
+    name: p.name,
+    trackCount: count || 0,
+    durationSeconds: totalDurationSeconds || 0,
+    duration: formatDurationRu(totalDurationSeconds || 0),
+  };
+}
+
 export async function getDashboardDataAction() {
   try {
     const supabase = await createClient();
@@ -21,6 +41,61 @@ export async function getDashboardDataAction() {
 
     if (!user) {
       return { success: false, error: "Not authenticated" };
+    }
+
+    const scope = await resolveAccessScope(user.id);
+
+    if (scope?.isBranchManager) {
+      if (!scope.businessId || !scope.assignedLocationId) {
+        return { success: false, error: "Филиал не назначен. Обратитесь к владельцу бизнеса." };
+      }
+
+      const [business, assignedLocation] = await Promise.all([
+        db.query.businesses.findFirst({
+          where: eq(businesses.id, scope.businessId),
+          columns: { id: true, legalName: true, subscriptionStatus: true },
+          with: {
+            playlists: {
+              columns: { id: true, name: true },
+            },
+          },
+        }),
+        db.query.locations.findFirst({
+          where: eq(locations.id, scope.assignedLocationId),
+          columns: {
+            id: true,
+            name: true,
+            address: true,
+            createdAt: true,
+            updatedAt: true,
+            businessId: true,
+            deviceId: true,
+          },
+        }),
+      ]);
+
+      if (!business || !assignedLocation) {
+        return { success: false, error: "Данные филиала не найдены" };
+      }
+
+      const staffPlaylists = await Promise.all(business.playlists.map(processPlaylist));
+      const totalTrackCount = staffPlaylists.reduce((acc, playlist) => acc + playlist.trackCount, 0);
+
+      return {
+        success: true,
+        data: {
+          businessId: business.id,
+          businessName: business.legalName,
+          locations: [assignedLocation],
+          playlists: staffPlaylists,
+          globalPlaylists: [],
+          stats: {
+            locationCount: 1,
+            trackCount: totalTrackCount,
+            licenseStatus: business.subscriptionStatus,
+          },
+        },
+      };
     }
 
     const business = await db.query.businesses.findFirst({
@@ -92,25 +167,6 @@ export async function getDashboardDataAction() {
 
     // filter out playlists that already belong to THIS specific business (from the current logged in business context)
     const filteredGlobalPlaylists = globalPlaylistsFromDb.filter(p => p.businessId !== business.id);
-
-    const processPlaylist = async (p: any) => {
-      const [{ count, totalDurationSeconds }] = await db
-        .select({
-          count: sql`count(${playlistTracks.id})`.mapWith(Number),
-          totalDurationSeconds: sql`coalesce(sum(${tracks.duration}), 0)`.mapWith(Number),
-        })
-        .from(playlistTracks)
-        .leftJoin(tracks, eq(playlistTracks.trackId, tracks.id))
-        .where(eq(playlistTracks.playlistId, p.id));
-      
-      return {
-        id: p.id,
-        name: p.name,
-        trackCount: count || 0,
-        durationSeconds: totalDurationSeconds || 0,
-        duration: formatDurationRu(totalDurationSeconds || 0),
-      };
-    };
 
     // Fetch playlists with track counts separately
     const playlistsList = await Promise.all(business.playlists.map(processPlaylist));

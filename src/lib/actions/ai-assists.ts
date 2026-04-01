@@ -10,6 +10,7 @@ import {
   getAiEntitlementStatus,
 } from "@/lib/ai-entitlements";
 import { refineAnnouncementText } from "@/lib/groq-ai";
+import { resolveAccessScope } from "@/lib/auth/scope";
 
 export interface GenerateAiAssistInput {
   userDraft: string;
@@ -26,6 +27,11 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
 
     if (!user) {
       return { success: false, error: "Unauthorized" };
+    }
+
+    const scope = await resolveAccessScope(user.id);
+    if (scope?.isBranchManager) {
+      return { success: false, error: "Менеджер филиала не может использовать ИИ-ассистирование" };
     }
 
     // Get business ID for the user
@@ -94,6 +100,11 @@ export async function getAiAssistStatusAction() {
 
     if (!user) {
       return { success: false, error: "Unauthorized" };
+    }
+
+    const scope = await resolveAccessScope(user.id);
+    if (scope?.isBranchManager) {
+      return { success: false, error: "Недостаточно прав" };
     }
 
     const business = await db.query.businesses.findFirst({

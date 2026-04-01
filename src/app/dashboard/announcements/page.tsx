@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
+import { useAuth } from "@/components/AuthProvider";
 
 interface PlaylistSummary {
   id: string;
@@ -103,6 +104,8 @@ function formatRuDate(value: string | Date | null | undefined) {
 }
 
 export default function AnnouncementsPage() {
+  const { role } = useAuth();
+  const isBranchManager = role === "STAFF";
   const [isAdding, setIsAdding] = useState(false);
   const [addingToPlaylist, setAddingToPlaylist] = useState<AnnouncementItem | null>(null);
   const formRef = useRef<HTMLDivElement | null>(null);
@@ -141,6 +144,7 @@ export default function AnnouncementsPage() {
 
   const { data: entitlement } = useQuery<EntitlementStatus>({
     queryKey: ["tts-entitlement"],
+    enabled: !isBranchManager,
     queryFn: async () => {
       const result = await getAnnouncementEntitlementStatusAction();
       if (!result.success) throw new Error(result.error);
@@ -150,6 +154,7 @@ export default function AnnouncementsPage() {
 
   const { data: aiEntitlement } = useQuery<AiEntitlementStatus>({
     queryKey: ["ai-entitlement"],
+    enabled: !isBranchManager,
     queryFn: async () => {
       const result = await getAiAssistStatusAction();
       if (!result.success) throw new Error(result.error);
@@ -392,7 +397,7 @@ export default function AnnouncementsPage() {
             Автоматизируйте оповещения в вашем заведении
           </p>
         </div>
-        {!isAdding && (
+        {!isAdding && !isBranchManager && (
           <Button 
             onClick={() => setIsAdding(true)}
             className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 h-14 font-black uppercase text-xs tracking-widest gap-2 shadow-lg shadow-neon/20"
@@ -402,6 +407,7 @@ export default function AnnouncementsPage() {
         )}
       </div>
 
+      {!isBranchManager && (
       <section className="glass-dark border border-white/10 rounded-[2rem] p-6 sm:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -464,7 +470,9 @@ export default function AnnouncementsPage() {
           </div>
         </div>
       </section>
+      )}
 
+      {!isBranchManager && (
       <section className="glass-dark border border-white/10 rounded-[2rem] p-6 sm:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -508,8 +516,9 @@ export default function AnnouncementsPage() {
           </p>
         )}
       </section>
+      )}
 
-      {isAdding && (
+      {isAdding && !isBranchManager && (
         <div ref={formRef} className="animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex justify-end mb-4">
             <Button 
@@ -554,7 +563,7 @@ export default function AnnouncementsPage() {
               emptyTitle: "Нет собственных анонсов",
               emptyDescription: "Создайте первый анонс через форму выше.",
               badgeTone: "neon",
-              canDelete: true,
+              canDelete: !isBranchManager,
             })}
             {renderAnnouncementCards(platformAnnouncements, {
               title: "Из библиотеки BizMusic",
@@ -562,7 +571,7 @@ export default function AnnouncementsPage() {
               emptyTitle: "Нет платформенных анонсов",
               emptyDescription: "Добавляйте готовые анонсы с витрины BizMusic.",
               badgeTone: "blue",
-              canDelete: true,
+              canDelete: !isBranchManager,
             })}
           </div>
         ) : (
@@ -574,15 +583,23 @@ export default function AnnouncementsPage() {
                <h3 className="text-xl font-black uppercase tracking-tight text-white">Список пуст</h3>
                <p className="text-neutral-500 font-medium text-sm">У вас пока нет созданных голосовых анонсов.</p>
              </div>
-             <Button 
-              onClick={() => setIsAdding(true)}
-              className="bg-neon/10 border border-neon/20 text-neon hover:bg-neon hover:text-black rounded-xl px-8"
-             >
-               Создать первое
-             </Button>
+             {!isBranchManager && (
+               <Button 
+                onClick={() => setIsAdding(true)}
+                className="bg-neon/10 border border-neon/20 text-neon hover:bg-neon hover:text-black rounded-xl px-8"
+               >
+                 Создать первое
+               </Button>
+             )}
           </div>
         )}
       </section>
+
+      {isBranchManager && (
+        <div className="glass-dark border border-white/10 rounded-[2rem] p-6 text-sm text-neutral-400">
+          Менеджер филиала может использовать готовые анонсы и добавлять их в плейлисты, но не может создавать, удалять или покупать новые анонсы.
+        </div>
+      )}
 
       {/* Tips / Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">

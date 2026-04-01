@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   BarChart3,
+  Building2,
   Play,
   CreditCard,
   FileText,
@@ -33,11 +34,17 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { signOut, user } = useAuth();
+  const { signOut, user, role } = useAuth();
   const [isSigned, setIsSigned] = useState(false);
+  const isBranchManager = role === "STAFF";
 
   useEffect(() => {
     async function checkStatus() {
+      if (isBranchManager) {
+        setIsSigned(true);
+        return;
+      }
+
       try {
         const result = await getBusinessDetailsAction();
         const isSetupRoute = pathname.startsWith("/dashboard/setup");
@@ -61,48 +68,68 @@ export default function DashboardLayout({
         console.error("Failed to check business status in layout", err);
       }
     }
-    checkStatus();
-  }, [pathname]);
+    if (role !== null) {
+      checkStatus();
+    }
+  }, [isBranchManager, pathname, role, router]);
 
-  const navItems = [
-    {
-      name: "Обзор",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Плеер",
-      href: "/dashboard/player",
-      icon: Play,
-    },
-    {
-      name: "Анонсы",
-      href: "/dashboard/announcements",
-      icon: Mic,
-    },
-    {
-      name: "Подписка",
-      href: "/dashboard/subscription",
-      icon: CreditCard,
-    },
-    {
-      name: "Договор",
-      href: "/dashboard/contract",
-      icon: FileText,
-      hasAction: true,
-      status: isSigned ? 'success' : 'action'
-    },
-    {
-      name: "База знаний",
-      href: "/knowledge",
-      icon: BookOpen,
-    },
-    {
-      name: "Настройки",
-      href: "/dashboard/settings",
-      icon: Settings,
-    },
-  ];
+  const navItems = isBranchManager
+    ? [
+        {
+          name: "Плеер",
+          href: "/dashboard/player",
+          icon: Play,
+        },
+        {
+          name: "Анонсы",
+          href: "/dashboard/announcements",
+          icon: Mic,
+        },
+      ]
+    : [
+        {
+          name: "Обзор",
+          href: "/dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          name: "Плеер",
+          href: "/dashboard/player",
+          icon: Play,
+        },
+        {
+          name: "Анонсы",
+          href: "/dashboard/announcements",
+          icon: Mic,
+        },
+        {
+          name: "Филиалы",
+          href: "/dashboard/branches",
+          icon: Building2,
+        },
+        {
+          name: "Подписка",
+          href: "/dashboard/subscription",
+          icon: CreditCard,
+        },
+        {
+          name: "Договор",
+          href: "/dashboard/contract",
+          icon: FileText,
+          hasAction: true,
+          status: isSigned ? 'success' : 'action'
+        },
+        {
+          name: "База знаний",
+          href: "/knowledge",
+          icon: BookOpen,
+        },
+        {
+          name: "Настройки",
+          href: "/dashboard/settings",
+          icon: Settings,
+        },
+      ];
 
   return (
     <div className="flex flex-col min-h-screen bg-black">

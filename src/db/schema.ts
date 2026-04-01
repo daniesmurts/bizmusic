@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   role: roleEnum("role").default("BUSINESS_OWNER").notNull(),
   userType: userTypeEnum("userType").default("BUSINESS").notNull(),
   phone: text("phone"),
+  assignedLocationId: text("assignedLocationId"),
   termsAccepted: boolean("termsAccepted").default(false).notNull(),
   termsAcceptedAt: timestamp("termsAcceptedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

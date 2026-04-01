@@ -4,9 +4,26 @@ import { db } from "@/db";
 import { waveSettings, tracks, trackSkips } from "@/db/schema";
 import { eq, and, not, sql, inArray } from "drizzle-orm";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { createClient } from "@/utils/supabase/server";
+import { resolveAccessScope } from "@/lib/auth/scope";
+
+async function canUseBusinessWave(businessId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const scope = await resolveAccessScope(user.id);
+  if (!scope) return false;
+  if (scope.role === "ADMIN") return true;
+  return scope.businessId === businessId;
+}
 
 export async function getWaveSettingsAction(businessId: string) {
   try {
+    if (!(await canUseBusinessWave(businessId))) {
+      return { success: false, error: "Недостаточно прав" };
+    }
+
     const settings = await db.query.waveSettings.findFirst({
       where: eq(waveSettings.businessId, businessId),
     });
@@ -35,6 +52,10 @@ export async function updateWaveSettingsAction(
   data: { energyPreference?: number; vocalPreference?: string; focusProfile?: string }
 ) {
   try {
+    if (!(await canUseBusinessWave(businessId))) {
+      return { success: false, error: "Недостаточно прав" };
+    }
+
     const [updated] = await db.update(waveSettings)
       .set({
         ...data,
@@ -50,6 +71,10 @@ export async function updateWaveSettingsAction(
 
 export async function generateWaveBatchAction(businessId: string, excludeTrackIds: string[] = []) {
   try {
+    if (!(await canUseBusinessWave(businessId))) {
+      return { success: false, error: "Недостаточно прав" };
+    }
+
     // 1. Get settings
     const settingsRes = await getWaveSettingsAction(businessId);
     if (!settingsRes.success || !settingsRes.settings) {

@@ -21,6 +21,7 @@ import {
   parseStorageObjectRef,
   uploadFileBuffer,
 } from "@/lib/supabase-storage";
+import { resolveAccessScope } from "@/lib/auth/scope";
 import { createClient } from "@/utils/supabase/server";
 
 type AccessModel = "FREE" | "PAID";
@@ -62,8 +63,13 @@ async function getCurrentBusiness() {
     return null;
   }
 
+  const scope = await resolveAccessScope(user.id);
+  if (!scope?.businessId) {
+    return null;
+  }
+
   const business = await db.query.businesses.findFirst({
-    where: eq(businesses.userId, user.id),
+    where: eq(businesses.id, scope.businessId),
   });
 
   return business ?? null;

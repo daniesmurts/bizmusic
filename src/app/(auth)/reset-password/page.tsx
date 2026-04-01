@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,11 @@ export default function ResetPassword() {
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInviteMode = searchParams.get("mode") === "invite";
+  const nextPath = searchParams.get("next") || "/dashboard";
 
   // Verify recovery session exists (set by Supabase via the email link hash fragment)
   useEffect(() => {
@@ -85,7 +88,7 @@ export default function ResetPassword() {
     setLoading(false);
     
     redirectTimerRef.current = setTimeout(() => {
-      router.push("/login");
+      router.push(nextPath);
     }, 3000);
   };
 
@@ -110,13 +113,17 @@ export default function ResetPassword() {
         </div>
         <CardTitle className="text-3xl font-black mb-4 uppercase">Ссылка недействительна</CardTitle>
         <CardDescription className="text-neutral-400 text-lg mb-8">
-          Ссылка для сброса пароля истекла или недействительна. Пожалуйста, запросите новую.
+          {isInviteMode
+            ? "Ссылка-приглашение истекла или недействительна. Попросите владельца бизнеса отправить новое приглашение."
+            : "Ссылка для сброса пароля истекла или недействительна. Пожалуйста, запросите новую."}
         </CardDescription>
         <Button 
           asChild
           className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-6 rounded-full transition-all"
         >
-          <Link href="/forgot-password">Запросить новую ссылку</Link>
+          <Link href={isInviteMode ? "/login" : "/forgot-password"}>
+            {isInviteMode ? "Перейти ко входу" : "Запросить новую ссылку"}
+          </Link>
         </Button>
       </Card>
     );
@@ -128,9 +135,13 @@ export default function ResetPassword() {
         <div className="flex justify-center mb-6">
           <CheckCircle2 className="w-16 h-16 text-neon" />
         </div>
-        <CardTitle className="text-3xl font-black mb-4 uppercase">Пароль изменен</CardTitle>
+        <CardTitle className="text-3xl font-black mb-4 uppercase">
+          {isInviteMode ? "Доступ активирован" : "Пароль изменен"}
+        </CardTitle>
         <CardDescription className="text-neutral-400 text-lg mb-8">
-          Ваш пароль был успешно обновлен. Сейчас вы будете перенаправлены на страницу входа...
+          {isInviteMode
+            ? "Ваш пароль установлен. Сейчас вы будете перенаправлены в рабочий кабинет филиала..."
+            : "Ваш пароль был успешно обновлен. Сейчас вы будете перенаправлены в кабинет..."}
         </CardDescription>
         <Loader2 className="w-8 h-8 animate-spin text-neon mx-auto" />
       </Card>
@@ -146,10 +157,16 @@ export default function ResetPassword() {
         </div>
         <div className="space-y-2">
           <CardTitle className="text-4xl font-black tracking-tighter uppercase leading-none">
-            Новый <br /><span className="text-neon">пароль</span>
+            {isInviteMode ? (
+              <>Активация <br /><span className="text-neon">доступа</span></>
+            ) : (
+              <>Новый <br /><span className="text-neon">пароль</span></>
+            )}
           </CardTitle>
           <CardDescription className="text-neutral-400 font-medium">
-            Установите безопасный пароль для доступа к вашему аккаунту.
+            {isInviteMode
+              ? "Задайте пароль для входа в кабинет менеджера филиала."
+              : "Установите безопасный пароль для доступа к вашему аккаунту."}
           </CardDescription>
         </div>
       </CardHeader>
