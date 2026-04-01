@@ -10,12 +10,12 @@ export function Footer({ variant = "default" }: FooterProps) {
 
   if (variant === "dashboard") {
     return (
-      <footer className="border-t border-white/5 px-6 py-8 mt-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <footer className="border-t border-white/5 px-6 py-4 md:py-8 mt-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 md:gap-4">
           <div className="flex items-center gap-2 text-neutral-500 font-bold uppercase tracking-widest text-[10px]">
             © {currentYear} Бизнес Музыка. 100% Легально.
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-3">
             <Link href="/legal/terms" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Оферта</Link>
             <Link href="/legal/privacy" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Политика</Link>
             <Link href="/knowledge" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Справка</Link>

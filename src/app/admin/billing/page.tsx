@@ -164,10 +164,10 @@ export default async function AdminBillingPage({
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-neutral-500">
             <CreditCard className="w-4 h-4 text-neon" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Финансы • TTS отчеты</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Финансы • Отчеты по кредитам</span>
           </div>
           <h1 className="text-5xl lg:text-6xl font-black uppercase tracking-tighter leading-none">
-            TTS токены и <br />
+            ИИ-кредиты и <br />
             <span className="text-neon underline decoration-neon/20 underline-offset-8">генерации</span>
           </h1>
         </div>
@@ -180,10 +180,10 @@ export default async function AdminBillingPage({
             <Wallet className="w-6 h-6 text-neon" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">Активные пакетные токены</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">Всего ИИ-кредитов (TTS + Асист)</p>
             <h3 className="text-2xl font-black uppercase tracking-tight text-white">{summary?.totalPaidTokens ?? 0}</h3>
           </div>
-          <p className="text-sm text-neutral-400 font-medium">Доступный остаток по всем бизнесам.</p>
+          <p className="text-sm text-neutral-400 font-medium">Доступный остаток пакетных кредитов по всем бизнесам.</p>
         </div>
 
         <div className="glass-dark border border-white/5 rounded-[2rem] p-8 space-y-4">
@@ -211,7 +211,7 @@ export default async function AdminBillingPage({
 
       <section className="glass-dark border border-white/5 rounded-[2rem] p-8 space-y-6">
         <div>
-          <h2 className="text-xl font-black uppercase tracking-tight text-white">Фильтр использования TTS</h2>
+          <h2 className="text-xl font-black uppercase tracking-tight text-white">Фильтр использования ИИ</h2>
           <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mt-1">Поиск по бизнесу и диапазону дат</p>
         </div>
 
@@ -272,7 +272,7 @@ export default async function AdminBillingPage({
             {topBalances.map((row) => (
               <div key={row.businessId} className="border border-white/10 rounded-xl p-4 bg-white/[0.03]">
                 <p className="text-sm font-black uppercase tracking-widest text-white">{row.legalName}</p>
-                <p className="text-xs text-neutral-400 mt-1">Токены: <span className="text-neon font-bold">{row.tokens}</span></p>
+                <p className="text-xs text-neutral-400 mt-1">Кредиты: <span className="text-neon font-bold">{row.tokens}</span></p>
                 <p className="text-xs text-neutral-500 mt-1">Ближайшее истечение: {formatRuDate(row.nearestExpiry)}</p>
               </div>
             ))}

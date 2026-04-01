@@ -36,12 +36,6 @@ export async function GET() {
         createdAt: true,
         updatedAt: true,
       },
-      with: {
-        licenses: {
-          orderBy: [desc(licenses.issuedAt)],
-          limit: 1,
-        }
-      }
     });
 
     if (!business) {

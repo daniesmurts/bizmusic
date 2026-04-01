@@ -9,6 +9,21 @@ export function useServiceWorker() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
+    const isDev = process.env.NODE_ENV === "development";
+
+    if (isDev) {
+      // In development, vigorously unregister any stale service workers
+      // to resolve "sw.js 404" red errors.
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister().then(() => {
+            console.log("[PWA] Unregistered zombie service worker in dev");
+          });
+        }
+      });
+      return;
+    }
+
     navigator.serviceWorker
       .register("/sw.js")
       .then((registration) => {

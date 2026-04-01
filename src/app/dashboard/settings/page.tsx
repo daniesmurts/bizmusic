@@ -269,7 +269,7 @@ export default function SettingsPage() {
                   <Input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-12 bg-white/[0.02] border-white/10 text-white rounded-2xl h-14"
+                    className="pl-12 bg-white/[0.02] border-white/10 text-white rounded-xl h-14"
                   />
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function SettingsPage() {
                   <Input
                     value={user?.id || ""}
                     disabled
-                    className="pl-12 bg-white/[0.02] border-white/10 text-neutral-500 rounded-2xl h-14"
+                    className="pl-12 bg-white/[0.02] border-white/10 text-neutral-500 rounded-xl h-14"
                   />
                 </div>
               </div>
@@ -321,7 +321,7 @@ export default function SettingsPage() {
                   value={businessData.legalName}
                   onChange={(e) => setBusinessData({ ...businessData, legalName: e.target.value })}
                   placeholder="ООО 'Пример'"
-                  className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6"
+                  className="bg-white/[0.02] border-white/10 text-white rounded-xl h-14 px-6"
                 />
               </div>
 
@@ -332,8 +332,8 @@ export default function SettingsPage() {
                 <Input
                   value={businessData.inn}
                   onChange={(e) => setBusinessData({ ...businessData, inn: e.target.value })}
-                  placeholder="1234567890"
-                  className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6"
+                  placeholder="10-12 цифр"
+                  className="bg-white/[0.02] border-white/10 text-white rounded-xl h-14 px-4 py-6 tabular-nums tracking-[0.05em]"
                 />
               </div>
 
@@ -344,8 +344,8 @@ export default function SettingsPage() {
                 <Input
                   value={businessData.kpp}
                   onChange={(e) => setBusinessData({ ...businessData, kpp: e.target.value })}
-                  placeholder="123456789"
-                  className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6"
+                  placeholder="9 цифр"
+                  className="bg-white/[0.02] border-white/10 text-white rounded-xl h-14 px-4 py-6 tabular-nums tracking-[0.05em]"
                 />
               </div>
 
@@ -359,7 +359,7 @@ export default function SettingsPage() {
                     value={businessData.phone}
                     onChange={(e) => setBusinessData({ ...businessData, phone: e.target.value })}
                     placeholder="+7 (999) 123-45-67"
-                    className="pl-12 bg-white/[0.02] border-white/10 text-white rounded-2xl h-14"
+                    className="pl-12 bg-white/[0.02] border-white/10 text-white rounded-xl h-14"
                   />
                 </div>
               </div>
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                     value={businessData.address}
                     onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
                     placeholder="г. Москва, ул. Примерная, д. 1"
-                    className="pl-12 bg-white/[0.02] border-white/10 text-white rounded-2xl h-14"
+                    className="pl-12 bg-white/[0.02] border-white/10 text-white rounded-xl h-14"
                   />
                 </div>
               </div>
@@ -456,7 +456,7 @@ export default function SettingsPage() {
                   value={businessData.bankName}
                   onChange={(e) => setBusinessData({ ...businessData, bankName: e.target.value })}
                   placeholder="ПАО Сбербанк"
-                  className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6"
+                  className="bg-white/[0.02] border-white/10 text-white rounded-xl h-14 px-6"
                 />
               </div>
 
@@ -467,8 +467,8 @@ export default function SettingsPage() {
                 <Input
                   value={businessData.bik}
                   onChange={(e) => setBusinessData({ ...businessData, bik: e.target.value })}
-                  placeholder="044525225"
-                  className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6"
+                  placeholder="9 цифр"
+                  className="bg-white/[0.02] border-white/10 text-white rounded-xl h-14 px-4 py-6 tabular-nums tracking-[0.05em]"
                 />
               </div>
 
@@ -479,8 +479,8 @@ export default function SettingsPage() {
                 <Input
                   value={businessData.settlementAccount}
                   onChange={(e) => setBusinessData({ ...businessData, settlementAccount: e.target.value })}
-                  placeholder="40702810400000000000"
-                  className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6"
+                  placeholder="20 цифр"
+                  className="bg-white/[0.02] border-white/10 text-white rounded-xl h-14 px-4 py-6 tabular-nums tracking-[0.05em]"
                 />
               </div>
 
@@ -491,8 +491,8 @@ export default function SettingsPage() {
                 <Input
                   value={businessData.corrAccount}
                   onChange={(e) => setBusinessData({ ...businessData, corrAccount: e.target.value })}
-                  placeholder="30101810400000000000"
-                  className="bg-white/[0.02] border-white/10 text-white rounded-2xl h-14 px-6"
+                  placeholder="20 цифр"
+                  className="bg-white/[0.02] border-white/10 text-white rounded-xl h-14 px-4 py-6 tabular-nums tracking-[0.05em]"
                 />
               </div>
             </div>
@@ -597,7 +597,7 @@ export default function SettingsPage() {
                         )}
                       </div>
                       <div>
-                        <p className="text-white font-black uppercase tracking-tight">
+                        <p className="text-white font-black uppercase tracking-tight truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">
                           {payment.orderId || "Платеж"}
                         </p>
                         <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">

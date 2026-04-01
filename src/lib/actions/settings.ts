@@ -168,6 +168,7 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
     // Build partial update payload without overwriting required fields with empty strings.
     const businessData: Partial<typeof businesses.$inferInsert> = {
       userId: user.id,
+      updatedAt: new Date(),
     };
 
     if (normalizedLegal.inn) businessData.inn = normalizedLegal.inn;

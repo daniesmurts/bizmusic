@@ -55,8 +55,8 @@ export function validateBusinessLegalData(
     if (!normalized.inn) {
       return { isValid: false, error: "ИНН не может быть пустым" };
     }
-    if (!/^\d{10}$/.test(normalized.inn)) {
-      return { isValid: false, error: "ИНН должен содержать 10 цифр" };
+    if (!/^\d{10}(?:\d{2})?$/.test(normalized.inn)) {
+      return { isValid: false, error: "ИНН должен содержать 10 или 12 цифр" };
     }
   }
 

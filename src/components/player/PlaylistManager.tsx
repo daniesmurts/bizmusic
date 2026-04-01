@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ListMusic, Plus, Star, Filter, ArrowRight, Download, Play, X } from "lucide-react";
+import { ListMusic, Plus, Star, Filter, ArrowRight, Download, Play, X, Lock, Crown } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
 import { useState, useEffect } from "react";
@@ -14,12 +15,15 @@ import { cn } from "@/lib/utils";
 export function PlaylistManager({ 
   playlists, 
   globalPlaylists = [],
-  businessId 
+  businessId,
+  subscriptionStatus
 }: { 
   playlists: any[], 
   globalPlaylists?: any[],
-  businessId?: string 
+  businessId?: string,
+  subscriptionStatus?: string
 }) {
+  const isSubscribed = subscriptionStatus === "ACTIVE";
   const categories = ["Энергичный", "Спокойный", "Фоновый", "Джаз", "Поп", "Рок"];
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [localPlaylists, setLocalPlaylists] = useState(playlists);
@@ -117,49 +121,95 @@ export function PlaylistManager({
     }
   };
 
-  const PlaylistCard = ({ list, isGlobal = false }: { list: any, isGlobal?: boolean }) => (
-    <div 
-      onClick={() => handlePlaylistEdit(list, isGlobal)}
-      className={cn(
-        "glass-dark border p-6 rounded-[2.5rem] flex flex-col justify-between group transition-all h-[200px] cursor-pointer relative overflow-hidden",
-        isGlobal ? "border-purple-500/20 hover:border-purple-500/40" : "border-white/10 hover:border-white/20"
-      )}
-    >
-      {isGlobal && (
-        <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-      )}
-      <div className="flex justify-between items-start">
-        <div className={cn(
-          "w-14 h-14 rounded-2xl flex items-center justify-center border transition-transform group-hover:scale-110",
-          isGlobal ? "bg-purple-500/10 border-purple-500/20" : "bg-white/5 border-white/5 group-hover:bg-white/10"
-        )}>
-            <ListMusic className={cn("w-7 h-7", isGlobal ? "text-purple-400" : "text-white")} />
-        </div>
+  const PlaylistCard = ({ list, isGlobal = false }: { list: any, isGlobal?: boolean }) => {
+    const isLocked = !isSubscribed;
+
+    return (
+      <div 
+        onClick={() => !isLocked && handlePlaylistEdit(list, isGlobal)}
+        className={cn(
+          "glass-dark border p-6 rounded-[2.5rem] flex flex-col justify-between group transition-all h-[200px] cursor-pointer relative overflow-hidden",
+          isGlobal ? "border-purple-500/20 hover:border-purple-500/40" : "border-white/10 hover:border-white/20",
+          isLocked && "cursor-default border-white/5"
+        )}
+      >
         {isGlobal && (
-          <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-[9px] font-black uppercase tracking-widest border border-purple-500/30 z-10">
-            Официальный
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        )}
+        <div className="flex justify-between items-start">
+          <div className={cn(
+            "w-14 h-14 rounded-2xl flex items-center justify-center border transition-transform group-hover:scale-110",
+            isGlobal ? "bg-purple-500/10 border-purple-500/20" : "bg-white/5 border-white/5 group-hover:bg-white/10"
+          )}>
+              <ListMusic className={cn("w-7 h-7", isGlobal ? "text-purple-400" : "text-white")} />
+          </div>
+          {isGlobal ? (
+            <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-[9px] font-black uppercase tracking-widest border border-purple-500/30 z-10">
+              Официальный
+            </div>
+          ) : (
+            <div className="px-3 py-1 bg-neon/10 text-neon rounded-full text-[9px] font-black uppercase tracking-widest border border-neon/20 z-10">
+              Ваш Плейлист
+            </div>
+          )}
+        </div>
+        <div className="mt-auto flex justify-between items-end relative z-10">
+          <div className={cn(isLocked && "blur-[2px] opacity-40 transition-all")}>
+            <h4 className="text-xl font-black uppercase tracking-tight text-white mb-1 leading-tight truncate max-w-[150px]">{list.name}</h4>
+            <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">{list.trackCount} ТРЕКОВ • {list.duration || "0Ч 00М"}</p>
+          </div>
+          {!isLocked ? (
+            <Button 
+              onClick={(e) => handlePlaylistPlay(e, list)}
+              variant="ghost" 
+              size="icon" 
+              className={cn(
+                "transition-all group-hover:scale-110",
+                isGlobal ? "text-purple-400 hover:text-purple-300" : "group-hover:text-white text-neutral-500"
+              )}
+            >
+              <Play className="w-6 h-6 fill-current" />
+            </Button>
+          ) : (
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center border",
+              isGlobal ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-neon/10 border-neon/20 text-neon"
+            )}>
+               <Lock className="w-4 h-4" />
+            </div>
+          )}
+        </div>
+
+        {/* Premium Lock Overlay */}
+        {isLocked && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[4px] p-4 text-center animate-fade-in group-hover:bg-black/50 transition-all duration-500">
+             <div className="space-y-3">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center border mx-auto transition-transform group-hover:scale-110",
+                  isGlobal ? "bg-purple-500/20 border-purple-500/30 text-purple-400" : "bg-neon/20 border-neon/30 text-neon"
+                )}>
+                   <Crown className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                   <p className={cn(
+                     "text-[9px] font-black uppercase tracking-[0.2em]",
+                     isGlobal ? "text-purple-300" : "text-neon/80"
+                   )}>
+                     Нужна подписка
+                   </p>
+                   <Link 
+                     href="/dashboard/subscription"
+                     className="text-[10px] font-bold uppercase tracking-widest text-white hover:text-neon underline underline-offset-4 decoration-neon/50 transition-colors"
+                   >
+                     Активировать
+                   </Link>
+                </div>
+             </div>
           </div>
         )}
       </div>
-      <div className="mt-auto flex justify-between items-end relative z-10">
-        <div>
-          <h4 className="text-xl font-black uppercase tracking-tight text-white mb-1 leading-tight truncate max-w-[150px]">{list.name}</h4>
-          <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">{list.trackCount} ТРЕКОВ • {list.duration || "0Ч 00М"}</p>
-        </div>
-        <Button 
-          onClick={(e) => handlePlaylistPlay(e, list)}
-          variant="ghost" 
-          size="icon" 
-          className={cn(
-            "transition-all group-hover:scale-110",
-            isGlobal ? "text-purple-400 hover:text-purple-300" : "group-hover:text-white text-neutral-500"
-          )}
-        >
-          <Play className="w-6 h-6 fill-current" />
-        </Button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-12">
@@ -208,16 +258,40 @@ export function PlaylistManager({
           </div>
           <div className="flex items-center gap-3">
             <Button 
-              onClick={() => toast("Загрузка шаблонов...")}
+              onClick={() => {
+                if (!isSubscribed) {
+                  toast.error("Доступно только по подписке");
+                  return;
+                }
+                toast("Загрузка шаблонов...");
+              }}
               variant="outline" 
-              className="border-neon/20 text-neon hover:bg-neon/10 rounded-2xl px-6 font-black uppercase text-xs tracking-widest h-12"
+              className={cn(
+                "rounded-2xl px-6 font-black uppercase text-xs tracking-widest h-12 transition-all",
+                isSubscribed 
+                  ? "border-neon/20 text-neon hover:bg-neon/10" 
+                  : "border-white/5 text-neutral-600 cursor-not-allowed"
+              )}
             >
+              {!isSubscribed && <Lock className="w-3 h-3 mr-2 opacity-50" />}
               <Download className="w-4 h-4 mr-2" /> Шаблоны
             </Button>
             <Button 
-              onClick={() => setIsCreateOpen(true)}
-              className="bg-white text-black rounded-2xl px-6 font-black uppercase text-xs tracking-widest h-12 hover:scale-105 transition-transform"
+              onClick={() => {
+                if (!isSubscribed) {
+                  toast.error("Доступно только по подписке");
+                   return;
+                }
+                setIsCreateOpen(true);
+              }}
+              className={cn(
+                "rounded-2xl px-6 font-black uppercase text-xs tracking-widest h-12 transition-all",
+                isSubscribed 
+                  ? "bg-white text-black hover:scale-105" 
+                  : "bg-white/5 text-neutral-600 cursor-not-allowed"
+              )}
             >
+              {!isSubscribed && <Lock className="w-3 h-3 mr-2 opacity-50" />}
               <Plus className="w-4 h-4 mr-2" /> Создать
             </Button>
           </div>
@@ -236,19 +310,44 @@ export function PlaylistManager({
               </div>
             </div>
             <div className="mt-auto flex justify-between items-end z-10">
-              <div>
+              <div className={cn(!isSubscribed && "blur-[2px] opacity-40")}>
                 <h4 className="text-xl font-black uppercase tracking-tight text-white mb-1 shadow-sm">Избранное</h4>
                 <p className="text-neon text-xs font-bold uppercase tracking-widest">СКОРО</p>
               </div>
-              <Button 
-                onClick={(e) => handlePlaylistPlay(e, { id: 'starred', name: 'Избранное', trackCount: 34 })}
-                variant="ghost" 
-                size="icon" 
-                className="hover:text-neon text-white bg-white/5 hover:bg-white/10 rounded-full h-12 w-12 transition-all group-hover:scale-110"
-              >
-                <Play className="w-5 h-5 fill-current ml-1" />
-              </Button>
+              {!isSubscribed ? (
+                <div className="w-12 h-12 rounded-full border border-neon/20 bg-neon/10 flex items-center justify-center text-neon">
+                   <Lock className="w-5 h-5" />
+                </div>
+              ) : (
+                <Button 
+                  onClick={(e) => handlePlaylistPlay(e, { id: 'starred', name: 'Избранное', trackCount: 34 })}
+                  variant="ghost" 
+                  size="icon" 
+                  className="hover:text-neon text-white bg-white/5 hover:bg-white/10 rounded-full h-12 w-12 transition-all group-hover:scale-110"
+                >
+                  <Play className="w-5 h-5 fill-current ml-1" />
+                </Button>
+              )}
             </div>
+            
+            {!isSubscribed && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[4px] p-4 text-center animate-fade-in group-hover:bg-black/50 transition-all duration-500">
+                <div className="space-y-3">
+                    <div className="w-10 h-10 bg-neon/20 rounded-xl flex items-center justify-center border border-neon/30 text-neon mx-auto transition-transform group-hover:scale-110">
+                      <Crown className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-neon/80">Только с подпиской</p>
+                      <Link 
+                        href="/dashboard/subscription"
+                        className="text-[10px] font-bold uppercase tracking-widest text-white hover:text-neon underline underline-offset-4 decoration-neon/50 transition-colors"
+                      >
+                        Активировать
+                      </Link>
+                    </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {localPlaylists.length > 0 ? (

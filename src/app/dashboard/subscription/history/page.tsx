@@ -112,8 +112,8 @@ export default function PaymentHistoryPage() {
                              {record.recurrent ? "Автосписание" : "Инициализация"}
                           </span>
                        </div>
-                       <div className="text-sm text-neutral-500 mt-1 uppercase tracking-wider text-[10px] font-bold">
-                          {format(new Date(record.createdAt), 'dd MMMM yyyy, HH:mm', { locale: ru })} • ID: {record.orderId}
+                       <div className="text-sm text-neutral-500 mt-1 uppercase tracking-wider text-[10px] font-bold break-all sm:break-normal">
+                          {format(new Date(record.createdAt), 'dd MMMM yyyy, HH:mm', { locale: ru })} <br className="sm:hidden" /> <span className="hidden sm:inline-block">•</span> ID: {record.orderId}
                        </div>
                     </div>
                  </div>

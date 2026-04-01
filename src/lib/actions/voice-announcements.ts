@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { tracks, voiceAnnouncements, businesses } from "@/db/schema";
-import { generateSpeech, TTSRequest } from "@/lib/tts";
+import { generateSpeech, TTSRequest, isProviderConfigured } from "@/lib/tts";
 import { uploadFileBuffer, generateUniqueFileName, deleteFile, parseStorageObjectRef } from "@/lib/supabase-storage";
 import {
   createAnnouncementDeleteScope,
@@ -282,6 +282,26 @@ export async function deleteAnnouncementAction(announcementId: string) {
     return {
       success: false,
       error: message,
+    };
+  }
+}
+
+/**
+ * Get the configuration status of TTS providers
+ */
+export async function getTtsProvidersStatusAction() {
+  try {
+    return {
+      success: true,
+      data: {
+        google: await isProviderConfigured("google"),
+        sberbank: await isProviderConfigured("sberbank"),
+      }
+    };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch TTS provider status",
     };
   }
 }
