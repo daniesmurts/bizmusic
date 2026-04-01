@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   role: roleEnum("role").default("BUSINESS_OWNER").notNull(),
   userType: userTypeEnum("userType").default("BUSINESS").notNull(),
   phone: text("phone"),
+  assignedLocationId: text("assignedLocationId"),
   termsAccepted: boolean("termsAccepted").default(false).notNull(),
   termsAcceptedAt: timestamp("termsAcceptedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -385,8 +386,9 @@ export const businessAnnouncementAcquisitions = pgTable("business_announcement_a
 }));
 
 // RELATIONS
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   businesses: many(businesses),
+  assignedLocation: one(locations, { fields: [users.assignedLocationId], references: [locations.id] }),
   blogPosts: many(blogPosts),
   legalAcceptanceEvents: many(legalAcceptanceEvents),
   platformAnnouncementProducts: many(platformAnnouncementProducts),
@@ -409,6 +411,7 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({
   business: one(businesses, { fields: [locations.businessId], references: [businesses.id] }),
+  assignedUsers: many(users),
   playLogs: many(playLogs),
 }));
 

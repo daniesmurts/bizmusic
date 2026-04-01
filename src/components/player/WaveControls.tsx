@@ -6,10 +6,18 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Activity } from "lucide-react";
+import { Activity, Lock, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-export const WaveControls = ({ businessId }: { businessId: string }) => {
+export const WaveControls = ({ 
+  businessId, 
+  subscriptionStatus 
+}: { 
+  businessId: string;
+  subscriptionStatus?: string;
+}) => {
+  const isSubscribed = subscriptionStatus === "ACTIVE";
   const { isWaveMode, setWaveMode, isFetchingWave } = usePlayerStore();
   const [settings, setSettings] = useState({
     energyPreference: 5,
@@ -158,6 +166,28 @@ export const WaveControls = ({ businessId }: { businessId: string }) => {
           </div>
   
         </div>
+  
+        {/* Subscription Lock Overlay */}
+        {!isSubscribed && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 text-center animate-fade-in backdrop-blur-md bg-black/40 rounded-[2.5rem] border border-white/10 group-hover:bg-black/50 transition-all duration-500">
+             <div className="max-w-xs space-y-6">
+                <div className="w-20 h-20 bg-neon/10 rounded-3xl flex items-center justify-center border border-neon/20 text-neon mx-auto shadow-2xl shadow-neon/20 animate-pulse">
+                   <Lock className="w-10 h-10" />
+                </div>
+                <div className="space-y-2">
+                   <h4 className="text-xl font-black uppercase tracking-tighter text-white">Функция Ограничена</h4>
+                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 leading-relaxed">
+                      Бизнес-Волна доступна только <br /> для владельцев активной подписки
+                   </p>
+                </div>
+                <Button asChild className="w-full bg-neon text-black rounded-2xl h-14 font-black uppercase text-xs tracking-widest shadow-xl shadow-neon/20 hover:scale-105 transition-all gap-2">
+                   <Link href="/dashboard/subscription">
+                      <Crown className="w-4 h-4" /> Активировать доступ
+                   </Link>
+                </Button>
+             </div>
+          </div>
+        )}
       </div>
     </div>
   );

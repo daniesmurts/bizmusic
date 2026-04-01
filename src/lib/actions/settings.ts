@@ -5,6 +5,7 @@ import { businesses, payments } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { normalizeBusinessLegalData, validateBusinessLegalData } from "@/lib/validation/business";
 
 /**
  * Get current user's profile data
@@ -156,36 +157,23 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
       columns: { id: true }
     });
     
-    const trimmedInn = data.inn?.trim();
-    const trimmedLegalName = data.legalName?.trim();
-    const trimmedAddress = data.address?.trim();
-
-    if (data.inn !== undefined && !trimmedInn) {
-      return { success: false, error: "ИНН не может быть пустым." };
-    }
-    if (data.legalName !== undefined && !trimmedLegalName) {
-      return { success: false, error: "Название компании не может быть пустым." };
-    }
-    if (data.address !== undefined && !trimmedAddress) {
-      return { success: false, error: "Адрес не может быть пустым." };
-    }
-
-    // On first create, mandatory legal fields are required.
-    if (!existingBusiness && (!trimmedInn || !trimmedLegalName || !trimmedAddress)) {
-      return {
-        success: false,
-        error: "Для создания бизнеса заполните ИНН, название компании и адрес.",
-      };
+    const normalizedLegal = normalizeBusinessLegalData(data);
+    const legalValidation = validateBusinessLegalData(normalizedLegal, {
+      requireAll: !existingBusiness,
+    });
+    if (!legalValidation.isValid) {
+      return { success: false, error: legalValidation.error || "Проверьте реквизиты компании" };
     }
 
     // Build partial update payload without overwriting required fields with empty strings.
     const businessData: Partial<typeof businesses.$inferInsert> = {
       userId: user.id,
+      updatedAt: new Date(),
     };
 
-    if (trimmedInn) businessData.inn = trimmedInn;
-    if (trimmedLegalName) businessData.legalName = trimmedLegalName;
-    if (trimmedAddress) businessData.address = trimmedAddress;
+    if (normalizedLegal.inn) businessData.inn = normalizedLegal.inn;
+    if (normalizedLegal.legalName) businessData.legalName = normalizedLegal.legalName;
+    if (normalizedLegal.address) businessData.address = normalizedLegal.address;
     if (data.kpp !== undefined) businessData.kpp = data.kpp?.trim() || null;
     if (data.phone !== undefined) businessData.phone = data.phone?.trim() || null;
     if (data.contactPerson !== undefined) businessData.contactPerson = data.contactPerson?.trim() || null;
@@ -196,9 +184,9 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
     if (data.settlementAccount !== undefined) businessData.settlementAccount = data.settlementAccount?.trim() || null;
     if (data.corrAccount !== undefined) businessData.corrAccount = data.corrAccount?.trim() || null;
     
-    if (trimmedInn) {
+    if (normalizedLegal.inn) {
       const innCheck = await db.query.businesses.findFirst({
-        where: eq(businesses.inn, trimmedInn),
+        where: eq(businesses.inn, normalizedLegal.inn),
         columns: { id: true, userId: true }
       });
       if (innCheck && innCheck.userId !== user.id) {

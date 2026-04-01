@@ -92,6 +92,13 @@
       "when": 1774686079224,
       "tag": "0012_add_demo_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1775011200000,
+      "tag": "0013_branch_staff_location_scope",
+      "breakpoints": true
     }
   ]
 }

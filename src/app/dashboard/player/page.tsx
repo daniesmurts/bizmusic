@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Play, 
@@ -20,8 +21,12 @@ import { PlayHistory } from "@/components/player/PlayHistory";
 import { PlaylistManager } from "@/components/player/PlaylistManager";
 import { WaveControls } from "@/components/player/WaveControls";
 import { toast } from "sonner";
+import { usePlayerStore } from "@/store/usePlayerStore";
 
 export default function PlayerPage() {
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const setActiveLocationId = usePlayerStore((state) => state.setActiveLocationId);
+
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ["dashboard-data"],
     queryFn: async () => {
@@ -32,9 +37,38 @@ export default function PlayerPage() {
   });
 
   const playlists = dashboardData?.playlists || [];
-  const businessName = dashboardData?.businessName || "Ваш бизнес";
-  const firstLocationName = dashboardData?.locations?.[0]?.name || "—";
+  const locations = dashboardData?.locations || [];
   const businessId = dashboardData?.businessId;
+
+  useEffect(() => {
+    if (!locations.length) {
+      setSelectedLocationId("");
+      setActiveLocationId(null);
+      return;
+    }
+
+    const hasSelected = locations.some((location) => location.id === selectedLocationId);
+    if (!hasSelected) {
+      const fallbackLocationId = locations[0].id;
+      setSelectedLocationId(fallbackLocationId);
+      setActiveLocationId(fallbackLocationId);
+    }
+  }, [locations, selectedLocationId, setActiveLocationId]);
+
+  const selectedLocation = useMemo(() => {
+    if (!locations.length) return null;
+    return locations.find((location) => location.id === selectedLocationId) ?? locations[0];
+  }, [locations, selectedLocationId]);
+
+  useEffect(() => {
+    setActiveLocationId(selectedLocation?.id ?? null);
+  }, [selectedLocation?.id, setActiveLocationId]);
+
+  const handleLocationChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextLocationId = event.target.value;
+    setSelectedLocationId(nextLocationId);
+    setActiveLocationId(nextLocationId || null);
+  };
 
   return (
     <div className="space-y-12 animate-fade-in relative z-0 min-h-screen">
@@ -45,9 +79,25 @@ export default function PlayerPage() {
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
-        <div className="space-y-1">
+        <div className="space-y-3">
           <h2 className="text-4xl font-black uppercase tracking-tighter">Стриминг <span className="text-neon">Плеер</span></h2>
           <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Управление эфиром в реальном времени</p>
+          {locations.length > 0 && (
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Активный филиал</span>
+              <select
+                value={selectedLocation?.id || ""}
+                onChange={handleLocationChange}
+                className="h-10 min-w-[240px] rounded-xl border border-white/10 bg-black/40 px-3 text-xs font-black uppercase tracking-widest text-white focus:outline-none focus:border-neon"
+              >
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <Button 
           onClick={() => toast.success("Создание нового потока в разработке")}
@@ -59,11 +109,16 @@ export default function PlayerPage() {
 
       {/* Active Stream Component */}
       <DashboardPlayer 
-        locationName={firstLocationName} 
-        locationId={dashboardData?.locations?.[0]?.id}
+        locationName={selectedLocation?.name || "—"} 
+        locationId={selectedLocation?.id}
       />
 
-      {businessId && <WaveControls businessId={businessId} />}
+      {businessId && (
+        <WaveControls 
+          businessId={businessId} 
+          subscriptionStatus={dashboardData?.stats?.licenseStatus || "INACTIVE"}
+        />
+      )}
 
       {/* Grid Layout for Playlists & Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">
@@ -78,6 +133,7 @@ export default function PlayerPage() {
             playlists={playlists} 
             globalPlaylists={dashboardData?.globalPlaylists || []}
             businessId={businessId} 
+            subscriptionStatus={dashboardData?.stats?.licenseStatus || "INACTIVE"}
           />
           )}
         </div>

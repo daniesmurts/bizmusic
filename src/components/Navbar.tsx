@@ -24,7 +24,8 @@ import {
   Gem,
   Scissors,
   Car,
-  ShoppingCart
+  ShoppingCart,
+  BookOpen
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
@@ -63,8 +64,10 @@ export const Navbar = () => {
     { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
     { name: "Плеер", href: "/dashboard/player", icon: Play },
     { name: "Анонсы", href: "/dashboard/announcements", icon: Mic },
+    { name: "Филиалы", href: "/dashboard/branches", icon: Building2 },
     { name: "Подписка", href: "/dashboard/subscription", icon: CreditCard },
     { name: "Договор", href: "/dashboard/contract", icon: FileText },
+    { name: "База знаний", href: "/knowledge", icon: BookOpen },
     { name: "Настройки", href: "/dashboard/settings", icon: Settings },
   ];
 
@@ -82,7 +85,7 @@ export const Navbar = () => {
         </Link>
 
         {/* Links - Desktop */}
-        <div className="hidden md:flex items-center gap-8 text-sm font-black uppercase tracking-widest leading-none">
+        <div className="hidden xl:flex items-center gap-8 text-sm font-black uppercase tracking-widest leading-none">
           {role === 'ADMIN' && (
             <Link href="/admin/content" className="text-neon hover:text-white transition-colors">Админ</Link>
           )}
@@ -121,8 +124,8 @@ export const Navbar = () => {
                  </div>
                </div>
 
-               <Link href="/blog" className="text-neutral-400 hover:text-neon transition-colors">Блог</Link>
-               <Link href="/about" className="text-neutral-400 hover:text-neon transition-colors">О нас</Link>
+               <Link href="/blog" className="hidden xl:block text-neutral-400 hover:text-neon transition-colors">Блог</Link>
+               <Link href="/about" className="hidden xl:block text-neutral-400 hover:text-neon transition-colors">О нас</Link>
                <Link href="/pricing" className="text-neutral-400 hover:text-neon transition-colors">Тарифы</Link>
             </>
           )}
@@ -152,7 +155,7 @@ export const Navbar = () => {
                <Link href="/login" className="text-sm font-black uppercase tracking-widest text-neutral-400 hover:text-neon transition-colors md:block hidden">
                  Войти
                </Link>
-               <Button asChild className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-8 font-black uppercase tracking-widest text-xs h-11 border-none outline-none">
+               <Button asChild className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-6 xl:px-8 font-black uppercase tracking-widest text-xs h-11 border-none outline-none">
                  <Link href="/register">Регистрация</Link>
                </Button>
              </>
@@ -160,7 +163,7 @@ export const Navbar = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="md:hidden text-white hover:bg-white/5 rounded-full"
+            className="xl:hidden text-white hover:bg-white/5 rounded-full touch-manipulation z-10"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -170,7 +173,7 @@ export const Navbar = () => {
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
-        <div className="fixed inset-0 z-[60] md:hidden animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[60] xl:hidden animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" />
           
           <div className="relative h-full flex flex-col p-6 overflow-y-auto">
@@ -184,7 +187,7 @@ export const Navbar = () => {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-white hover:bg-white/10 rounded-full w-10 h-10"
+                className="text-white hover:bg-white/10 rounded-full w-10 h-10 touch-manipulation z-10"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <X className="w-6 h-6" />

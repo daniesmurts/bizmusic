@@ -191,44 +191,41 @@ export default function ContractPage() {
   }
 
   return (
-    <div className="space-y-12 pb-20">
+    <div className="space-y-12 pb-20 px-2 sm:px-0">
       {/* Header */}
-      <div className="flex items-end justify-between px-2">
-        <div className="space-y-1">
-          <h2 className="text-4xl font-black uppercase tracking-tighter">Юридический <span className="text-neon">Договор</span></h2>
-          <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Заполните данные о юридическом лице для формирования лицензионного договора</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 px-2">
+        <div className="space-y-2">
+          <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter leading-none">Юридический <span className="text-neon">Договор</span></h2>
+          <p className="max-w-md text-neutral-500 font-bold uppercase tracking-widest text-[10px] leading-relaxed">Заполните данные о юридическом лице для формирования лицензионного договора</p>
         </div>
-        {success ? (
-          <div className="flex items-center gap-2 px-4 py-2 bg-neon/10 border border-neon/20 rounded-full">
-             <ShieldCheck className="w-4 h-4 text-neon" />
-             <span className="text-[10px] font-black uppercase tracking-widest text-neon">ДОГОВОР АКТИВЕН</span>
-          </div>
-        ) : existingLicense?.documentStatus === "READY" || existingLicense?.pdfUrl ? (
-          <div className="flex items-center gap-2 px-4 py-2 bg-neon/10 border border-neon/20 rounded-full">
-             <ShieldCheck className="w-4 h-4 text-neon" />
-             <span className="text-[10px] font-black uppercase tracking-widest text-neon">ДОГОВОР АКТИВЕН</span>
-          </div>
-        ) : existingLicense?.documentStatus === "GENERATING" ? (
-          <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full">
-             <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
-             <span className="text-[10px] font-black uppercase tracking-widest text-yellow-400">ФОРМИРУЕТСЯ...</span>
-          </div>
-        ) : existingLicense?.documentStatus === "FAILED" ? (
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full">
-             <AlertTriangle className="w-4 h-4 text-red-400" />
-             <span className="text-[10px] font-black uppercase tracking-widest text-red-400">ОШИБКА ГЕНЕРАЦИИ</span>
-          </div>
-        ) : existingLicense ? (
-          <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full">
-             <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
-             <span className="text-[10px] font-black uppercase tracking-widest text-yellow-400">ФОРМИРУЕТСЯ...</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full">
-             <AlertCircle className="w-4 h-4 text-red-500" />
-             <span className="text-[10px] font-black uppercase tracking-widest text-red-500">НЕ ПОДПИСАНО</span>
-          </div>
-        )}
+        <div className="flex-shrink-0 self-start sm:self-auto">
+          {success ? (
+            <div className="flex items-center gap-2 px-4 py-2 bg-neon/10 border border-neon/20 rounded-full">
+               <ShieldCheck className="w-4 h-4 text-neon" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-neon">ДОГОВОР АКТИВЕН</span>
+            </div>
+          ) : existingLicense?.documentStatus === "READY" || existingLicense?.pdfUrl ? (
+            <div className="flex items-center gap-2 px-4 py-2 bg-neon/10 border border-neon/20 rounded-full">
+               <ShieldCheck className="w-4 h-4 text-neon" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-neon">ДОГОВОР АКТИВЕН</span>
+            </div>
+          ) : existingLicense?.documentStatus === "GENERATING" ? (
+            <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full">
+               <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-yellow-400">ФОРМИРУЕТСЯ...</span>
+            </div>
+          ) : existingLicense?.documentStatus === "FAILED" ? (
+            <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full">
+               <AlertTriangle className="w-4 h-4 text-red-400" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-red-400">ОШИБКА ГЕНЕРАЦИИ</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full">
+               <AlertCircle className="w-4 h-4 text-red-500" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-red-500">НЕ ПОДПИСАНО</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Form Section */}
@@ -248,7 +245,7 @@ export default function ContractPage() {
                 value={businessType}
                 disabled={isLocked}
                 onChange={(e) => setBusinessType(e.target.value)}
-                className="w-full bg-neutral-900/50 border border-white/10 rounded-2xl p-4 text-white focus:border-neon outline-none transition-all appearance-none h-14 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-neutral-900/50 border border-white/10 rounded-xl p-4 text-white focus:border-neon outline-none transition-all appearance-none h-14 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="ip">Индивидуальный предприниматель (ИП)</option>
                 <option value="ooo">Общество с ограниченной ответственностью (ООО)</option>
@@ -262,7 +259,7 @@ export default function ContractPage() {
                 value={category}
                 disabled={isLocked}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-neutral-900/50 border border-white/10 rounded-2xl p-4 text-white focus:border-neon outline-none transition-all appearance-none h-14 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-neutral-900/50 border border-white/10 rounded-xl p-4 text-white focus:border-neon outline-none transition-all appearance-none h-14 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">Выберите категорию</option>
                 <option value="cafe">Кафе / Ресторан</option>
@@ -280,11 +277,11 @@ export default function ContractPage() {
                 disabled={isLocked}
                 onChange={(e) => setLegalName(e.target.value)}
                 placeholder="ООО 'Музыкальный Бизнес'" 
-                className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 focus:border-neon/50 disabled:opacity-50" 
+                className="bg-neutral-900/50 border-white/10 rounded-xl p-6 text-white h-14 focus:border-neon/50 disabled:opacity-50" 
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-4">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">ИНН</Label>
                 <Input 
@@ -292,7 +289,7 @@ export default function ContractPage() {
                   disabled={isLocked}
                   onChange={(e) => setInn(e.target.value)}
                   placeholder="10 или 12 цифр" 
-                  className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" 
+                  className="bg-neutral-900/50 border-white/10 rounded-xl px-4 py-6 text-white h-14 disabled:opacity-50 tabular-nums tracking-[0.05em]" 
                 />
               </div>
               <div className="space-y-4">
@@ -301,18 +298,18 @@ export default function ContractPage() {
                   value={ogrn}
                   disabled={isLocked}
                   onChange={(e) => setOgrn(e.target.value)}
-                  placeholder="13 или 15 цифр" 
-                  className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" 
+                  placeholder="13-15 цифр" 
+                  className="bg-neutral-900/50 border-white/10 rounded-xl px-4 py-6 text-white h-14 disabled:opacity-50 tabular-nums tracking-[0.05em]" 
                 />
               </div>
-              <div className="space-y-4">
+              <div className="sm:col-span-2 lg:col-span-1 space-y-4">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">КПП</Label>
                 <Input 
                   value={kpp}
                   disabled={isLocked}
                   onChange={(e) => setKpp(e.target.value)}
                   placeholder="9 цифр" 
-                  className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" 
+                  className="bg-neutral-900/50 border-white/10 rounded-xl px-4 py-6 text-white h-14 disabled:opacity-50 tabular-nums tracking-[0.05em]" 
                 />
               </div>
             </div>
@@ -329,7 +326,7 @@ export default function ContractPage() {
                 disabled={isLocked}
                 onChange={(e) => setContactPerson(e.target.value)}
                 placeholder="ФИО контактного лица" 
-                className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" 
+                className="bg-neutral-900/50 border-white/10 rounded-xl p-6 text-white h-14 disabled:opacity-50" 
               />
             </div>
           </div>
@@ -342,39 +339,39 @@ export default function ContractPage() {
 
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">Название банка</Label>
-              <Input value={bankName} disabled={isLocked} onChange={(e) => setBankName(e.target.value)} placeholder="Название банка" className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" />
+              <Input value={bankName} disabled={isLocked} onChange={(e) => setBankName(e.target.value)} placeholder="Название банка" className="bg-neutral-900/50 border-white/10 rounded-xl p-6 text-white h-14 disabled:opacity-50" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                <div className="space-y-4">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">БИК</Label>
-                <Input value={bik} disabled={isLocked} onChange={(e) => setBik(e.target.value)} placeholder="9 цифр" className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" />
+                <Input value={bik} disabled={isLocked} onChange={(e) => setBik(e.target.value)} placeholder="9 цифр" className="bg-neutral-900/50 border-white/10 rounded-xl px-4 py-6 text-white h-14 disabled:opacity-50 tabular-nums tracking-[0.05em]" />
               </div>
               <div className="space-y-4">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">Телефон</Label>
-                <Input value={phone} disabled={isLocked} onChange={(e) => setPhone(e.target.value)} placeholder="+7 (___) ___-__-__" className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" />
+                <Input value={phone} disabled={isLocked} onChange={(e) => setPhone(e.target.value)} placeholder="+7 (___) ___-__-__" className="bg-neutral-900/50 border-white/10 rounded-xl px-4 py-6 text-white h-14 disabled:opacity-50" />
               </div>
             </div>
 
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">Расчетный счет</Label>
-              <Input value={settlementAccount} disabled={isLocked} onChange={(e) => setSettlementAccount(e.target.value)} placeholder="20 цифр" className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" />
+              <Input value={settlementAccount} disabled={isLocked} onChange={(e) => setSettlementAccount(e.target.value)} placeholder="20 цифр" className="bg-neutral-900/50 border-white/10 rounded-xl px-4 py-6 text-white h-14 disabled:opacity-50 tabular-nums tracking-[0.05em]" />
             </div>
 
             <div className="space-y-4">
               <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 px-1">Корр. счет</Label>
-              <Input value={corrAccount} disabled={isLocked} onChange={(e) => setCorrAccount(e.target.value)} placeholder="20 цифр" className="bg-neutral-900/50 border-white/10 rounded-2xl p-6 text-white h-14 disabled:opacity-50" />
+              <Input value={corrAccount} disabled={isLocked} onChange={(e) => setCorrAccount(e.target.value)} placeholder="20 цифр" className="bg-neutral-900/50 border-white/10 rounded-xl px-4 py-6 text-white h-14 disabled:opacity-50 tabular-nums tracking-[0.05em]" />
             </div>
           </div>
         </div>
 
         <div className="pt-8 space-y-6">
-           <div className="flex items-center justify-between border-b border-white/5 pb-4">
+           <div className="flex flex-col xs:flex-row xs:items-center justify-between border-b border-white/5 pb-4 gap-4">
              <div className="flex items-center gap-3">
-               <MapPin className="w-5 h-5 text-neutral-500" />
-               <h4 className="text-xl font-black uppercase tracking-tight text-white">Адреса торговых точек</h4>
+               <MapPin className="w-5 h-5 text-neutral-500 flex-shrink-0" />
+               <h4 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white leading-tight">Адреса торговых точек</h4>
              </div>
-             <Button onClick={addTradePoint} disabled={isLocked} variant="ghost" className="text-neon hover:text-white transition-colors uppercase font-black text-[10px] tracking-widest gap-2 disabled:opacity-30">
+             <Button onClick={addTradePoint} disabled={isLocked} variant="ghost" className="text-neon hover:text-white transition-colors uppercase font-black text-[10px] tracking-widest gap-2 disabled:opacity-30 self-start xs:self-auto -ml-2 xs:ml-0">
                <Plus className="w-4 h-4" /> Добавить точку
              </Button>
            </div>
@@ -403,8 +400,8 @@ export default function ContractPage() {
                   value={signingName}
                   disabled={isLocked || loading}
                   onChange={(e) => setSigningName(e.target.value)}
-                  placeholder="Фамилия Имя Отчество" 
-                  className="bg-neutral-900/80 border-2 border-neon/30 focus:border-neon rounded-2xl p-8 text-center text-2xl font-black italic uppercase tracking-wider text-neon shadow-2xl shadow-neon/10 disabled:opacity-80 disabled:cursor-not-allowed" 
+                  placeholder={signingName ? "" : "ВАШЕ Ф.И.О."} 
+                  className="bg-neutral-900/80 border-2 border-neon/30 focus:border-neon rounded-xl p-6 xs:p-8 text-center text-base xs:text-lg sm:text-2xl font-black italic uppercase tracking-normal sm:tracking-wider text-neon shadow-2xl shadow-neon/10 disabled:opacity-80 disabled:cursor-not-allowed placeholder:text-neon/20" 
                 />
                 <p className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest leading-relaxed">
                   Нажимая кнопку ниже, вы подтверждаете акцепт оферты и <br /> подписываете лицензионный договор в электронной форме (63-ФЗ).

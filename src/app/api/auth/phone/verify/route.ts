@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyUcallerCode } from "@/lib/ucaller";
+import { buildRateLimitHeaders, checkRateLimit, getRequestIp } from "@/lib/middleware/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,6 +8,20 @@ export async function POST(request: NextRequest) {
       ucallerId?: number;
       code?: string;
     };
+
+    const ip = getRequestIp(request);
+    const key = `phone-verify:${ip}:${String(body.ucallerId || "unknown")}`;
+    const rateLimit = checkRateLimit({
+      key,
+      maxRequests: 10,
+      windowMs: 60_000,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Слишком много попыток. Попробуйте чуть позже." },
+        { status: 429, headers: buildRateLimitHeaders(rateLimit.retryAfterSeconds) }
+      );
+    }
 
     if (!body.ucallerId || !body.code) {
       return NextResponse.json({ success: false, error: "Требуются ucallerId и код" }, { status: 400 });

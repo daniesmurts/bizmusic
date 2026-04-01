@@ -1,3 +1,5 @@
+"use server";
+
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
 // Google Cloud TTS configuration
@@ -11,6 +13,16 @@ const saluteClientSecret = process.env.SALUTE_SPEECH_CLIENT_SECRET;
 
 let googleClient: TextToSpeechClient | null = null;
 let saluteToken: { token: string; expires: number } | null = null;
+
+export async function isProviderConfigured(provider: "google" | "sberbank"): Promise<boolean> {
+  if (provider === "google") {
+    return !!(projectId && clientEmail && privateKey);
+  }
+  if (provider === "sberbank") {
+    return !!(saluteClientId && saluteClientSecret);
+  }
+  return false;
+}
 
 interface SberRequestOptions {
   method?: "GET" | "POST";
@@ -45,7 +57,7 @@ export function normalizeExpiryMs(expiresAt?: number | string): number {
   return Date.now() + 30 * 60 * 1000;
 }
 
-export function buildSaluteSynthesizeUrl(voiceName: string, format: "mp3" = "mp3"): string {
+export async function buildSaluteSynthesizeUrl(voiceName: string, format: "mp3" = "mp3"): Promise<string> {
   const endpoint = new URL("https://smartspeech.sber.ru/rest/v1/text:synthesize");
   endpoint.searchParams.set("voice", voiceName);
   endpoint.searchParams.set("format", format);
@@ -183,7 +195,7 @@ async function generateSpeechSalute(request: TTSRequest): Promise<Buffer> {
   const token = await getSaluteToken();
   if (!token) throw new Error("SaluteSpeech is not configured.");
 
-  const endpoint = buildSaluteSynthesizeUrl(request.voiceName);
+  const endpoint = await buildSaluteSynthesizeUrl(request.voiceName);
 
   if ((request.speakingRate ?? 1) !== 1 || (request.pitch ?? 0) !== 0) {
     console.warn("Salute text:synthesize does not support speakingRate/pitch in this implementation.");

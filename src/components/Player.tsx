@@ -38,7 +38,8 @@ export const Player = () => {
     repeatMode,
     setRepeatMode,
     isWaveMode,
-    skipWaveTrack
+    skipWaveTrack,
+    activeLocationId
   } = usePlayerStore();
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -46,7 +47,7 @@ export const Player = () => {
   const [duration, setDuration] = useState(0);
   const [audioSource, setAudioSource] = useState<string | undefined>(undefined);
 
-  const lastLoggedTrackIdRef = useRef<string | null>(null);
+  const lastLoggedTrackKeyRef = useRef<string | null>(null);
 
   // Load from local IDB cache if available
   useEffect(() => {
@@ -95,16 +96,20 @@ export const Player = () => {
     if (isPlaying && audioSource) {
       audioRef.current.play().then(() => {
         // Log the play event when playback actually starts AND it's a new track session
-        if (currentTrack && lastLoggedTrackIdRef.current !== currentTrack.id) {
+        const logKey = currentTrack ? `${currentTrack.id}:${activeLocationId || "none"}` : null;
+        if (currentTrack && logKey && lastLoggedTrackKeyRef.current !== logKey) {
           fetch('/api/player/log', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ trackId: currentTrack.id })
+            body: JSON.stringify({
+              trackId: currentTrack.id,
+              locationId: activeLocationId,
+            })
           })
           .then(res => res.json())
           .then(data => {
             if (data.success) {
-              lastLoggedTrackIdRef.current = currentTrack.id;
+              lastLoggedTrackKeyRef.current = logKey;
               // Dispatch event to refresh UI
               window.dispatchEvent(new CustomEvent('track-played', { detail: { trackId: currentTrack.id } }));
             } else {
@@ -126,7 +131,7 @@ export const Player = () => {
     } else if (!isPlaying) {
       audioRef.current.pause();
     }
-  }, [isPlaying, currentTrack, audioSource]);
+  }, [isPlaying, currentTrack, audioSource, activeLocationId]);
 
   useEffect(() => {
     if (!audioRef.current) return;

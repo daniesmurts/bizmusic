@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   BarChart3,
@@ -17,13 +17,15 @@ import {
   LogOut,
   Settings,
   Mic,
-  BookOpen
+  BookOpen,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
 import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { isBusinessProfileComplete } from "@/lib/validation/business";
 
 export default function DashboardLayout({
   children,
@@ -31,68 +33,90 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { signOut, user } = useAuth();
+  const router = useRouter();
+  const { signOut, user, role } = useAuth();
   const [isSigned, setIsSigned] = useState(false);
+  const isBranchManager = role === "STAFF";
 
   useEffect(() => {
     async function checkStatus() {
+      // Branch managers don't own a business — skip setup redirect
+      if (isBranchManager) {
+        setIsSigned(true);
+        return;
+      }
+
       try {
         const result = await getBusinessDetailsAction();
-        if (result.success && result.data?.subscriptionStatus === "ACTIVE") {
-          setIsSigned(true);
+        const isSetupRoute = pathname.startsWith("/dashboard/setup");
+
+        // Only handle success/failure of data explicitly
+        if (result.success) {
+          if (result.data?.subscriptionStatus === "ACTIVE") {
+            setIsSigned(true);
+          } else {
+            setIsSigned(false);
+          }
+
+          const needsSetup = !result.data || !isBusinessProfileComplete({
+            inn: result.data.inn,
+            legalName: result.data.legalName,
+            address: result.data.address,
+          });
+
+          if (needsSetup && !isSetupRoute) {
+            router.push("/dashboard/setup");
+          }
         } else {
-          setIsSigned(false);
+          // If fetch fails part-way (e.g. auth issue or network),
+          // don't force a redirect to setup because we don't know yet.
+          console.warn("Could not determine business setup status, skipping redirect (fetch failed)", result.error);
         }
       } catch (err) {
-        console.error("Failed to check business status in layout", err);
+        console.error("Critical error in business status check in layout", err);
       }
     }
-    checkStatus();
-  }, [pathname]);
+    // Wait until role is resolved before running checks
+    if (role !== null) checkStatus();
+  }, [pathname, role, isBranchManager, router]);
 
-  const navItems = [
-    {
-      name: "Обзор",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Плеер",
-      href: "/dashboard/player",
-      icon: Play,
-    },
-    {
-      name: "Анонсы",
-      href: "/dashboard/announcements",
-      icon: Mic,
-    },
-    {
-      name: "Подписка",
-      href: "/dashboard/subscription",
-      icon: CreditCard,
-    },
+  type NavItem = {
+    name: string;
+    href: string;
+    icon: any;
+    hasAction?: boolean;
+    status?: "success" | "action";
+  };
+
+  // Items visible to branch managers (STAFF role) only
+  const staffNavItems: NavItem[] = [
+    { name: "Плеер", href: "/dashboard/player", icon: Play },
+    { name: "Анонсы", href: "/dashboard/announcements", icon: Mic },
+  ];
+
+  // Items visible to business owners
+  const ownerNavItems: NavItem[] = [
+    { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Плеер", href: "/dashboard/player", icon: Play },
+    { name: "Анонсы", href: "/dashboard/announcements", icon: Mic },
+    { name: "Филиалы", href: "/dashboard/branches", icon: Building2 },
+    { name: "Подписка", href: "/dashboard/subscription", icon: CreditCard },
     {
       name: "Договор",
       href: "/dashboard/contract",
       icon: FileText,
       hasAction: true,
-      status: isSigned ? 'success' : 'action'
+      status: isSigned ? "success" : "action",
     },
-    {
-      name: "База знаний",
-      href: "/knowledge",
-      icon: BookOpen,
-    },
-    {
-      name: "Настройки",
-      href: "/dashboard/settings",
-      icon: Settings,
-    },
+    { name: "База знаний", href: "/knowledge", icon: BookOpen },
+    { name: "Настройки", href: "/dashboard/settings", icon: Settings },
   ];
+
+  const navItems = isBranchManager ? staffNavItems : ownerNavItems;
 
   return (
     <div className="flex flex-col min-h-screen bg-black">
-      <div className="flex flex-1 gap-6 lg:gap-8 p-6 lg:p-12">
+      <div className="flex flex-1 gap-4 lg:gap-8 p-4 sm:p-6 lg:p-12">
         {/* Sidebar Desktop */}
         <aside className="hidden lg:flex w-72 flex-col gap-6">
           <div className="glass-dark border border-white/10 rounded-[2.5rem] p-6 space-y-2">

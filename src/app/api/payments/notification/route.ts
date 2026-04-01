@@ -6,6 +6,8 @@ import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
 import { generateLicenseAction } from "@/lib/actions/licenses";
 import { grantPlatformAnnouncementToBusiness } from "@/lib/actions/platform-announcements";
+import { validateBusinessLegalData } from "@/lib/validation/business";
+import { buildRateLimitHeaders, checkRateLimit, getRequestIp } from "@/lib/middleware/rate-limit";
 import {
   extractCreditsFromPaymentMetadata,
   isConfirmedPaymentStatus,
@@ -18,6 +20,20 @@ export async function POST(req: Request) {
 
     // 1. Validate required fields exist
     const { OrderId, Status, PaymentId, RebillId, ErrorCode, Amount, Pan, ExpDate } = data;
+
+    const rateLimitKey = `webhook:${getRequestIp(req)}:${String(OrderId || "unknown")}:${String(PaymentId || "unknown")}`;
+    const rateLimit = checkRateLimit({
+      key: rateLimitKey,
+      maxRequests: 30,
+      windowMs: 60_000,
+    });
+    if (!rateLimit.allowed) {
+      return new NextResponse("Too many requests", {
+        status: 429,
+        headers: buildRateLimitHeaders(rateLimit.retryAfterSeconds),
+      });
+    }
+
     if (!OrderId || !Status || !PaymentId) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
@@ -125,6 +141,15 @@ export async function POST(req: Request) {
       const planSlug = typeof metadata.planSlug === "string" ? metadata.planSlug : payment.business.currentPlanSlug;
       const interval = metadata.interval === "yearly" ? "yearly" : "monthly";
 
+      const legalValidation = validateBusinessLegalData(
+        {
+          inn: payment.business.inn,
+          legalName: payment.business.legalName,
+          address: payment.business.address,
+        },
+        { requireAll: true }
+      );
+
       // Activate subscription and save plan info (moved from startFreeTrial)
       await db.update(businesses)
         .set({
@@ -142,26 +167,25 @@ export async function POST(req: Request) {
 
       // Generate license once after first successful activation.
       // Webhooks may be retried, so check if a valid license already exists.
+      let generatedLicenseUrl: string | null = null;
       try {
         const latestLicense = await db.query.licenses.findFirst({
           where: eq(licenses.businessId, payment.businessId),
           orderBy: (licenses, { desc }) => [desc(licenses.issuedAt)],
         });
 
-        const hasRequiredBusinessData = Boolean(
-          payment.business.inn?.trim() && payment.business.legalName?.trim() && payment.business.address?.trim()
-        );
-
-        if (!latestLicense && hasRequiredBusinessData) {
+        if (!latestLicense && legalValidation.isValid) {
           const generationResult = await generateLicenseAction(payment.businessId);
           if (!generationResult.success) {
             console.error("[Webhook] License generation failed:", generationResult.error);
+          } else {
+            generatedLicenseUrl = generationResult.data?.pdfUrl || null;
           }
         }
 
-        if (!hasRequiredBusinessData) {
+        if (!legalValidation.isValid) {
           console.error(
-            `[Webhook] Missing business legal fields for license generation (businessId=${payment.businessId})`
+            `[Webhook] Missing business legal fields for license generation (businessId=${payment.businessId}): ${legalValidation.error}`
           );
         }
       } catch (licenseError) {
@@ -188,6 +212,7 @@ export async function POST(req: Request) {
                 <p>Здравствуйте!</p>
                 <p>Ваш платёж успешно обработан. Пробный период активен до <strong>${trialEndFormatted}</strong>.</p>
                 <p>Теперь вам доступен полный функционал платформы BizMusic для легального музыкального оформления вашего заведения.</p>
+                ${generatedLicenseUrl ? `<p>Лицензионный пакет уже сформирован: <a href="${generatedLicenseUrl}">Скачать PDF</a></p>` : ""}
                 <p style="margin-top: 24px;">
                   <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://bizmuzik.ru'}/dashboard" 
                      style="background: #c6f135; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">

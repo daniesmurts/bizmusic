@@ -52,7 +52,7 @@ export function AwardTokensDialog() {
       if (!result.success) {
         toast.error(result.error ?? "Ошибка при выдаче токенов");
       } else {
-        toast.success(`Выдано ${credits} токенов. Действуют ${expiryDays} дней.`);
+        toast.success(`Выдано ${credits} ИИ-токенов. Действуют ${expiryDays} дней.`);
         setIsOpen(false);
         router.refresh();
       }
@@ -75,7 +75,7 @@ export function AwardTokensDialog() {
         className="flex items-center gap-2 h-14 px-8 rounded-2xl border border-neon/40 text-neon text-xs font-black uppercase tracking-widest hover:bg-neon/10 hover:border-neon transition-colors"
       >
         <Gift className="w-4 h-4" />
-        Выдать токены
+        Выдать ИИ-токены
       </button>
 
       {isOpen && (
@@ -91,11 +91,11 @@ export function AwardTokensDialog() {
                   <Gift className="w-5 h-5 text-neon" />
                 </div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white">
-                  Выдать токены
+                  Выдать ИИ-токены
                 </h2>
               </div>
               <p className="text-xs text-neutral-500 font-medium">
-                Бесплатные токены будут добавлены на баланс бизнеса немедленно.
+                ИИ-токены (TTS + Ассистент) будут добавлены на баланс бизнеса немедленно.
               </p>
             </div>
 
@@ -135,7 +135,7 @@ export function AwardTokensDialog() {
                     htmlFor="award-credits"
                     className="text-[10px] font-black uppercase tracking-widest text-neutral-500"
                   >
-                    Токенов
+                    Кол-во токенов
                   </label>
                   <input
                     id="award-credits"
