@@ -72,7 +72,7 @@ export default function SongOfTheWeekAdminPage() {
     try {
       setTracksLoading(true);
       const result = await getTracksForSelection(20, 0, searchTerm);
-      if (result.ok) {
+      if (result.ok && result.data) {
         setTracks(result.data.tracks);
       }
     } catch (error) {
