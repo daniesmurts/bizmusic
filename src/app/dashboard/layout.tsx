@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/dashboard/BottomNav";
+import { MiniPlayer } from "@/components/dashboard/MiniPlayer";
 import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -204,13 +206,19 @@ export default function DashboardLayout({
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 flex flex-col">
+        <main className="flex-1 min-w-0 flex flex-col pb-20 lg:pb-0">
           <div className="flex-1 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {children}
           </div>
           <Footer variant="dashboard" />
         </main>
       </div>
+
+      {/* Persistent Mini Player */}
+      <MiniPlayer />
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }

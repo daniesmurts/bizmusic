@@ -128,61 +128,80 @@ export function PlaylistManager({
       <div 
         onClick={() => !isLocked && handlePlaylistEdit(list, isGlobal)}
         className={cn(
-          "glass-dark border p-6 rounded-[2.5rem] flex flex-col justify-between group transition-all h-[200px] cursor-pointer relative overflow-hidden",
+          "glass-dark border group transition-all cursor-pointer relative overflow-hidden",
+          // Mobile: compact horizontal row
+          "flex flex-row items-center gap-3 p-3 rounded-2xl h-auto",
+          // Desktop: tall card
+          "md:flex-col md:justify-between md:p-6 md:rounded-[2.5rem] md:h-[200px]",
           isGlobal ? "border-purple-500/20 hover:border-purple-500/40" : "border-white/10 hover:border-white/20",
           isLocked && "cursor-default border-white/5"
         )}
       >
         {isGlobal && (
-          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none hidden md:block" />
         )}
-        <div className="flex justify-between items-start">
-          <div className={cn(
-            "w-14 h-14 rounded-2xl flex items-center justify-center border transition-transform group-hover:scale-110",
-            isGlobal ? "bg-purple-500/10 border-purple-500/20" : "bg-white/5 border-white/5 group-hover:bg-white/10"
-          )}>
-              <ListMusic className={cn("w-7 h-7", isGlobal ? "text-purple-400" : "text-white")} />
-          </div>
+
+        {/* Mobile Layout: icon | info | play */}
+        {/* Desktop Layout: icon + badge top, name + play bottom */}
+
+        {/* Icon */}
+        <div className={cn(
+          "shrink-0 rounded-xl flex items-center justify-center border transition-transform group-hover:scale-110",
+          "w-10 h-10 md:w-14 md:h-14 md:rounded-2xl",
+          isGlobal ? "bg-purple-500/10 border-purple-500/20" : "bg-white/5 border-white/5 group-hover:bg-white/10"
+        )}>
+          <ListMusic className={cn("w-5 h-5 md:w-7 md:h-7", isGlobal ? "text-purple-400" : "text-white")} />
+        </div>
+
+        {/* Badge - desktop only, positioned top-right */}
+        <div className="hidden md:block absolute top-6 right-6 z-10">
           {isGlobal ? (
-            <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-[9px] font-black uppercase tracking-widest border border-purple-500/30 z-10">
+            <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-[9px] font-black uppercase tracking-widest border border-purple-500/30">
               Официальный
             </div>
           ) : (
-            <div className="px-3 py-1 bg-neon/10 text-neon rounded-full text-[9px] font-black uppercase tracking-widest border border-neon/20 z-10">
+            <div className="px-3 py-1 bg-neon/10 text-neon rounded-full text-[9px] font-black uppercase tracking-widest border border-neon/20">
               Ваш Плейлист
             </div>
           )}
         </div>
-        <div className="mt-auto flex justify-between items-end relative z-10">
-          <div className={cn(isLocked && "blur-[2px] opacity-40 transition-all")}>
-            <h4 className="text-xl font-black uppercase tracking-tight text-white mb-1 leading-tight truncate max-w-[150px]">{list.name}</h4>
-            <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">{list.trackCount} ТРЕКОВ • {list.duration || "0Ч 00М"}</p>
-          </div>
+
+        {/* Info */}
+        <div className={cn("flex-1 min-w-0", isLocked && "md:blur-[2px] md:opacity-40 transition-all")}>
+          <h4 className={cn(
+            "font-black uppercase tracking-tight text-white leading-tight truncate",
+            "text-sm md:text-xl md:mb-1"
+          )}>{list.name}</h4>
+          <p className="text-neutral-500 text-[10px] md:text-xs font-bold uppercase tracking-widest">{list.trackCount} ТРЕКОВ • {list.duration || "0Ч 00М"}</p>
+        </div>
+
+        {/* Play / Lock Button */}
+        <div className="shrink-0 relative z-10">
           {!isLocked ? (
             <Button 
               onClick={(e) => handlePlaylistPlay(e, list)}
               variant="ghost" 
               size="icon" 
               className={cn(
-                "transition-all group-hover:scale-110",
+                "w-9 h-9 md:w-10 md:h-10 transition-all group-hover:scale-110",
                 isGlobal ? "text-purple-400 hover:text-purple-300" : "group-hover:text-white text-neutral-500"
               )}
             >
-              <Play className="w-6 h-6 fill-current" />
+              <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" />
             </Button>
           ) : (
             <div className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center border",
+              "w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center border",
               isGlobal ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-neon/10 border-neon/20 text-neon"
             )}>
-               <Lock className="w-4 h-4" />
+               <Lock className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </div>
           )}
         </div>
 
-        {/* Premium Lock Overlay */}
+        {/* Premium Lock Overlay - desktop only full card overlay, mobile inline lock icon suffices */}
         {isLocked && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[4px] p-4 text-center animate-fade-in group-hover:bg-black/50 transition-all duration-500">
+          <div className="absolute inset-0 z-20 hidden md:flex flex-col items-center justify-center bg-black/40 backdrop-blur-[4px] p-4 text-center animate-fade-in group-hover:bg-black/50 transition-all duration-500">
              <div className="space-y-3">
                 <div className={cn(
                   "w-10 h-10 rounded-xl flex items-center justify-center border mx-auto transition-transform group-hover:scale-110",
@@ -241,9 +260,11 @@ export function PlaylistManager({
             <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
             <h3 className="text-2xl font-black uppercase tracking-tighter">Кураторские <span className="text-purple-400">Подборки</span></h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory custom-scrollbar md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-6 md:overflow-visible md:pb-0">
             {globalPlaylists.map((list: any) => (
-              <PlaylistCard key={list.id} list={list} isGlobal={true} />
+              <div key={list.id} className="min-w-[260px] snap-start md:min-w-0">
+                <PlaylistCard list={list} isGlobal={true} />
+              </div>
             ))}
           </div>
         </section>
@@ -297,41 +318,51 @@ export function PlaylistManager({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Favorite Card (keeping for reference) */}
-          <div className="glass-dark border border-neon/30 p-6 rounded-[2.5rem] flex flex-col justify-between group hover:border-neon/60 hover:shadow-[0_0_30px_rgba(92,243,135,0.1)] transition-all relative overflow-hidden h-[200px]">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-neon/10 blur-[50px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-            <div className="flex justify-between items-start">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center border border-neon/20 bg-neon/10 backdrop-blur-sm z-10">
-                  <Star className="w-7 h-7 text-neon fill-neon" />
-              </div>
-              <div className="px-3 py-1 bg-neon/20 text-neon rounded-full text-[10px] font-black uppercase tracking-widest border border-neon/30 z-10">
-                Любимый
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+          {/* Favorite Card */}
+          <div className={cn(
+            "glass-dark border border-neon/30 group hover:border-neon/60 hover:shadow-[0_0_30px_rgba(92,243,135,0.1)] transition-all relative overflow-hidden",
+            "flex flex-row items-center gap-3 p-3 rounded-2xl h-auto",
+            "md:flex-col md:justify-between md:p-6 md:rounded-[2.5rem] md:h-[200px]"
+          )}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-neon/10 blur-[50px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none hidden md:block" />
+            
+            {/* Icon */}
+            <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center border border-neon/20 bg-neon/10 backdrop-blur-sm z-10 shrink-0">
+              <Star className="w-5 h-5 md:w-7 md:h-7 text-neon fill-neon" />
             </div>
-            <div className="mt-auto flex justify-between items-end z-10">
-              <div className={cn(!isSubscribed && "blur-[2px] opacity-40")}>
-                <h4 className="text-xl font-black uppercase tracking-tight text-white mb-1 shadow-sm">Избранное</h4>
-                <p className="text-neon text-xs font-bold uppercase tracking-widest">СКОРО</p>
-              </div>
+
+            {/* Badge - desktop only */}
+            <div className="hidden md:block absolute top-6 right-6 z-10 px-3 py-1 bg-neon/20 text-neon rounded-full text-[10px] font-black uppercase tracking-widest border border-neon/30">
+              Любимый
+            </div>
+
+            {/* Info */}
+            <div className={cn("flex-1 min-w-0 z-10", !isSubscribed && "md:blur-[2px] md:opacity-40")}>
+              <h4 className="text-sm md:text-xl font-black uppercase tracking-tight text-white md:mb-1 shadow-sm truncate">Избранное</h4>
+              <p className="text-neon text-[10px] md:text-xs font-bold uppercase tracking-widest">СКОРО</p>
+            </div>
+
+            {/* Play/Lock */}
+            <div className="shrink-0 z-10">
               {!isSubscribed ? (
-                <div className="w-12 h-12 rounded-full border border-neon/20 bg-neon/10 flex items-center justify-center text-neon">
-                   <Lock className="w-5 h-5" />
+                <div className="w-9 h-9 md:w-12 md:h-12 rounded-full border border-neon/20 bg-neon/10 flex items-center justify-center text-neon">
+                   <Lock className="w-3.5 h-3.5 md:w-5 md:h-5" />
                 </div>
               ) : (
                 <Button 
                   onClick={(e) => handlePlaylistPlay(e, { id: 'starred', name: 'Избранное', trackCount: 34 })}
                   variant="ghost" 
                   size="icon" 
-                  className="hover:text-neon text-white bg-white/5 hover:bg-white/10 rounded-full h-12 w-12 transition-all group-hover:scale-110"
+                  className="hover:text-neon text-white bg-white/5 hover:bg-white/10 rounded-full h-9 w-9 md:h-12 md:w-12 transition-all group-hover:scale-110"
                 >
-                  <Play className="w-5 h-5 fill-current ml-1" />
+                  <Play className="w-4 h-4 md:w-5 md:h-5 fill-current ml-0.5" />
                 </Button>
               )}
             </div>
             
             {!isSubscribed && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[4px] p-4 text-center animate-fade-in group-hover:bg-black/50 transition-all duration-500">
+              <div className="absolute inset-0 z-20 hidden md:flex flex-col items-center justify-center bg-black/40 backdrop-blur-[4px] p-4 text-center animate-fade-in group-hover:bg-black/50 transition-all duration-500">
                 <div className="space-y-3">
                     <div className="w-10 h-10 bg-neon/20 rounded-xl flex items-center justify-center border border-neon/30 text-neon mx-auto transition-transform group-hover:scale-110">
                       <Crown className="w-5 h-5" />
@@ -357,13 +388,15 @@ export function PlaylistManager({
           ) : (
             <div 
               onClick={() => setIsCreateOpen(true)}
-              className="glass-dark border border-white/10 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center text-center p-8 h-[200px] hover:bg-white/5 hover:border-white/20 transition-colors cursor-pointer group"
+              className="glass-dark border border-white/10 border-dashed flex items-center gap-3 p-3 rounded-2xl md:flex-col md:items-center md:justify-center md:text-center md:p-8 md:rounded-[2.5rem] md:h-[200px] hover:bg-white/5 hover:border-white/20 transition-colors cursor-pointer group"
             >
-               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                 <Plus className="w-6 h-6 text-neutral-400 group-hover:text-white transition-colors" />
+               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center md:mb-4 group-hover:scale-110 transition-transform shrink-0">
+                 <Plus className="w-5 h-5 md:w-6 md:h-6 text-neutral-400 group-hover:text-white transition-colors" />
                </div>
-               <h4 className="text-white font-bold text-lg">Создать плейлист</h4>
-               <p className="text-neutral-500 text-xs">Начните с чистого листа</p>
+               <div>
+                 <h4 className="text-white font-bold text-sm md:text-lg">Создать плейлист</h4>
+                 <p className="text-neutral-500 text-[10px] md:text-xs">Начните с чистого листа</p>
+               </div>
             </div>
           )}
         </div>

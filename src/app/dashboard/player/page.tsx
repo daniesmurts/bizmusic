@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Play, 
   ListMusic, 
   Settings,
   Plus,
-  ArrowRight
+  ArrowRight,
+  MapPin,
+  ChevronDown,
+  Check
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -20,11 +23,14 @@ import { ConnectionStatus } from "@/components/player/ConnectionStatus";
 import { PlayHistory } from "@/components/player/PlayHistory";
 import { PlaylistManager } from "@/components/player/PlaylistManager";
 import { WaveControls } from "@/components/player/WaveControls";
+import { TrackBrowser } from "@/components/player/TrackBrowser";
 import { toast } from "sonner";
 import { usePlayerStore } from "@/store/usePlayerStore";
 
 export default function PlayerPage() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [isLocationOpen, setIsLocationOpen] = useState(false);
+  const locationDropdownRef = useRef<HTMLDivElement>(null);
   const setActiveLocationId = usePlayerStore((state) => state.setActiveLocationId);
 
   const { data: dashboardData, isLoading } = useQuery({
@@ -64,10 +70,23 @@ export default function PlayerPage() {
     setActiveLocationId(selectedLocation?.id ?? null);
   }, [selectedLocation?.id, setActiveLocationId]);
 
-  const handleLocationChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const nextLocationId = event.target.value;
-    setSelectedLocationId(nextLocationId);
-    setActiveLocationId(nextLocationId || null);
+  // Close location dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (locationDropdownRef.current && !locationDropdownRef.current.contains(e.target as Node)) {
+        setIsLocationOpen(false);
+      }
+    }
+    if (isLocationOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isLocationOpen]);
+
+  const handleLocationSelect = (locationId: string) => {
+    setSelectedLocationId(locationId);
+    setActiveLocationId(locationId || null);
+    setIsLocationOpen(false);
   };
 
   return (
@@ -80,22 +99,52 @@ export default function PlayerPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div className="space-y-3">
-          <h2 className="text-4xl font-black uppercase tracking-tighter">Стриминг <span className="text-neon">Плеер</span></h2>
+          <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter">Стриминг <span className="text-neon">Плеер</span></h2>
           <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Управление эфиром в реальном времени</p>
           {locations.length > 0 && (
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Активный филиал</span>
-              <select
-                value={selectedLocation?.id || ""}
-                onChange={handleLocationChange}
-                className="h-10 min-w-[240px] rounded-xl border border-white/10 bg-black/40 px-3 text-xs font-black uppercase tracking-widest text-white focus:outline-none focus:border-neon"
+            <div className="relative" ref={locationDropdownRef}>
+              <button
+                onClick={() => setIsLocationOpen(!isLocationOpen)}
+                className={cn(
+                  "flex items-center gap-3 w-full sm:w-auto min-w-[240px] h-12 rounded-2xl border px-4 transition-all",
+                  isLocationOpen
+                    ? "border-neon/40 bg-neon/5"
+                    : "border-white/10 bg-white/5 hover:border-white/20"
+                )}
               >
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
+                <MapPin className="w-4 h-4 text-neon shrink-0" />
+                <span className="text-sm font-black uppercase tracking-widest text-white truncate flex-1 text-left">
+                  {selectedLocation?.name || "Выберите филиал"}
+                </span>
+                <ChevronDown className={cn(
+                  "w-4 h-4 text-neutral-400 transition-transform shrink-0",
+                  isLocationOpen && "rotate-180"
+                )} />
+              </button>
+
+              {isLocationOpen && (
+                <div className="absolute top-full left-0 right-0 sm:right-auto mt-2 z-30 min-w-[280px] glass-dark border border-white/10 rounded-2xl p-2 shadow-[0_20px_60px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-top-2 duration-200">
+                  {locations.map((location) => {
+                    const isActive = location.id === selectedLocation?.id;
+                    return (
+                      <button
+                        key={location.id}
+                        onClick={() => handleLocationSelect(location.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
+                          isActive
+                            ? "bg-neon/10 text-neon border border-neon/20"
+                            : "text-white hover:bg-white/5 border border-transparent"
+                        )}
+                      >
+                        <MapPin className={cn("w-4 h-4 shrink-0", isActive ? "text-neon" : "text-neutral-500")} />
+                        <span className="text-xs font-black uppercase tracking-widest truncate flex-1">{location.name}</span>
+                        {isActive && <Check className="w-4 h-4 text-neon shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -119,6 +168,9 @@ export default function PlayerPage() {
           subscriptionStatus={dashboardData?.stats?.licenseStatus || "INACTIVE"}
         />
       )}
+
+      {/* Music Catalog Browser */}
+      <TrackBrowser />
 
       {/* Grid Layout for Playlists & Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">

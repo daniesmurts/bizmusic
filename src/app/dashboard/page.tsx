@@ -19,9 +19,12 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FeaturedMusic } from "@/components/FeaturedMusic";
+import { usePlayerStore } from "@/store/usePlayerStore";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
 
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ["dashboard-data"],
@@ -104,6 +107,68 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Quick Player Access Banner */}
+      <Link href="/dashboard/player" className="block group">
+        <div className={cn(
+          "relative rounded-2xl sm:rounded-[2rem] px-5 py-4 sm:px-8 sm:py-6 flex items-center justify-between transition-all duration-300 overflow-hidden border bg-[#0d0f1a]",
+          "hover:shadow-[0_0_50px_rgba(92,243,135,0.18)] hover:scale-[1.01]",
+          currentTrack && isPlaying
+            ? "border-neon/40 shadow-[0_0_30px_rgba(92,243,135,0.12)] [background:linear-gradient(to_right,rgba(92,243,135,0.18),rgba(92,243,135,0.06),transparent),#0d0f1a]"
+            : "border-neon/25 [background:linear-gradient(to_right,rgba(92,243,135,0.10),rgba(92,243,135,0.03),transparent),#0d0f1a]"
+        )}>
+          {/* Shimmer sweep on hover */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-neon/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out pointer-events-none" />
+          {/* Ambient glow blob */}
+          <div className="absolute -left-8 top-1/2 -translate-y-1/2 w-32 h-32 bg-neon/20 blur-[50px] rounded-full pointer-events-none" />
+
+          <div className="flex items-center gap-4 min-w-0 relative z-10">
+            {/* Play button with pulse ring when playing */}
+            <div className="relative shrink-0">
+              {currentTrack && isPlaying && (
+                <span className="absolute inset-0 rounded-xl bg-neon/40 animate-ping pointer-events-none" />
+              )}
+              <div className={cn(
+                "w-14 h-14 rounded-xl flex items-center justify-center border-2 shrink-0 transition-all duration-300",
+                currentTrack && isPlaying
+                  ? "bg-neon border-neon shadow-[0_0_20px_rgba(92,243,135,0.6)]"
+                  : "bg-neon/15 border-neon/40 group-hover:bg-neon group-hover:border-neon group-hover:shadow-[0_0_20px_rgba(92,243,135,0.5)]"
+              )}>
+                <Play className={cn(
+                  "w-6 h-6 fill-current ml-0.5 transition-colors duration-300",
+                  currentTrack && isPlaying ? "text-black" : "text-neon group-hover:text-black"
+                )} />
+              </div>
+            </div>
+
+            <div className="min-w-0">
+              {currentTrack ? (
+                <>
+                  <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white truncate">
+                    {isPlaying ? "Сейчас играет" : "Продолжить"}
+                  </h3>
+                  <p className="text-neon text-[10px] sm:text-xs font-bold uppercase tracking-widest truncate">
+                    {currentTrack.title} — {currentTrack.artist}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white">Открыть плеер</h3>
+                  <p className="text-neon/60 text-[10px] sm:text-xs font-bold uppercase tracking-widest">Управление эфиром и плейлистами</p>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="relative z-10 flex items-center gap-3 shrink-0">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-neon/10 border border-neon/20 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-neon animate-pulse" />
+              <span className="text-neon text-[9px] font-black uppercase tracking-widest">В эфире</span>
+            </div>
+            <ArrowRight className="w-5 h-5 text-neon group-hover:translate-x-1.5 transition-transform duration-300" />
+          </div>
+        </div>
+      </Link>
 
       {/* Locations List */}
       <section className="space-y-6">
