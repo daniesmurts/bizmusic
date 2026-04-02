@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { businesses, locations, users } from "@/db/schema";
 import { supabaseAdmin } from "@/lib/supabase-storage";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 
@@ -114,15 +114,20 @@ export async function inviteBranchManagerAction(locationId: string, email: strin
       return { success: false as const, error: "Филиал не найден" };
     }
 
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.email, normalizedEmail),
-      columns: { id: true },
-    });
+    const existingUser = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(sql`lower(${users.email}) = ${normalizedEmail}`)
+      .limit(1)
+      .then((rows) => rows[0] ?? null);
 
     if (existingUser) {
       return {
         success: false as const,
-        error: "Пользователь с таким email уже существует",
+        error:
+          existingUser.role === "STAFF"
+            ? "Менеджер с таким email уже существует"
+            : "Пользователь с таким email уже зарегистрирован",
       };
     }
 
@@ -144,13 +149,48 @@ export async function inviteBranchManagerAction(locationId: string, email: strin
       };
     }
 
-    await db.insert(users).values({
-      id: data.user.id,
-      email: normalizedEmail,
-      passwordHash: "SUPABASE_AUTH",
-      role: "STAFF",
-      assignedLocationId: locationId,
-    });
+    try {
+      await db.insert(users).values({
+        id: data.user.id,
+        email: normalizedEmail,
+        passwordHash: "SUPABASE_AUTH",
+        role: "STAFF",
+        assignedLocationId: locationId,
+      });
+    } catch (insertError: unknown) {
+      // If user row already exists (e.g. retry/partial previous invite), recover by updating safely.
+      const existingById = await db.query.users.findFirst({
+        where: eq(users.id, data.user.id),
+        columns: { id: true },
+      });
+
+      if (existingById) {
+        await db
+          .update(users)
+          .set({
+            email: normalizedEmail,
+            passwordHash: "SUPABASE_AUTH",
+            role: "STAFF",
+            assignedLocationId: locationId,
+          })
+          .where(eq(users.id, data.user.id));
+      } else {
+        const message = insertError instanceof Error ? insertError.message : "";
+        if (message.includes("assignedLocationId") && message.includes("does not exist")) {
+          return {
+            success: false as const,
+            error:
+              "В базе не применена миграция филиалов. Выполните миграции и повторите приглашение.",
+          };
+        }
+
+        console.error("Invite manager DB insert error:", insertError);
+        return {
+          success: false as const,
+          error: "Не удалось сохранить приглашение менеджера",
+        };
+      }
+    }
 
     revalidatePath("/dashboard/branches");
     return {
@@ -159,6 +199,12 @@ export async function inviteBranchManagerAction(locationId: string, email: strin
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Ошибка приглашения";
+    if (message.includes("Failed query") || message.includes("insert into \"users\"")) {
+      return {
+        success: false as const,
+        error: "Ошибка сохранения пользователя. Проверьте миграции базы данных.",
+      };
+    }
     return { success: false as const, error: message };
   }
 }

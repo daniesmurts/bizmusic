@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,8 @@ interface PaymentRecord {
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"profile" | "business" | "security" | "billing">("profile");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -90,8 +92,17 @@ export default function SettingsPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
 
   useEffect(() => {
+    if (role === null) return;
+    if (role === "STAFF") {
+      router.push("/dashboard/player");
+      return;
+    }
     loadSettings();
-  }, []);
+  }, [role, router]);
+
+  if (role === null || role === "STAFF") {
+    return null;
+  }
 
   async function loadSettings() {
     setLoading(true);

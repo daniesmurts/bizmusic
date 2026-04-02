@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Building2, Download, Mail, Plus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/components/AuthProvider";
 import {
   createLocationAction,
   deactivateManagerAction,
@@ -29,6 +31,8 @@ type LocationCard = {
 };
 
 export default function BranchesPage() {
+  const { role } = useAuth();
+  const router = useRouter();
   const [locations, setLocations] = useState<LocationCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
@@ -47,8 +51,17 @@ export default function BranchesPage() {
   }
 
   useEffect(() => {
+    if (role === null) return;
+    if (role === "STAFF") {
+      router.push("/dashboard/player");
+      return;
+    }
     load();
-  }, []);
+  }, [role, router]);
+
+  if (role === null || role === "STAFF") {
+    return null;
+  }
 
   return (
     <div className="space-y-8">

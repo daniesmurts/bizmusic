@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 const adminNavItems = [
   { name: "Обзор", href: "/admin", icon: LayoutDashboard },
   { name: "Медиатека", href: "/admin/content", icon: Music },
+  { name: "Песня Недели", href: "/admin/song-of-the-week", icon: Music },
   { name: "Аналитика", href: "/admin/analytics", icon: BarChart3 },
   { name: "Блог", href: "/admin/blog", icon: BookOpen },
   { name: "Клиенты", href: "/admin/clients", icon: Users },

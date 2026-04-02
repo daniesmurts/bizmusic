@@ -41,6 +41,11 @@ export default function DashboardLayout({
   useEffect(() => {
     async function checkStatus() {
       if (isBranchManager) {
+        const staffAllowedRoutes = ["/dashboard/player", "/dashboard/announcements"];
+        const isAllowed = staffAllowedRoutes.some((route) => pathname.startsWith(route));
+        if (!isAllowed) {
+          router.push("/dashboard/player");
+        }
         setIsSigned(true);
         return;
       }

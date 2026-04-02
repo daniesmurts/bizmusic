@@ -236,22 +236,22 @@ export default function AnnouncementsPage() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="p-5 sm:p-7 glass-dark border border-white/5 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-4 group hover:border-white/20 transition-all"
+              className="p-5 sm:p-6 glass-dark border border-white/5 rounded-[2rem] flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-5 group hover:border-white/20 transition-all"
             >
-              <div className="flex items-center gap-5 w-full">
+              <div className="flex items-start gap-5 min-w-0 flex-1">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 relative overflow-hidden group-hover:scale-105 transition-transform shrink-0">
                   <Volume2 className="text-neon/60 w-7 h-7" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white truncate">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-white truncate">
                       {item.track.title}
                     </h3>
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-2 py-0.5 bg-neon/10 text-neon text-[8px] font-black uppercase tracking-widest rounded-full border border-neon/20">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 bg-neon/10 text-neon text-[9px] font-black uppercase tracking-widest rounded-full border border-neon/20 leading-none">
                         {item.track.duration} СЕК
                       </span>
-                      <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-2 py-0 border-white/10 ${
+                      <Badge variant="outline" className={`text-[9px] font-black uppercase tracking-widest px-2 py-0 border-white/10 leading-none ${
                         item.platformAnnouncementId
                           ? "text-blue-300 bg-blue-500/10"
                           : item.provider === "google"
@@ -261,16 +261,16 @@ export default function AnnouncementsPage() {
                         {item.platformAnnouncementId ? "Платформа" : item.provider === "google" ? "Google" : "Salute"}
                       </Badge>
                       {item.platformAnnouncement?.accessModel === "PAID" && (
-                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest px-2 py-0 border-amber-500/20 text-amber-300 bg-amber-500/10">
+                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0 border-amber-500/20 text-amber-300 bg-amber-500/10 leading-none">
                           {formatRubFromKopeks(item.platformAnnouncement.priceKopeks)}
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <p className="text-neutral-500 text-xs font-medium italic truncate mb-2">
+                  <p className="text-neutral-400 text-sm font-medium italic truncate mb-2 leading-relaxed">
                     &quot;{item.text}&quot;
                   </p>
-                  <div className="flex items-center gap-4 text-[10px] text-neutral-600 font-bold uppercase tracking-widest">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-neutral-600 font-bold uppercase tracking-widest">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-neon/40" />
                       {format(new Date(item.createdAt), 'dd MMM yyyy', { locale: ru })}
@@ -283,15 +283,15 @@ export default function AnnouncementsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <div className="flex items-center gap-2.5 justify-end shrink-0 self-end sm:self-center">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setAddingToPlaylist(item)}
-                  className="w-12 h-12 bg-neon/5 border border-neon/10 text-neon rounded-2xl hover:bg-neon hover:text-black hover:border-neon transition-all"
+                  className="w-11 h-11 bg-neon/5 border border-neon/10 text-neon rounded-xl hover:bg-neon hover:text-black hover:border-neon transition-all"
                   title="Добавить в плейлист"
                 >
-                  <ListPlus className="w-5 h-5" />
+                  <ListPlus className="w-4.5 h-4.5" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -300,9 +300,9 @@ export default function AnnouncementsPage() {
                     const audio = new Audio(item.track.fileUrl);
                     audio.play();
                   }}
-                  className="w-12 h-12 bg-white/5 border border-white/10 text-white rounded-2xl hover:bg-neon hover:text-black hover:border-neon transition-all"
+                  className="w-11 h-11 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-neon hover:text-black hover:border-neon transition-all"
                 >
-                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                  <Play className="w-4.5 h-4.5 fill-current ml-0.5" />
                 </Button>
                 {options.canDelete && (
                   <Button
@@ -314,9 +314,9 @@ export default function AnnouncementsPage() {
                       }
                     }}
                     disabled={deleteMutation.isPending}
-                    className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
+                    className="w-11 h-11 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4.5 h-4.5" />
                   </Button>
                 )}
               </div>

@@ -105,6 +105,7 @@ export function Footer({ variant = "default" }: FooterProps) {
               {[
                 { name: "О нас", href: "/about" },
                 { name: "Блог", href: "/blog" },
+                { name: "Песня недели", href: "/song-of-the-week" },
                 { name: "Тарифы", href: "/pricing" },
                 { name: "База знаний", href: "/knowledge" },
                 { name: "Записаться на демо", href: "/demo" }

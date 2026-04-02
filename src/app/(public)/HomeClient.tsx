@@ -19,15 +19,37 @@ import {
   WifiOff,
   Mic,
   BarChart3,
-  LayoutDashboard
+  LayoutDashboard,
+  Download
 } from "lucide-react";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FeaturedMusic } from "@/components/FeaturedMusic";
 import { cn } from "@/lib/utils";
+import { getCurrentSongOfTheWeek } from "@/lib/actions/song-of-the-week";
+import { formatDate } from "@/lib/utils";
 
 export default function HomeClient() {
   const { setTrack } = usePlayerStore();
+  const [songOfWeek, setSongOfWeek] = useState<any>(null);
+  const [loadingSong, setLoadingSong] = useState(true);
+
+  useEffect(() => {
+    async function loadSongOfWeek() {
+      try {
+        const result = await getCurrentSongOfTheWeek();
+        if (result.ok && result.data) {
+          setSongOfWeek(result.data);
+        }
+      } catch (error) {
+        console.error("Failed to load song of week:", error);
+      } finally {
+        setLoadingSong(false);
+      }
+    }
+
+    loadSongOfWeek();
+  }, []);
 
   const handlePlayDemo = (title: string, artist: string) => {
     const demoTrack: Track = {
@@ -288,6 +310,79 @@ export default function HomeClient() {
           ))}
         </div>
       </section>
+
+      {/* Song of the Week Section */}
+      {!loadingSong && songOfWeek && songOfWeek.track && (
+        <section className="px-6 md:px-12 space-y-8 mb-8">
+          <div className="flex items-center gap-3">
+            <Star className="w-5 h-5 text-neon fill-neon" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-neon">Свежее • Бесплатно</span>
+          </div>
+
+          <Link href={`/song-of-the-week/${formatDate(new Date(songOfWeek.postedAt), "yyyy-MM-dd")}`}>
+            <div className="group relative glass-dark border border-white/10 hover:border-neon/30 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 transition-all duration-500 overflow-hidden shadow-xl hover:shadow-neon/20">
+              <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[100px] opacity-0 group-hover:opacity-20 bg-neon/10 transition-all duration-1000" />
+              
+              <div className="relative z-10 grid md:grid-cols-3 gap-6 md:gap-10 items-center">
+                {/* Album Art */}
+                <div className="md:col-span-1 flex items-center justify-center">
+                  {songOfWeek.track.coverUrl ? (
+                    <img
+                      src={songOfWeek.track.coverUrl}
+                      alt={songOfWeek.track.title}
+                      className="w-full max-w-xs aspect-square object-cover rounded-xl shadow-xl group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full max-w-xs aspect-square bg-gradient-to-br from-neon/20 to-purple-400/20 rounded-xl flex items-center justify-center border border-white/10">
+                      <span className="text-6xl">🎵</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Track Info */}
+                <div className="md:col-span-2 space-y-6">
+                  <div>
+                    <p className="text-neon text-sm font-black uppercase tracking-widest mb-2">Песня на эту неделю</p>
+                    <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white leading-tight">
+                      {songOfWeek.track.title}
+                    </h3>
+                    <p className="text-lg text-slate-300 font-semibold mt-2">
+                      {songOfWeek.track.artist}
+                    </p>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                      <p className="text-slate-400 text-xs font-bold mb-1 uppercase">Жанр</p>
+                      <p className="text-white font-bold text-sm">{songOfWeek.track.genre}</p>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                      <p className="text-slate-400 text-xs font-bold mb-1 uppercase">Длина</p>
+                      <p className="text-white font-bold text-sm">
+                        {Math.floor(songOfWeek.track.duration / 60)}:{(songOfWeek.track.duration % 60).toString().padStart(2, "0")}
+                      </p>
+                    </div>
+                    {songOfWeek.track.bpm && (
+                      <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                        <p className="text-slate-400 text-xs font-bold mb-1 uppercase">BPM</p>
+                        <p className="text-white font-bold text-sm">{songOfWeek.track.bpm}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CTA */}
+                  <div className="flex items-center gap-3 text-neon font-black uppercase tracking-widest pt-2">
+                    <Download className="w-5 h-5" />
+                    <span>Скачать бесплатно</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </section>
+      )}
 
       {/* Featured Music Section */}
       <section className="px-6 md:px-12 space-y-12">
