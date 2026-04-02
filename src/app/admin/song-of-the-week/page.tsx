@@ -13,8 +13,8 @@ interface Track {
   title: string;
   artist: string;
   duration: number;
-  genre: string;
-  coverUrl?: string;
+  genre: string | null;
+  coverUrl: string | null;
 }
 
 export default function SongOfTheWeekAdminPage() {
