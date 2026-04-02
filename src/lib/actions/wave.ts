@@ -1,56 +1,27 @@
 "use server";
 
 import { db } from "@/db";
-import { waveSettings, tracks, trackSkips, businesses, users } from "@/db/schema";
+import { waveSettings, tracks, trackSkips } from "@/db/schema";
 import { eq, and, not, sql, inArray } from "drizzle-orm";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
 import { createClient } from "@/utils/supabase/server";
+import { resolveAccessScope } from "@/lib/auth/scope";
 
-/**
- * Resolve the businessId for the authenticated user and verify they belong
- * to the given businessId. Throws if the user is unauthenticated or if
- * the businessId does not match the caller's business.
- */
-async function resolveAndAuthorizeBusinessId(businessId: string): Promise<void> {
+async function canUseBusinessWave(businessId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Не авторизован");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
 
-  const dbUser = await db.query.users.findFirst({
-    where: eq(users.id, user.id),
-    columns: { role: true },
-  });
-  if (!dbUser) throw new Error("Пользователь не найден");
-
-  if (dbUser.role === "ADMIN") return; // Admins can access any business
-
-  const business = await db.query.businesses.findFirst({
-    where: eq(businesses.userId, user.id),
-    columns: { id: true },
-  });
-
-  if (!business || business.id !== businessId) {
-    throw new Error("Доступ запрещён");
-  }
-}
-
-async function checkWaveSubscriptionStatus(businessId: string) {
-  const biz = await db.query.businesses.findFirst({
-    where: eq(businesses.id, businessId),
-    columns: { subscriptionStatus: true },
-  });
-  return biz?.subscriptionStatus === "ACTIVE";
+  const scope = await resolveAccessScope(user.id);
+  if (!scope) return false;
+  if (scope.role === "ADMIN") return true;
+  return scope.businessId === businessId;
 }
 
 export async function getWaveSettingsAction(businessId: string) {
   try {
-    await resolveAndAuthorizeBusinessId(businessId);
-
-    const isSubscribed = await checkWaveSubscriptionStatus(businessId);
-    if (!isSubscribed) {
-      return { success: false, error: "Feature restricted. Subscription required." };
+    if (!(await canUseBusinessWave(businessId))) {
+      return { success: false, error: "Недостаточно прав" };
     }
 
     const settings = await db.query.waveSettings.findFirst({
@@ -81,11 +52,8 @@ export async function updateWaveSettingsAction(
   data: { energyPreference?: number; vocalPreference?: string; focusProfile?: string }
 ) {
   try {
-    await resolveAndAuthorizeBusinessId(businessId);
-
-    const isSubscribed = await checkWaveSubscriptionStatus(businessId);
-    if (!isSubscribed) {
-      return { success: false, error: "Feature restricted. Subscription required." };
+    if (!(await canUseBusinessWave(businessId))) {
+      return { success: false, error: "Недостаточно прав" };
     }
 
     const [updated] = await db.update(waveSettings)
@@ -103,11 +71,8 @@ export async function updateWaveSettingsAction(
 
 export async function generateWaveBatchAction(businessId: string, excludeTrackIds: string[] = []) {
   try {
-    await resolveAndAuthorizeBusinessId(businessId);
-
-    const isSubscribed = await checkWaveSubscriptionStatus(businessId);
-    if (!isSubscribed) {
-      return { success: false, error: "Feature restricted. Subscription required." };
+    if (!(await canUseBusinessWave(businessId))) {
+      return { success: false, error: "Недостаточно прав" };
     }
 
     // 1. Get settings

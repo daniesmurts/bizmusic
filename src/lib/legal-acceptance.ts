@@ -32,10 +32,28 @@ function parseUserType(metadata?: UserMetadata): "BUSINESS" | "CREATOR" {
   return metadata?.user_type === "CREATOR" ? "CREATOR" : "BUSINESS";
 }
 
+function parseInvitedBranchRole(metadata?: UserMetadata): {
+  role: "BUSINESS_OWNER" | "STAFF";
+  assignedLocationId: string | null;
+} {
+  const isBranchStaff = metadata?.is_branch_staff === true;
+  const assignedLocationId =
+    typeof metadata?.assigned_location_id === "string"
+      ? metadata.assigned_location_id
+      : null;
+
+  if (isBranchStaff) {
+    return { role: "STAFF", assignedLocationId };
+  }
+
+  return { role: "BUSINESS_OWNER", assignedLocationId: null };
+}
+
 export async function syncUserAndLegalAcceptance(input: SyncLegalAcceptanceInput) {
   const termsAccepted = parseTermsAccepted(input.metadata);
   const acceptedAt = parseAcceptedAt(input.metadata);
   const phone = typeof input.metadata?.phone === "string" ? input.metadata.phone : null;
+  const invitedRole = parseInvitedBranchRole(input.metadata);
 
   const existing = await db.query.users.findFirst({
     where: eq(users.id, input.userId),
@@ -46,9 +64,10 @@ export async function syncUserAndLegalAcceptance(input: SyncLegalAcceptanceInput
       id: input.userId,
       email: input.email,
       passwordHash: "SUPABASE_AUTH",
-      role: "BUSINESS_OWNER",
+      role: invitedRole.role,
       userType: parseUserType(input.metadata),
       phone,
+      assignedLocationId: invitedRole.assignedLocationId,
       termsAccepted,
       termsAcceptedAt: acceptedAt,
     });

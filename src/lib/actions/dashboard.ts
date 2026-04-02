@@ -45,10 +45,9 @@ export async function getDashboardDataAction() {
 
     const scope = await resolveAccessScope(user.id);
 
-    // STAFF (branch managers): return a limited dataset scoped to their assigned location
     if (scope?.isBranchManager) {
       if (!scope.businessId || !scope.assignedLocationId) {
-        return { success: false, error: "Филиал не назначен. Обратитесь к администратору." };
+        return { success: false, error: "Филиал не назначен. Обратитесь к владельцу бизнеса." };
       }
 
       const [business, assignedLocation] = await Promise.all([
@@ -56,12 +55,22 @@ export async function getDashboardDataAction() {
           where: eq(businesses.id, scope.businessId),
           columns: { id: true, legalName: true, subscriptionStatus: true },
           with: {
-            playlists: { columns: { id: true, name: true } },
+            playlists: {
+              columns: { id: true, name: true },
+            },
           },
         }),
         db.query.locations.findFirst({
           where: eq(locations.id, scope.assignedLocationId),
-          columns: { id: true, name: true, address: true, createdAt: true, updatedAt: true, businessId: true, deviceId: true },
+          columns: {
+            id: true,
+            name: true,
+            address: true,
+            createdAt: true,
+            updatedAt: true,
+            businessId: true,
+            deviceId: true,
+          },
         }),
       ]);
 
@@ -70,6 +79,7 @@ export async function getDashboardDataAction() {
       }
 
       const staffPlaylists = await Promise.all(business.playlists.map(processPlaylist));
+      const totalTrackCount = staffPlaylists.reduce((acc, playlist) => acc + playlist.trackCount, 0);
 
       return {
         success: true,
@@ -79,7 +89,11 @@ export async function getDashboardDataAction() {
           locations: [assignedLocation],
           playlists: staffPlaylists,
           globalPlaylists: [],
-          stats: { locationCount: 1, trackCount: 0, licenseStatus: business.subscriptionStatus },
+          stats: {
+            locationCount: 1,
+            trackCount: totalTrackCount,
+            licenseStatus: business.subscriptionStatus,
+          },
         },
       };
     }
@@ -217,12 +231,7 @@ export async function getBusinessDetailsAction() {
       data: business
     };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to fetch details";
-    console.error("[DB] Get business details critical error:", {
-      message,
-      error,
-      timestamp: new Date().toISOString()
-    });
-    return { success: false, error: message };
+    console.error("Get business details error:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to fetch details" };
   }
 }

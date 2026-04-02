@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   // if "next" is in param, use it as the redirect URL
-  const next = searchParams.get('next') ?? '/dashboard'
+  const requestedNext = searchParams.get('next') ?? '/dashboard'
 
   // Use NEXT_PUBLIC_SITE_URL to avoid Docker's internal 0.0.0.0:8080 origin
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bizmuzik.ru'
@@ -48,6 +48,11 @@ export async function GET(request: Request) {
           userAgent,
         })
       }
+
+      const isBranchInvite = authUser?.user_metadata?.is_branch_staff === true
+      const next = isBranchInvite && requestedNext === '/dashboard'
+        ? '/reset-password?mode=invite&next=/dashboard/player'
+        : requestedNext
 
       return NextResponse.redirect(`${baseUrl}${next}`)
     }

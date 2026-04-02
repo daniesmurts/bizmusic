@@ -17,6 +17,23 @@ import {
   getBusinessEntitlementState,
   getTtsEntitlementStatus,
 } from "@/lib/tts-entitlements";
+import { resolveAccessScope } from "@/lib/auth/scope";
+
+async function resolveAnnouncementScope() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { user: null, scope: null, business: null };
+  }
+
+  const scope = await resolveAccessScope(user.id);
+  const business = scope?.businessId
+    ? await db.query.businesses.findFirst({ where: eq(businesses.id, scope.businessId) })
+    : null;
+
+  return { user, scope, business };
+}
 
 export interface CreateAnnouncementInput {
   text: string;
@@ -33,17 +50,15 @@ export interface CreateAnnouncementInput {
  */
 export async function generateVoiceAnnouncementAction(input: CreateAnnouncementInput) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user, scope, business } = await resolveAnnouncementScope();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Get business ID for the user
-    const business = await db.query.businesses.findFirst({
-      where: eq(businesses.userId, user.id),
-    });
+    if (scope?.isBranchManager) {
+      return { success: false, error: "Менеджер филиала не может создавать анонсы" };
+    }
 
     if (!business) {
       return { success: false, error: "Business not found for this user." };
@@ -142,17 +157,15 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
 
 export async function getAnnouncementEntitlementStatusAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user, scope, business } = await resolveAnnouncementScope();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const business = await db.query.businesses.findFirst({
-      where: eq(businesses.userId, user.id),
-      columns: { id: true },
-    });
+    if (scope?.isBranchManager) {
+      return { success: false, error: "Недостаточно прав" };
+    }
 
     if (!business) {
       return { success: false, error: "Business not found" };
@@ -171,16 +184,11 @@ export async function getAnnouncementEntitlementStatusAction() {
  */
 export async function getAnnouncementsAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user, business } = await resolveAnnouncementScope();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };
     }
-
-    const business = await db.query.businesses.findFirst({
-      where: eq(businesses.userId, user.id),
-    });
 
     if (!business) {
       return { success: false, error: "Business not found" };
@@ -213,16 +221,15 @@ export async function getAnnouncementsAction() {
  */
 export async function deleteAnnouncementAction(announcementId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user, scope, business } = await resolveAnnouncementScope();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const business = await db.query.businesses.findFirst({
-      where: eq(businesses.userId, user.id),
-    });
+    if (scope?.isBranchManager) {
+      return { success: false, error: "Менеджер филиала не может удалять анонсы" };
+    }
 
     if (!business) {
       return { success: false, error: "Business not found for this user." };

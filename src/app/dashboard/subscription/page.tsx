@@ -36,13 +36,22 @@ interface BusinessData {
 }
 
 export default function SubscriptionPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [businessData, setBusinessData] = useState<BusinessData | null>(null);
   const [isYearly, setIsYearly] = useState(false);
 
   useEffect(() => {
+    if (role === null) {
+      return;
+    }
+
+    if (role === "STAFF") {
+      router.push('/dashboard/player');
+      return;
+    }
+
     async function fetchBusiness() {
       try {
         const response = await fetch('/api/user/business');
@@ -58,7 +67,11 @@ export default function SubscriptionPage() {
     if (user) {
       fetchBusiness();
     }
-  }, [user]);
+  }, [user, role, router]);
+
+  if (role === null || role === "STAFF") {
+    return null;
+  }
 
   const handleStartTrial = async (planSlug: string) => {
     if (!user?.id || !businessData?.id) {

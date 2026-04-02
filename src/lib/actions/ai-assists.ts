@@ -9,8 +9,8 @@ import {
   getBusinessAiEntitlementState,
   getAiEntitlementStatus,
 } from "@/lib/ai-entitlements";
-import { resolveAccessScope } from "@/lib/auth/scope";
 import { refineAnnouncementText } from "@/lib/groq-ai";
+import { resolveAccessScope } from "@/lib/auth/scope";
 
 export interface GenerateAiAssistInput {
   userDraft: string;
@@ -29,12 +29,18 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Resolve business ID for owner or staff
     const scope = await resolveAccessScope(user.id);
-    const businessId = scope?.businessId;
+    if (scope?.isBranchManager) {
+      return { success: false, error: "Менеджер филиала не может использовать ИИ-ассистирование" };
+    }
 
-    if (!businessId) {
-      return { success: false, error: "Бизнес или филиал не найден." };
+    // Get business ID for the user
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+    });
+
+    if (!business) {
+      return { success: false, error: "Business not found for this user." };
     }
 
     // Validation
@@ -47,7 +53,7 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
     }
 
     // Check entitlement
-    const entitlement = await getAiEntitlementStatus(businessId);
+    const entitlement = await getAiEntitlementStatus(business.id);
     if (!entitlement.canAssist) {
       return { success: false, error: entitlement.denialReason || "Лимит помощи ИИ исчерпан." };
     }
@@ -58,14 +64,14 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
     // 2. Consume AI assist credit in transaction
     await db.transaction(async (tx) => {
       await consumeAiAssistCredit(tx, {
-        businessId: businessId,
+        businessId: business.id,
         provider: "groq",
         charsCount: refinedText.length,
       });
     });
 
     // 3. Get updated entitlement status
-    const nextEntitlement = await getAiEntitlementStatus(businessId);
+    const nextEntitlement = await getAiEntitlementStatus(business.id);
 
     return {
       success: true,
@@ -97,13 +103,20 @@ export async function getAiAssistStatusAction() {
     }
 
     const scope = await resolveAccessScope(user.id);
-    const businessId = scope?.businessId;
-
-    if (!businessId) {
-      return { success: false, error: "Бизнес не найден" };
+    if (scope?.isBranchManager) {
+      return { success: false, error: "Недостаточно прав" };
     }
 
-    const data = await getAiEntitlementStatus(businessId);
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      columns: { id: true },
+    });
+
+    if (!business) {
+      return { success: false, error: "Business not found" };
+    }
+
+    const data = await getAiEntitlementStatus(business.id);
     return { success: true, data };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to load AI assist status";

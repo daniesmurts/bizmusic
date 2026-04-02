@@ -1,5 +1,5 @@
 import { pgTable, text, integer, boolean, timestamp, jsonb, pgEnum, uniqueIndex, index, doublePrecision, serial, varchar } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // DB Types
 export interface ScheduleTimeSlot {
@@ -204,6 +204,20 @@ export const playLogs = pgTable("play_logs", {
   trackId: text("trackId").references(() => tracks.id).notNull(),
   playedAt: timestamp("playedAt").defaultNow().notNull(),
 });
+
+// Song of the Week Table
+export const songOfTheWeek = pgTable("song_of_the_week", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
+  postedAt: timestamp("postedAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  activeIdx: uniqueIndex("idx_song_of_week_active").on(t.isActive).where(sql`${t.isActive} = true`),
+  expiresAtIdx: index("idx_song_of_week_expires_at").on(t.expiresAt),
+  postedAtIdx: index("idx_song_of_week_posted_at").on(t.postedAt),
+}));
 
 export const trackReactions = pgTable("track_reactions", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -424,6 +438,7 @@ export const tracksRelations = relations(tracks, ({ one, many }) => ({
   playlistTracks: many(playlistTracks),
   voiceAnnouncement: one(voiceAnnouncements, { fields: [tracks.id], references: [voiceAnnouncements.trackId] }),
   platformAnnouncementProduct: one(platformAnnouncementProducts, { fields: [tracks.id], references: [platformAnnouncementProducts.trackId] }),
+  songOfTheWeek: one(songOfTheWeek, { fields: [tracks.id], references: [songOfTheWeek.trackId] }),
 }));
 
 export const albumsRelations = relations(albums, ({ one, many }) => ({
@@ -450,6 +465,10 @@ export const playLogsRelations = relations(playLogs, ({ one }) => ({
   location: one(locations, { fields: [playLogs.locationId], references: [locations.id] }),
   business: one(businesses, { fields: [playLogs.businessId], references: [businesses.id] }),
   track: one(tracks, { fields: [playLogs.trackId], references: [tracks.id] }),
+}));
+
+export const songOfTheWeekRelations = relations(songOfTheWeek, ({ one }) => ({
+  track: one(tracks, { fields: [songOfTheWeek.trackId], references: [tracks.id] }),
 }));
 
 export const waveSettingsRelations = relations(waveSettings, ({ one }) => ({

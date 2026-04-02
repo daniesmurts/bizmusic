@@ -14,11 +14,7 @@ export interface AccessScope {
 export async function resolveAccessScope(userId: string): Promise<AccessScope | null> {
   const dbUser = await db.query.users.findFirst({
     where: eq(users.id, userId),
-    columns: {
-      id: true,
-      role: true,
-      assignedLocationId: true,
-    },
+    columns: { id: true, role: true, assignedLocationId: true },
   });
 
   if (!dbUser) return null;
@@ -66,12 +62,8 @@ export async function resolveAccessScope(userId: string): Promise<AccessScope | 
   };
 }
 
-export function canAccessLocation(scope: AccessScope, locationId: string | null | undefined): boolean {
+export function canAccessLocation(scope: AccessScope, locationId: string | null | undefined) {
   if (!locationId) return scope.isOwnerLike;
-
-  if (scope.isBranchManager) {
-    return scope.assignedLocationId === locationId;
-  }
-
+  if (scope.isBranchManager) return scope.assignedLocationId === locationId;
   return scope.isOwnerLike;
 }
