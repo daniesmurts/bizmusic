@@ -407,6 +407,90 @@ export default function AnnouncementsPage() {
         )}
       </div>
 
+      {isAdding && !isBranchManager && (
+        <div ref={formRef} className="animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex justify-end mb-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsAdding(false)}
+              className="text-neutral-500 hover:text-white uppercase text-[10px] font-black tracking-widest"
+            >
+              Отмена
+            </Button>
+          </div>
+          <VoiceAnnouncementForm onSuccess={() => {
+            setIsAdding(false);
+            queryClient.invalidateQueries({ queryKey: ["announcements-library"] });
+            queryClient.invalidateQueries({ queryKey: ["tts-entitlement"] });
+            queryClient.invalidateQueries({ queryKey: ["ai-entitlement"] });
+          }} canGenerate={entitlement?.canGenerate ?? true} />
+        </div>
+      )}
+
+      {/* Announcements Library — shown first for quick access */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+          <h2 className="text-xl font-black uppercase tracking-tighter text-white">
+            Ваша <span className="text-neon">библиотека</span>
+          </h2>
+          <div className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">
+            {totalAnnouncements} АНОНСОВ
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-28 glass-dark rounded-[2rem] animate-pulse" />
+            ))}
+          </div>
+        ) : totalAnnouncements > 0 ? (
+          <div className="space-y-8">
+            {renderAnnouncementCards(generatedAnnouncements, {
+              title: "Мои анонсы",
+              subtitle: "Созданы вашей компанией через TTS",
+              emptyTitle: "Нет собственных анонсов",
+              emptyDescription: "Создайте первый анонс через форму выше.",
+              badgeTone: "neon",
+              canDelete: !isBranchManager,
+            })}
+            {renderAnnouncementCards(platformAnnouncements, {
+              title: "Из библиотеки BizMusic",
+              subtitle: "Полученные или купленные платформенные анонсы",
+              emptyTitle: "Нет платформенных анонсов",
+              emptyDescription: "Добавляйте готовые анонсы с витрины BizMusic.",
+              badgeTone: "blue",
+              canDelete: !isBranchManager,
+            })}
+          </div>
+        ) : (
+          <div className="glass-dark border border-white/10 p-16 rounded-[2.5rem] text-center space-y-6">
+             <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto border border-white/5">
+               <Volume2 className="text-neutral-600 w-10 h-10" />
+             </div>
+             <div className="space-y-2">
+               <h3 className="text-xl font-black uppercase tracking-tight text-white">Список пуст</h3>
+               <p className="text-neutral-500 font-medium text-sm">У вас пока нет созданных голосовых анонсов.</p>
+             </div>
+             {!isBranchManager && (
+               <Button 
+                onClick={() => setIsAdding(true)}
+                className="bg-neon/10 border border-neon/20 text-neon hover:bg-neon hover:text-black rounded-xl px-8"
+               >
+                 Создать первое
+               </Button>
+             )}
+          </div>
+        )}
+      </section>
+
+      {isBranchManager && (
+        <div className="glass-dark border border-white/10 rounded-[2rem] p-6 text-sm text-neutral-400">
+          Менеджер филиала может использовать готовые анонсы и добавлять их в плейлисты, но не может создавать, удалять или покупать новые анонсы.
+        </div>
+      )}
+
+      {/* TTS Limits — moved below library */}
       {!isBranchManager && (
       <section className="glass-dark border border-white/10 rounded-[2rem] p-6 sm:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -472,6 +556,7 @@ export default function AnnouncementsPage() {
       </section>
       )}
 
+      {/* AI Assist Limits — moved below library */}
       {!isBranchManager && (
       <section className="glass-dark border border-white/10 rounded-[2rem] p-6 sm:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -516,89 +601,6 @@ export default function AnnouncementsPage() {
           </p>
         )}
       </section>
-      )}
-
-      {isAdding && !isBranchManager && (
-        <div ref={formRef} className="animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="flex justify-end mb-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsAdding(false)}
-              className="text-neutral-500 hover:text-white uppercase text-[10px] font-black tracking-widest"
-            >
-              Отмена
-            </Button>
-          </div>
-          <VoiceAnnouncementForm onSuccess={() => {
-            setIsAdding(false);
-            queryClient.invalidateQueries({ queryKey: ["announcements-library"] });
-            queryClient.invalidateQueries({ queryKey: ["tts-entitlement"] });
-            queryClient.invalidateQueries({ queryKey: ["ai-entitlement"] });
-          }} canGenerate={entitlement?.canGenerate ?? true} />
-        </div>
-      )}
-
-      {/* Announcements List */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-          <h2 className="text-xl font-black uppercase tracking-tighter text-white">
-            Ваша <span className="text-neon">библиотека</span>
-          </h2>
-          <div className="text-[10px] text-neutral-500 font-black uppercase tracking-widest">
-            {totalAnnouncements} АНОНСОВ
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-28 glass-dark rounded-[2rem] animate-pulse" />
-            ))}
-          </div>
-        ) : totalAnnouncements > 0 ? (
-          <div className="space-y-8">
-            {renderAnnouncementCards(generatedAnnouncements, {
-              title: "Мои анонсы",
-              subtitle: "Созданы вашей компанией через TTS",
-              emptyTitle: "Нет собственных анонсов",
-              emptyDescription: "Создайте первый анонс через форму выше.",
-              badgeTone: "neon",
-              canDelete: !isBranchManager,
-            })}
-            {renderAnnouncementCards(platformAnnouncements, {
-              title: "Из библиотеки BizMusic",
-              subtitle: "Полученные или купленные платформенные анонсы",
-              emptyTitle: "Нет платформенных анонсов",
-              emptyDescription: "Добавляйте готовые анонсы с витрины BizMusic.",
-              badgeTone: "blue",
-              canDelete: !isBranchManager,
-            })}
-          </div>
-        ) : (
-          <div className="glass-dark border border-white/10 p-16 rounded-[2.5rem] text-center space-y-6">
-             <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto border border-white/5">
-               <Volume2 className="text-neutral-600 w-10 h-10" />
-             </div>
-             <div className="space-y-2">
-               <h3 className="text-xl font-black uppercase tracking-tight text-white">Список пуст</h3>
-               <p className="text-neutral-500 font-medium text-sm">У вас пока нет созданных голосовых анонсов.</p>
-             </div>
-             {!isBranchManager && (
-               <Button 
-                onClick={() => setIsAdding(true)}
-                className="bg-neon/10 border border-neon/20 text-neon hover:bg-neon hover:text-black rounded-xl px-8"
-               >
-                 Создать первое
-               </Button>
-             )}
-          </div>
-        )}
-      </section>
-
-      {isBranchManager && (
-        <div className="glass-dark border border-white/10 rounded-[2rem] p-6 text-sm text-neutral-400">
-          Менеджер филиала может использовать готовые анонсы и добавлять их в плейлисты, но не может создавать, удалять или покупать новые анонсы.
-        </div>
       )}
 
       {/* Tips / Info */}

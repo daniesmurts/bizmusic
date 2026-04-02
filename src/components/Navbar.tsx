@@ -152,7 +152,7 @@ export const Navbar = () => {
              </div>
            ) : (
              <>
-               <Link href="/login" className="text-sm font-black uppercase tracking-widest text-neutral-400 hover:text-neon transition-colors md:block hidden">
+               <Link href="/login" className="text-sm font-black uppercase tracking-widest text-neutral-400 hover:text-neon transition-colors hidden sm:block">
                  Войти
                </Link>
                <Button asChild className="bg-neon text-black hover:scale-105 transition-transform rounded-full px-6 xl:px-8 font-black uppercase tracking-widest text-xs h-11 border-none outline-none">
@@ -301,9 +301,14 @@ export const Navbar = () => {
                     Выйти из аккаунта
                   </Button>
                 ) : (
-                  <Button asChild className="h-14 bg-neon text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-neon/20">
-                    <Link href="/register" onClick={() => setIsMenuOpen(false)}>Начать бесплатно</Link>
-                  </Button>
+                  <>
+                    <Button asChild variant="outline" className="h-14 rounded-2xl font-black uppercase tracking-widest text-xs border-white/20 text-white hover:bg-white/10">
+                      <Link href="/login" onClick={() => setIsMenuOpen(false)}>Войти в аккаунт</Link>
+                    </Button>
+                    <Button asChild className="h-14 bg-neon text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-neon/20">
+                      <Link href="/register" onClick={() => setIsMenuOpen(false)}>Начать бесплатно</Link>
+                    </Button>
+                  </>
                 )}
               </div>
             </div>

@@ -212,72 +212,86 @@ export default function SubscriptionPage() {
       <div className="fixed bottom-[-10%] left-[10%] w-[800px] h-[800px] bg-blue-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
 
       {/* Header */}
-      <div className="flex items-end justify-between px-2">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 px-2">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black uppercase tracking-tighter">Ваша <span className="text-neon">Подписка</span></h2>
-          <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Управление тарифами и 14-дневный пробный период</p>
+          <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter">Ваша <span className="text-neon">Подписка</span></h2>
+          <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Управление тарифами и пробный период</p>
         </div>
         <Button 
           variant="ghost" 
           onClick={() => router.push('/dashboard/subscription/history')}
-          className="text-neutral-400 hover:text-white font-black uppercase text-xs tracking-widest gap-2"
+          className="text-neutral-400 hover:text-white font-black uppercase text-[10px] sm:text-xs tracking-widest gap-2 self-start sm:self-auto shrink-0"
         >
           <Receipt className="w-4 h-4" /> История платежей
         </Button>
       </div>
 
       {/* Trial Banner / Current Status */}
-      <div className="glass-dark border border-white/10 rounded-[2rem] lg:rounded-[3.5rem] p-6 md:p-10 lg:p-12 relative overflow-hidden backdrop-blur-2xl">
+      <div className="glass-dark border border-white/10 rounded-[2rem] lg:rounded-[3.5rem] p-5 sm:p-8 md:p-10 lg:p-12 relative overflow-hidden backdrop-blur-2xl">
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-neon/10 blur-[100px] rounded-full" />
         
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
-          <div className="space-y-6">
+        <div className="relative z-10 space-y-6">
+          {/* Status Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-2">
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-neon">Статус аккаунта</span>
-              <h3 className="text-3xl md:text-5xl lg:text-7xl font-black uppercase tracking-tighter text-white">
-                {businessData?.subscriptionStatus === 'ACTIVE' ? 'Активирован' : 'БЕСПЛАТНО'}
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-neon">Статус аккаунта</span>
+              <h3 className={cn(
+                "text-2xl sm:text-4xl md:text-5xl font-black uppercase tracking-tighter",
+                businessData?.subscriptionStatus === 'ACTIVE' ? 'text-neon' : 'text-white'
+              )}>
+                {businessData?.subscriptionStatus === 'ACTIVE' ? 'Активирован' : 'Бесплатно'}
               </h3>
             </div>
-            <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs max-w-sm leading-relaxed">
-              {businessData?.subscriptionStatus === 'ACTIVE' 
-                ? (businessData.cancelAtPeriodEnd 
-                    ? `Ваша подписка активна до ${new Date(businessData.subscriptionExpiresAt!).toLocaleDateString('ru-RU')}, после чего она будет аннулирована.`
-                    : 'Ваше пространство под защитой. Вы имеете полный доступ к музыкальным каталогам и юридической гарантии.')
-                : 'Ваш аккаунт находится в бесплатном режиме. Выберите тариф, чтобы активировать 14-дневный пробный период (требуется привязка карты).'}
-            </p>
+            {businessData?.subscriptionStatus === 'ACTIVE' && (
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest w-fit",
+                businessData.cancelAtPeriodEnd
+                  ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                  : "bg-neon/10 border border-neon/20 text-neon"
+              )}>
+                <ShieldCheck className="w-4 h-4" />
+                {businessData.cancelAtPeriodEnd ? "Отмена запланирована" : "Подписка активна"}
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col items-end gap-4">
-             {businessData?.subscriptionStatus === 'ACTIVE' && !businessData.cancelAtPeriodEnd && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleCancelSubscription}
-                  disabled={loading === "cancelling"}
-                  className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-black uppercase text-[10px] tracking-widest h-10 px-6 rounded-xl"
-                >
-                  {loading === "cancelling" ? "Отмена..." : "Отменить подписку"}
-                </Button>
-             )}
-             {businessData?.subscriptionStatus === 'ACTIVE' && businessData?.cancelAtPeriodEnd && (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400">
-                    <RotateCcw className="w-4 h-4" />
-                    Автопродление отключено
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={handleReactivateSubscription}
-                    disabled={loading === "reactivating"}
-                    className="border-neon/50 text-neon hover:bg-neon/10 font-black uppercase text-[10px] tracking-widest h-10 px-6 rounded-xl"
-                  >
-                    {loading === "reactivating" ? "Восстановление..." : "Возобновить"}
-                  </Button>
-                </div>
-             )}
-             <div className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-neutral-300">
-                <Sparkles className="w-4 h-4 text-neon" />
-                Все функции доступны 14 дней бесплатно
-             </div>
+          {/* Description */}
+          <p className="text-neutral-400 font-medium text-xs sm:text-sm leading-relaxed max-w-lg">
+            {businessData?.subscriptionStatus === 'ACTIVE' 
+              ? (businessData.cancelAtPeriodEnd 
+                  ? `Ваша подписка активна до ${new Date(businessData.subscriptionExpiresAt!).toLocaleDateString('ru-RU')}. После этого она не будет продлена.`
+                  : 'Полный доступ к музыкальным каталогам и юридической гарантии.')
+              : 'Выберите тариф для активации 14-дневного пробного периода.'}
+          </p>
+
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-3">
+            {businessData?.subscriptionStatus === 'ACTIVE' && !businessData.cancelAtPeriodEnd && (
+              <Button 
+                variant="ghost" 
+                onClick={handleCancelSubscription}
+                disabled={loading === "cancelling"}
+                className="text-neutral-500 hover:text-red-400 hover:bg-red-500/10 font-black uppercase text-[10px] tracking-widest h-10 px-4 rounded-xl"
+              >
+                {loading === "cancelling" ? "Отмена..." : "Отменить подписку"}
+              </Button>
+            )}
+            {businessData?.subscriptionStatus === 'ACTIVE' && businessData?.cancelAtPeriodEnd && (
+              <Button
+                onClick={handleReactivateSubscription}
+                disabled={loading === "reactivating"}
+                className="bg-neon text-black font-black uppercase text-[10px] tracking-widest h-10 px-6 rounded-xl hover:scale-[1.02] transition-transform"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                {loading === "reactivating" ? "Восстановление..." : "Возобновить подписку"}
+              </Button>
+            )}
+            {businessData?.subscriptionStatus !== 'ACTIVE' && (
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-neutral-300">
+                <Sparkles className="w-3.5 h-3.5 text-neon" />
+                14 дней бесплатно
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -304,109 +318,121 @@ export default function SubscriptionPage() {
       </div>
 
       {/* Plans Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto w-full">
-        {PLANS_UI.map((tier) => (
-          <div key={tier.slug} className={cn(
-            "glass-dark border p-8 rounded-[2.5rem] flex flex-col transition-all duration-500 h-full",
-            tier.popular ? "border-neon/30 bg-neon/5 shadow-[0_0_40px_rgba(92,243,135,0.1)]" : "border-white/5 hover:border-white/10"
-          )}>
-            <div className="mb-8 space-y-4 text-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-7xl mx-auto w-full">
+        {PLANS_UI.map((tier) => {
+          const isCurrent = businessData?.subscriptionStatus === 'ACTIVE' && businessData?.currentPlanSlug === tier.slug;
+          return (
+            <div key={tier.slug} className={cn(
+              "glass-dark border rounded-2xl sm:rounded-[2.5rem] flex transition-all duration-500",
+              // Mobile: horizontal compact row. Desktop: vertical card
+              "flex-row items-center gap-4 p-4 sm:flex-col sm:items-stretch sm:p-8 sm:h-full",
+              tier.popular ? "border-neon/30 bg-neon/5 shadow-[0_0_40px_rgba(92,243,135,0.1)]" : "border-white/5 hover:border-white/10",
+              isCurrent && "ring-2 ring-neon/20"
+            )}>
+              {/* Icon - mobile: small, desktop: centered */}
               <div className={cn(
-                "w-12 h-12 mx-auto rounded-xl flex items-center justify-center border",
+                "shrink-0 rounded-xl flex items-center justify-center border",
+                "w-12 h-12 sm:w-12 sm:h-12 sm:mx-auto sm:mb-4",
                 tier.popular ? "bg-neon/20 border-neon/30" : "bg-white/5 border-white/10"
               )}>
                 <tier.icon className={cn("w-6 h-6", tier.popular ? "text-neon" : "text-neutral-400")} />
               </div>
-              <div>
-                <h4 className="text-2xl font-black uppercase tracking-tight">{tier.name}</h4>
-                <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest">{tier.description}</p>
-              </div>
-              <div className="pt-2">
-                 <div className="text-3xl md:text-4xl font-black">{tier.price} <span className="text-[10px] text-neutral-500 font-bold lowercase">/ {isYearly ? "год" : "мес"}</span></div>
-                 <p className="text-neon text-[10px] font-black uppercase tracking-widest mt-1">14 дней бесплатно</p>
-                  <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest mt-2">TTS: {tier.ttsMonthlyLimit} генераций / мес</p>
-              </div>
-            </div>
 
-            <Button 
+              {/* Info */}
+              <div className="flex-1 min-w-0 sm:text-center sm:mb-6 sm:space-y-3">
+                <div className="flex items-center gap-2 sm:flex-col sm:gap-0">
+                  <h4 className="text-lg sm:text-2xl font-black uppercase tracking-tight truncate">{tier.name}</h4>
+                  {tier.popular && <span className="text-[8px] font-black uppercase tracking-widest bg-neon/20 text-neon px-2 py-0.5 rounded-full border border-neon/30 sm:mt-1">Популярный</span>}
+                </div>
+                <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest hidden sm:block">{tier.description}</p>
+                <div className="flex items-baseline gap-1 sm:justify-center sm:pt-2">
+                  <span className="text-xl sm:text-3xl md:text-4xl font-black">{tier.price}</span>
+                  <span className="text-[10px] text-neutral-500 font-bold">/ {isYearly ? "год" : "мес"}</span>
+                </div>
+                <p className="text-neon text-[9px] sm:text-[10px] font-black uppercase tracking-widest">14 дней бесплатно</p>
+                <p className="text-neutral-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest hidden sm:block">TTS: {tier.ttsMonthlyLimit} генераций / мес</p>
+              </div>
+
+              {/* Button */}
+              <Button 
                 onClick={() => handleStartTrial(tier.slug)}
-                disabled={loading !== null || (businessData?.subscriptionStatus === 'ACTIVE' && businessData?.currentPlanSlug === tier.slug)}
+                disabled={loading !== null || isCurrent}
                 className={cn(
-                  "mt-auto h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-transform hover:scale-[1.02]",
-                  tier.popular ? "bg-neon text-black" : "bg-white/10 text-white hover:bg-white/20"
+                  "shrink-0 font-black uppercase tracking-widest text-[10px] transition-transform hover:scale-[1.02]",
+                  "h-10 px-4 rounded-xl sm:h-14 sm:rounded-2xl sm:w-full sm:mt-auto",
+                  isCurrent ? "bg-white/5 text-neutral-500" : tier.popular ? "bg-neon text-black" : "bg-white/10 text-white hover:bg-white/20"
                 )}
-            >
-              {businessData?.subscriptionStatus === 'ACTIVE' && businessData?.currentPlanSlug === tier.slug 
-                ? "Текущий тариф" 
-                : businessData?.subscriptionStatus === 'ACTIVE'
-                ? (tier.priceValue > (PLANS_UI.find(p => p.slug === businessData?.currentPlanSlug)?.priceValue || 0) ? "Улучшить тариф" : "Понизить тариф")
-                : loading === tier.slug ? "Обработка..." : "Активировать Trial"}
-            </Button>
-          </div>
-        ))}
+              >
+                {isCurrent 
+                  ? "Текущий" 
+                  : businessData?.subscriptionStatus === 'ACTIVE'
+                  ? (tier.priceValue > (PLANS_UI.find(p => p.slug === businessData?.currentPlanSlug)?.priceValue || 0) ? "Улучшить" : "Понизить")
+                  : loading === tier.slug ? "..." : "Активировать"}
+              </Button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Grid Features */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="glass-dark border border-white/10 p-10 rounded-[2.5rem] space-y-6">
-           <div className="w-14 h-14 bg-neon/10 rounded-2xl flex items-center justify-center border border-neon/20">
-              <CreditCard className="text-neon w-7 h-7" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+        <div className="glass-dark border border-white/10 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] flex items-start gap-4 sm:flex-col sm:gap-0 sm:space-y-6">
+           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-neon/10 rounded-xl sm:rounded-2xl flex items-center justify-center border border-neon/20 shrink-0">
+              <CreditCard className="text-neon w-6 h-6 sm:w-7 sm:h-7" />
            </div>
-           <div className="space-y-4">
-              <h4 className="text-3xl font-black uppercase tracking-tight leading-none">Безопасная <br />верификация</h4>
-              <p className="text-neutral-400 font-medium leading-relaxed italic">Мы спишем и сразу вернем 1 ₽ для проверки карты. Плата за подписку начнется только через 14 дней.</p>
+           <div className="space-y-2 sm:space-y-4">
+              <h4 className="text-lg sm:text-3xl font-black uppercase tracking-tight leading-tight">Безопасная верификация</h4>
+              <p className="text-neutral-400 font-medium text-xs sm:text-base leading-relaxed">Мы спишем и вернем 1 ₽ для проверки карты. Плата начнется через 14 дней.</p>
            </div>
         </div>
-        <div className="glass-dark border border-white/10 p-10 rounded-[2.5rem] space-y-6">
-           <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20">
-              <RotateCcw className="text-blue-500 w-7 h-7" />
+        <div className="glass-dark border border-white/10 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] flex items-start gap-4 sm:flex-col sm:gap-0 sm:space-y-6">
+           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-500/10 rounded-xl sm:rounded-2xl flex items-center justify-center border border-blue-500/20 shrink-0">
+              <RotateCcw className="text-blue-500 w-6 h-6 sm:w-7 sm:h-7" />
            </div>
-           <div className="space-y-4">
-              <h4 className="text-3xl font-black uppercase tracking-tight leading-none">Гибкая <br />отмена</h4>
-              <p className="text-neutral-400 font-medium leading-relaxed">Вы можете отменить подписку в любой момент пробного периода без каких-либо списаний.</p>
+           <div className="space-y-2 sm:space-y-4">
+              <h4 className="text-lg sm:text-3xl font-black uppercase tracking-tight leading-tight">Гибкая отмена</h4>
+              <p className="text-neutral-400 font-medium text-xs sm:text-base leading-relaxed">Отмените подписку в любой момент пробного периода без списаний.</p>
            </div>
         </div>
       </div>
 
       {/* Payment Methods Section */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="flex items-center gap-2 px-2">
           <ShieldCheck className="w-5 h-5 text-neon" />
-          <h3 className="text-xl font-black uppercase tracking-tight">Сохраненные способы оплаты</h3>
+          <h3 className="text-base sm:text-xl font-black uppercase tracking-tight">Способы оплаты</h3>
         </div>
 
-        <div className="glass-dark border border-white/5 rounded-[2.5rem] p-8 overflow-hidden relative">
+        <div className="glass-dark border border-white/5 rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-8 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-24 bg-blue-500/5 blur-[80px] rounded-full -mr-16 -mt-16 pointer-events-none" />
           
           {businessData?.cardMask ? (
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-10 bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-lg flex items-center justify-center relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-blue-500/20 translate-y-full group-hover:translate-y-0 transition-transform" />
-                  <CreditCard className="w-6 h-6 text-white relative z-10" />
+            <div className="flex flex-col gap-4 relative z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-8 sm:w-16 sm:h-10 bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-lg flex items-center justify-center shrink-0">
+                  <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-lg font-black tracking-widest text-white">•••• {businessData.cardMask.slice(-4)}</p>
+                    <p className="text-sm sm:text-lg font-black tracking-widest text-white">•••• {businessData.cardMask.slice(-4)}</p>
                     <span className="px-2 py-0.5 bg-neon/10 border border-neon/20 rounded-md text-[8px] font-black uppercase tracking-widest text-neon">Основная</span>
                   </div>
                   <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest">Истекает: {businessData.cardExpiry?.slice(0, 2)} / {businessData.cardExpiry?.slice(2)}</p>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-neutral-400">
-                  <Lock className="w-3 h-3 text-neon" />
-                  Данные защищены 3D-Secure
-                </div>
                 <Button 
                   variant="ghost" 
+                  size="icon"
                   onClick={handleRemovePaymentMethod}
                   disabled={loading === "removing_card"}
-                  className="text-neutral-500 hover:text-red-500 hover:bg-red-500/10 font-black uppercase text-[10px] tracking-widest gap-2 h-10 px-4 rounded-xl transition-all"
+                  className="text-neutral-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl w-9 h-9 shrink-0"
+                  title="Удалить карту"
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Удалить
+                  <Trash2 className="w-4 h-4" />
                 </Button>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-neutral-400 w-fit">
+                <Lock className="w-3 h-3 text-neon" />
+                3D-Secure защита
               </div>
             </div>
           ) : (
