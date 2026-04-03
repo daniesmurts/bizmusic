@@ -99,6 +99,48 @@
       "when": 1775001600000,
       "tag": "0013_branch_staff_location_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1775260800000,
+      "tag": "0014_announcement_scheduling",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1775347200000,
+      "tag": "0015_announcement_play_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1775350800000,
+      "tag": "0016_announcement_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1775354400000,
+      "tag": "0017_announcement_jingles",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1775361600000,
+      "tag": "0018_announcement_bulk_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1775365200000,
+      "tag": "0019_location_playlist_assignments",
+      "breakpoints": true
     }
   ]
 }

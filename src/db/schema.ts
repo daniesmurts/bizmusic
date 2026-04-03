@@ -17,6 +17,20 @@ export interface ScheduleConfig {
   sunday?: ScheduleTimeSlot[];
 }
 
+// Announcement Scheduling Types
+export interface AnnouncementTimeRule {
+  time: string; // "HH:mm"
+  announcementId: string;
+  days: ("mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun")[];
+}
+
+export interface AnnouncementScheduleConfig {
+  frequency: number; // Play an announcement every N tracks (0 = disabled)
+  mode: "sequential" | "random" | "weighted";
+  timeRules: AnnouncementTimeRule[];
+  weights: Record<string, number>; // announcementId -> weight (1-10)
+}
+
 // Enums - keep them as lowercase for DB if they were created that way, but Prisma usually keeps them as defined
 export const roleEnum = pgEnum("role", ["ADMIN", "BUSINESS_OWNER", "STAFF"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["INACTIVE", "ACTIVE", "EXPIRED"]);
@@ -108,6 +122,14 @@ export const waveSettings = pgTable("wave_settings", {
   energyPreference: integer("energyPreference").default(5).notNull(),
   vocalPreference: text("vocalPreference").default('both').notNull(),
   focusProfile: text("focusProfile").default('none').notNull(),
+  // Announcement auto-scheduling
+  announcementScheduleEnabled: boolean("announcementScheduleEnabled").default(false).notNull(),
+  announcementScheduleConfig: jsonb("announcementScheduleConfig").$type<AnnouncementScheduleConfig>().default({
+    frequency: 0,
+    mode: "sequential",
+    timeRules: [],
+    weights: {},
+  }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
@@ -196,6 +218,20 @@ export const playlistTracks = pgTable("playlist_tracks", {
   playlistPositionIndex: index("playlist_position_idx").on(t.playlistId, t.position),
 }));
 
+// Location -> active playlist assignment for rollout and playback targeting
+export const locationPlaylistAssignments = pgTable("location_playlist_assignments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  locationId: text("locationId").references(() => locations.id, { onDelete: "cascade" }).notNull().unique(),
+  playlistId: text("playlistId").references(() => playlists.id, { onDelete: "cascade" }).notNull(),
+  updatedByUserId: text("updatedByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  businessLocationIdx: index("location_playlist_assignments_business_location_idx").on(t.businessId, t.locationId),
+  playlistIdx: index("location_playlist_assignments_playlist_idx").on(t.playlistId),
+}));
+
 // PlayLogs Table
 export const playLogs = pgTable("play_logs", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -266,6 +302,84 @@ export const voiceAnnouncements = pgTable("voice_announcements", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
+
+export const announcementTemplates = pgTable("announcement_templates", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  title: text("title").notNull(),
+  text: text("text").notNull(),
+  pack: text("pack").default("base").notNull(),
+  packLabel: text("packLabel").default("Базовые").notNull(),
+  provider: text("provider").default("sberbank").notNull(),
+  isSeasonal: boolean("isSeasonal").default(false).notNull(),
+  seasonCode: text("seasonCode"),
+  isPublished: boolean("isPublished").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdByUserId: text("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  publishedSortIdx: index("announcement_templates_published_sort_idx").on(t.isPublished, t.sortOrder, t.createdAt),
+  packIdx: index("announcement_templates_pack_idx").on(t.pack, t.isPublished),
+}));
+
+export const announcementJingles = pgTable("announcement_jingles", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  duration: integer("duration").default(0).notNull(),
+  position: text("position").default("intro").notNull(), // intro | outro
+  volumeDb: integer("volumeDb").default(-6).notNull(),
+  isPublished: boolean("isPublished").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdByUserId: text("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  publishedSortIdx: index("announcement_jingles_published_sort_idx").on(t.isPublished, t.sortOrder, t.createdAt),
+  positionPublishedIdx: index("announcement_jingles_position_published_idx").on(t.position, t.isPublished),
+}));
+
+export const announcementBulkJobs = pgTable("announcement_bulk_jobs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  createdByUserId: text("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  text: text("text").notNull(),
+  ssmlText: text("ssmlText"),
+  provider: text("provider").default("sberbank").notNull(),
+  voiceName: text("voiceName").notNull(),
+  speakingRate: doublePrecision("speakingRate").default(1.0).notNull(),
+  pitch: doublePrecision("pitch").default(0.0).notNull(),
+  jingleId: text("jingleId").references(() => announcementJingles.id, { onDelete: "set null" }),
+  status: text("status").default("PENDING").notNull(),
+  totalTargets: integer("totalTargets").default(0).notNull(),
+  successTargets: integer("successTargets").default(0).notNull(),
+  failedTargets: integer("failedTargets").default(0).notNull(),
+  generatedAnnouncementId: text("generatedAnnouncementId").references(() => voiceAnnouncements.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  businessCreatedIdx: index("announcement_bulk_jobs_business_created_idx").on(t.businessId, t.createdAt),
+  statusCreatedIdx: index("announcement_bulk_jobs_status_created_idx").on(t.status, t.createdAt),
+}));
+
+export const announcementBulkJobTargets = pgTable("announcement_bulk_job_targets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  jobId: text("jobId").references(() => announcementBulkJobs.id, { onDelete: "cascade" }).notNull(),
+  locationId: text("locationId").references(() => locations.id, { onDelete: "set null" }),
+  playlistId: text("playlistId").references(() => playlists.id, { onDelete: "set null" }),
+  announcementId: text("announcementId").references(() => voiceAnnouncements.id, { onDelete: "set null" }),
+  trackId: text("trackId").references(() => tracks.id, { onDelete: "set null" }),
+  status: text("status").default("PENDING").notNull(),
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  jobStatusIdx: index("announcement_bulk_job_targets_job_status_idx").on(t.jobId, t.status),
+  playlistIdx: index("announcement_bulk_job_targets_playlist_idx").on(t.playlistId),
+  locationIdx: index("announcement_bulk_job_targets_location_idx").on(t.locationId),
+}));
 
 export const platformAnnouncementProducts = pgTable("platform_announcement_products", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -406,6 +520,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   blogPosts: many(blogPosts),
   legalAcceptanceEvents: many(legalAcceptanceEvents),
   platformAnnouncementProducts: many(platformAnnouncementProducts),
+  announcementTemplates: many(announcementTemplates),
+  announcementJingles: many(announcementJingles),
+  announcementBulkJobs: many(announcementBulkJobs),
+  locationPlaylistAssignments: many(locationPlaylistAssignments),
   trackReactions: many(trackReactions),
 }));
 
@@ -420,12 +538,16 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   ttsUsageEvents: many(ttsUsageEvents),
   aiUsageEvents: many(aiUsageEvents),
   announcementAcquisitions: many(businessAnnouncementAcquisitions),
+  announcementBulkJobs: many(announcementBulkJobs),
+  locationPlaylistAssignments: many(locationPlaylistAssignments),
   waveSettings: one(waveSettings),
 }));
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({
   business: one(businesses, { fields: [locations.businessId], references: [businesses.id] }),
   assignedUsers: many(users),
+  bulkTargets: many(announcementBulkJobTargets),
+  playlistAssignment: one(locationPlaylistAssignments, { fields: [locations.id], references: [locationPlaylistAssignments.locationId] }),
   playLogs: many(playLogs),
 }));
 
@@ -436,6 +558,7 @@ export const tracksRelations = relations(tracks, ({ one, many }) => ({
   playLogs: many(playLogs),
   reactions: many(trackReactions),
   playlistTracks: many(playlistTracks),
+  bulkTargets: many(announcementBulkJobTargets),
   voiceAnnouncement: one(voiceAnnouncements, { fields: [tracks.id], references: [voiceAnnouncements.trackId] }),
   platformAnnouncementProduct: one(platformAnnouncementProducts, { fields: [tracks.id], references: [platformAnnouncementProducts.trackId] }),
   songOfTheWeek: one(songOfTheWeek, { fields: [tracks.id], references: [songOfTheWeek.trackId] }),
@@ -454,6 +577,8 @@ export const artistsRelations = relations(artists, ({ many }) => ({
 export const playlistsRelations = relations(playlists, ({ one, many }) => ({
   business: one(businesses, { fields: [playlists.businessId], references: [businesses.id] }),
   tracks: many(playlistTracks),
+  bulkTargets: many(announcementBulkJobTargets),
+  locationAssignments: many(locationPlaylistAssignments),
 }));
 
 export const playlistTracksRelations = relations(playlistTracks, ({ one }) => ({
@@ -512,6 +637,29 @@ export const demoRequests = pgTable("demo_requests", {
   statusIdx: index("idx_demo_requests_status").on(t.status),
 }));
 
+// Announcement Play Logs Table
+export const announcementPlayLogs = pgTable("announcement_play_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  announcementId: text("announcementId").references(() => voiceAnnouncements.id, { onDelete: "cascade" }).notNull(),
+  trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  locationId: text("locationId").references(() => locations.id, { onDelete: "set null" }),
+  wasSkipped: boolean("wasSkipped").default(false).notNull(),
+  listenDurationSec: integer("listenDurationSec").default(0).notNull(), // seconds actually heard
+  playedAt: timestamp("playedAt").defaultNow().notNull(),
+}, (t) => ({
+  businessPlayedIdx: index("announcement_play_logs_business_played_idx").on(t.businessId, t.playedAt),
+  announcementPlayedIdx: index("announcement_play_logs_announcement_played_idx").on(t.announcementId, t.playedAt),
+  trackPlayedIdx: index("announcement_play_logs_track_played_idx").on(t.trackId, t.playedAt),
+}));
+
+export const announcementPlayLogsRelations = relations(announcementPlayLogs, ({ one }) => ({
+  announcement: one(voiceAnnouncements, { fields: [announcementPlayLogs.announcementId], references: [voiceAnnouncements.id] }),
+  track: one(tracks, { fields: [announcementPlayLogs.trackId], references: [tracks.id] }),
+  business: one(businesses, { fields: [announcementPlayLogs.businessId], references: [businesses.id] }),
+  location: one(locations, { fields: [announcementPlayLogs.locationId], references: [locations.id] }),
+}));
+
 export const trackSkipsRelations = relations(trackSkips, ({ one }) => ({
   track: one(tracks, { fields: [trackSkips.trackId], references: [tracks.id] }),
   user: one(users, { fields: [trackSkips.userId], references: [users.id] }),
@@ -554,7 +702,40 @@ export const voiceAnnouncementsRelations = relations(voiceAnnouncements, ({ one,
   business: one(businesses, { fields: [voiceAnnouncements.businessId], references: [businesses.id] }),
   track: one(tracks, { fields: [voiceAnnouncements.trackId], references: [tracks.id] }),
   platformAnnouncement: one(platformAnnouncementProducts, { fields: [voiceAnnouncements.platformAnnouncementId], references: [platformAnnouncementProducts.id] }),
+  generatedByBulkJobs: many(announcementBulkJobs),
+  bulkTargets: many(announcementBulkJobTargets),
   acquisitions: many(businessAnnouncementAcquisitions),
+}));
+
+export const announcementTemplatesRelations = relations(announcementTemplates, ({ one }) => ({
+  createdByUser: one(users, { fields: [announcementTemplates.createdByUserId], references: [users.id] }),
+}));
+
+export const announcementJinglesRelations = relations(announcementJingles, ({ one }) => ({
+  createdByUser: one(users, { fields: [announcementJingles.createdByUserId], references: [users.id] }),
+}));
+
+export const announcementBulkJobsRelations = relations(announcementBulkJobs, ({ one, many }) => ({
+  business: one(businesses, { fields: [announcementBulkJobs.businessId], references: [businesses.id] }),
+  createdByUser: one(users, { fields: [announcementBulkJobs.createdByUserId], references: [users.id] }),
+  generatedAnnouncement: one(voiceAnnouncements, { fields: [announcementBulkJobs.generatedAnnouncementId], references: [voiceAnnouncements.id] }),
+  jingle: one(announcementJingles, { fields: [announcementBulkJobs.jingleId], references: [announcementJingles.id] }),
+  targets: many(announcementBulkJobTargets),
+}));
+
+export const announcementBulkJobTargetsRelations = relations(announcementBulkJobTargets, ({ one }) => ({
+  job: one(announcementBulkJobs, { fields: [announcementBulkJobTargets.jobId], references: [announcementBulkJobs.id] }),
+  location: one(locations, { fields: [announcementBulkJobTargets.locationId], references: [locations.id] }),
+  playlist: one(playlists, { fields: [announcementBulkJobTargets.playlistId], references: [playlists.id] }),
+  announcement: one(voiceAnnouncements, { fields: [announcementBulkJobTargets.announcementId], references: [voiceAnnouncements.id] }),
+  track: one(tracks, { fields: [announcementBulkJobTargets.trackId], references: [tracks.id] }),
+}));
+
+export const locationPlaylistAssignmentsRelations = relations(locationPlaylistAssignments, ({ one }) => ({
+  business: one(businesses, { fields: [locationPlaylistAssignments.businessId], references: [businesses.id] }),
+  location: one(locations, { fields: [locationPlaylistAssignments.locationId], references: [locations.id] }),
+  playlist: one(playlists, { fields: [locationPlaylistAssignments.playlistId], references: [playlists.id] }),
+  updatedByUser: one(users, { fields: [locationPlaylistAssignments.updatedByUserId], references: [users.id] }),
 }));
 
 export const platformAnnouncementProductsRelations = relations(platformAnnouncementProducts, ({ one, many }) => ({

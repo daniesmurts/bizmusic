@@ -48,6 +48,8 @@ export const Player = () => {
   const [audioSource, setAudioSource] = useState<string | undefined>(undefined);
 
   const lastLoggedTrackKeyRef = useRef<string | null>(null);
+  // Track announcement play start time for listenDurationSec calculation
+  const announcementStartTimeRef = useRef<number | null>(null);
 
   // Load from local IDB cache if available
   useEffect(() => {
@@ -110,7 +112,6 @@ export const Player = () => {
           .then(data => {
             if (data.success) {
               lastLoggedTrackKeyRef.current = logKey;
-              // Dispatch event to refresh UI
               window.dispatchEvent(new CustomEvent('track-played', { detail: { trackId: currentTrack.id } }));
             } else {
               console.error("Failed to log play (API):", data.error);
@@ -119,6 +120,13 @@ export const Player = () => {
           .catch(err => {
             console.error("Failed to log play (Network):", err);
           });
+
+          // Track announcement play start
+          if (currentTrack.isAnnouncement) {
+            announcementStartTimeRef.current = Date.now();
+          } else {
+            announcementStartTimeRef.current = null;
+          }
         }
       }).catch((err) => {
         if (err.name === 'AbortError') return;
@@ -173,6 +181,26 @@ export const Player = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Fire announcement-specific play log
+  const logAnnouncementPlay = (wasSkipped: boolean) => {
+    if (!currentTrack?.isAnnouncement || !currentTrack.announcementId) return;
+    const listenDurationSec = announcementStartTimeRef.current
+      ? Math.round((Date.now() - announcementStartTimeRef.current) / 1000)
+      : 0;
+    announcementStartTimeRef.current = null;
+    fetch('/api/player/announcement-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        announcementId: currentTrack.announcementId,
+        trackId: currentTrack.id,
+        locationId: activeLocationId,
+        wasSkipped,
+        listenDurationSec,
+      }),
+    }).catch(console.error);
+  };
+
   const handlePrevTrack = () => {
     if (audioRef.current && audioRef.current.currentTime > 3) {
       // If more than 3 seconds in, restart current track
@@ -211,7 +239,10 @@ export const Player = () => {
           src={audioSource || undefined}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
-          onEnded={nextTrack}
+          onEnded={() => {
+            logAnnouncementPlay(false);
+            nextTrack();
+          }}
         />
 
         {/* Track Info */}
@@ -272,7 +303,14 @@ export const Player = () => {
               variant="ghost" 
               size="icon" 
               className="text-white hover:text-neon transition-colors h-10 w-10 p-0"
-              onClick={isWaveMode ? skipWaveTrack : nextTrack}
+              onClick={() => {
+                logAnnouncementPlay(true);
+                if (isWaveMode) {
+                  skipWaveTrack();
+                } else {
+                  nextTrack();
+                }
+              }}
             >
               <SkipForward className="w-6 h-6 fill-current" />
             </Button>

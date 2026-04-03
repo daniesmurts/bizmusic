@@ -1,17 +1,22 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mic, Loader2, Info, Sparkles, AlertTriangle } from "lucide-react";
-import { generateVoiceAnnouncementAction, getTtsProvidersStatusAction } from "@/lib/actions/voice-announcements";
+import { Mic, Loader2, Info, Sparkles, AlertTriangle, Headphones, LayoutTemplate, CalendarDays } from "lucide-react";
+import { generateVoiceAnnouncementAction, getAnnouncementTemplatesAction, getTtsProvidersStatusAction, previewVoiceAnnouncementAction } from "@/lib/actions/voice-announcements";
+import { getPublishedAnnouncementJinglesAction } from "@/lib/actions/announcement-jingles";
 import { generateAiAssistAction } from "@/lib/actions/ai-assists";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { AnnouncementTemplate } from "@/lib/announcement-templates";
+import { buildAnnouncementPayload } from "@/lib/announcement-form";
+import { SSML_SNIPPETS, validateSsmlBasic } from "@/lib/ssml";
 
 const PROVIDERS = [
   { id: "google", name: "Google Cloud", description: "Премиальные голоса. Если возникают ошибки, используйте VPN.", showTooltip: true },
@@ -39,13 +44,61 @@ const VOICES = {
 export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuccess?: () => void; canGenerate?: boolean }) {
   const [text, setText] = useState("");
   const [title, setTitle] = useState("");
+  const [selectedPack, setSelectedPack] = useState<string>("all");
   const [provider, setProvider] = useState<"google" | "sberbank">("sberbank");
   const [voiceName, setVoiceName] = useState(VOICES.sberbank[0].id);
   const [speakingRate, setSpeakingRate] = useState(1.0);
   const [pitch, setPitch] = useState(0.0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [providerStatus, setProviderStatus] = useState<{google: boolean, sberbank: boolean} | null>(null);
+  const [selectedJingleId, setSelectedJingleId] = useState<string>("");
+  const [useSsml, setUseSsml] = useState(false);
+  const [ssmlText, setSsmlText] = useState("");
+
+  const { data: templatesData } = useQuery<AnnouncementTemplate[]>({
+    queryKey: ["announcement-templates"],
+    queryFn: async () => {
+      const result = await getAnnouncementTemplatesAction();
+      if (!result.success) throw new Error(result.error || "Не удалось загрузить шаблоны");
+      return result.data as AnnouncementTemplate[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: jinglesData } = useQuery<Array<{
+    id: string;
+    name: string;
+    position: string;
+    duration: number;
+    volumeDb: number;
+  }>>({
+    queryKey: ["announcement-jingles"],
+    queryFn: async () => {
+      const result = await getPublishedAnnouncementJinglesAction();
+      if (!result.success) throw new Error(result.error || "Не удалось загрузить джинглы");
+      return result.data as Array<{
+        id: string;
+        name: string;
+        position: string;
+        duration: number;
+        volumeDb: number;
+      }>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const templates = templatesData ?? [];
+  const packOptions = [
+    { id: "all", label: "Все" },
+    ...Array.from(new Map(templates.map((template) => [template.pack, template.packLabel])).entries()).map(
+      ([pack, packLabel]) => ({ id: pack, label: packLabel })
+    ),
+  ];
+  const visibleTemplates =
+    selectedPack === "all" ? templates : templates.filter((template) => template.pack === selectedPack);
 
   useEffect(() => {
     async function checkStatus() {
@@ -73,8 +126,104 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
     }
   }, [provider]);
 
+  useEffect(() => {
+    if (useSsml && provider !== "google") {
+      setProvider("google");
+      toast.info("Для SSML автоматически выбран Google Cloud TTS");
+    }
+  }, [useSsml, provider]);
+
   const charCount = text.length;
   const isOptimal = charCount >= 150 && charCount <= 250;
+  const ssmlValidation = useSsml ? validateSsmlBasic(ssmlText) : { errors: [], warnings: [] };
+  const hasSsmlErrors = useSsml && ssmlValidation.errors.length > 0;
+
+  const applyTemplate = (template: AnnouncementTemplate) => {
+    setTitle(template.title);
+    setText(template.text);
+
+    if (template.provider) {
+      const isConfigured = providerStatus ? providerStatus[template.provider] : true;
+      if (isConfigured) {
+        setProvider(template.provider);
+      }
+    }
+
+    if (previewAudioUrl) {
+      URL.revokeObjectURL(previewAudioUrl);
+      setPreviewAudioUrl(null);
+    }
+
+    toast.success(`Шаблон "${template.name}" применен`);
+  };
+
+  const handlePreview = async () => {
+    if (!text) {
+      toast.error("Пожалуйста, напишите текст анонса.");
+      return;
+    }
+
+    if (text.length > 500) {
+      toast.error("Текст не должен превышать 500 символов.");
+      return;
+    }
+
+    if (hasSsmlErrors) {
+      toast.error("Исправьте ошибки SSML перед превью");
+      return;
+    }
+
+    // Clean up previous preview
+    if (previewAudioUrl) {
+      URL.revokeObjectURL(previewAudioUrl);
+      setPreviewAudioUrl(null);
+    }
+
+    setIsPreviewing(true);
+    try {
+      const payload = buildAnnouncementPayload({
+        title,
+        text,
+        provider,
+        voiceName,
+        speakingRate,
+        pitch,
+        selectedJingleId,
+        useSsml,
+        ssmlText,
+      });
+
+      const result = await previewVoiceAnnouncementAction({
+        text: payload.text,
+        ssmlText: payload.ssmlText,
+        voiceName: payload.voiceName,
+        speakingRate: payload.speakingRate,
+        pitch: payload.pitch,
+        provider: payload.provider,
+      });
+
+      if (result.success && result.data) {
+        const binaryStr = atob(result.data.audioBase64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: result.data.mimeType });
+        const url = URL.createObjectURL(blob);
+        setPreviewAudioUrl(url);
+
+        const audio = new Audio(url);
+        audio.play();
+        toast.success("Превью готово! Токен не списан.");
+      } else {
+        toast.error(result.error || "Не удалось создать превью.");
+      }
+    } catch {
+      toast.error("Ошибка генерации превью.");
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,21 +237,34 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
       return;
     }
 
+    if (hasSsmlErrors) {
+      toast.error("Исправьте ошибки SSML перед созданием анонса");
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      const result = await generateVoiceAnnouncementAction({
-        text,
+      const payload = buildAnnouncementPayload({
         title,
+        text,
+        provider,
         voiceName,
         speakingRate,
         pitch,
-        provider,
+        selectedJingleId,
+        useSsml,
+        ssmlText,
       });
+
+      const result = await generateVoiceAnnouncementAction(payload);
 
       if (result.success) {
         toast.success("Анонс успешно создан и добавлен в библиотеку.");
         setText("");
         setTitle("");
+        setSelectedJingleId("");
+        setUseSsml(false);
+        setSsmlText("");
         onSuccess?.();
       } else {
         toast.error(result.error || "Не удалось создать анонс.");
@@ -162,6 +324,65 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
       </CardHeader>
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="space-y-4 p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/10">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-neon/10 border border-neon/20 flex items-center justify-center">
+                  <LayoutTemplate size={16} className="text-neon" />
+                </div>
+                <div>
+                  <Label className="text-neutral-300 font-bold uppercase tracking-widest text-[10px]">
+                    Шаблоны и сезонные пакеты
+                  </Label>
+                  <p className="text-[10px] text-neutral-500 font-medium">
+                    Быстрый старт для акций, поздравлений и сервисных сообщений
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/30 border border-white/10 overflow-x-auto">
+                {packOptions.map((pack) => (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    onClick={() => setSelectedPack(pack.id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                      selectedPack === pack.id
+                        ? "bg-neon text-black"
+                        : "text-neutral-400 hover:text-white"
+                    )}
+                  >
+                    {pack.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {visibleTemplates.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {visibleTemplates.slice(0, 8).map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => applyTemplate(template)}
+                    className="text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:border-neon/40 hover:bg-neon/5 transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <p className="text-xs font-black uppercase tracking-tight text-white truncate">{template.name}</p>
+                      <span className="inline-flex items-center gap-1 text-[9px] text-neutral-500 font-black uppercase tracking-widest">
+                        <CalendarDays size={11} className="text-neon/70" /> {template.packLabel}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 line-clamp-2">{template.text}</p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-neutral-500">Шаблоны пока не найдены.</p>
+            )}
+          </div>
+
           <div className="space-y-3">
             <Label htmlFor="title" className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Название (для библиотеки)</Label>
             <Input
@@ -193,6 +414,62 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
                 Рекомендуем 150-250 символов для лучшего восприятия клиентами в торговом зале или кафе.
               </p>
             </div>
+          </div>
+
+          <div className="space-y-3 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <Label className="text-neutral-400 font-bold uppercase tracking-widest text-[10px]">SSML режим (Google)</Label>
+              <button
+                type="button"
+                onClick={() => setUseSsml((v) => !v)}
+                className={cn(
+                  "px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                  useSsml ? "bg-neon text-black border-neon" : "bg-white/5 border-white/10 text-neutral-400"
+                )}
+              >
+                {useSsml ? "SSML включен" : "SSML выключен"}
+              </button>
+            </div>
+
+            {useSsml && (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {SSML_SNIPPETS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSsmlText((prev) => `${prev}${prev ? "\n" : ""}${item.snippet}`)}
+                      className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-neutral-300 hover:text-white hover:border-neon/40 hover:bg-neon/5 transition-all"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <Textarea
+                  value={ssmlText}
+                  onChange={(e) => setSsmlText(e.target.value)}
+                  placeholder="<speak>Добро пожаловать в <break time='300ms'/> наш магазин</speak>"
+                  className="min-h-[120px] bg-white/5 border-white/10 text-white placeholder:text-neutral-600 rounded-xl focus:border-neon/50 focus:ring-0 resize-none font-mono text-[12px]"
+                />
+                {ssmlValidation.errors.length > 0 && (
+                  <div className="space-y-1 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2">
+                    {ssmlValidation.errors.map((error, i) => (
+                      <p key={`${error}-${i}`} className="text-[10px] text-red-300 font-medium">• {error}</p>
+                    ))}
+                  </div>
+                )}
+                {ssmlValidation.warnings.length > 0 && (
+                  <div className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                    {ssmlValidation.warnings.map((warning, i) => (
+                      <p key={`${warning}-${i}`} className="text-[10px] text-amber-300 font-medium">• {warning}</p>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] text-neutral-500">
+                  Поддерживаются теги Google SSML, например: speak, break, emphasis, prosody.
+                </p>
+              </>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -257,6 +534,43 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
             </div>
           </div>
 
+          <div className="space-y-3">
+            <Label className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Джингл (опционально)</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedJingleId("")}
+                className={cn(
+                  "px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border text-left",
+                  selectedJingleId === ""
+                    ? "bg-neon text-black border-neon"
+                    : "bg-white/5 border-white/10 text-neutral-400 hover:border-white/20"
+                )}
+              >
+                Без джингла
+              </button>
+
+              {(jinglesData ?? []).map((jingle) => (
+                <button
+                  key={jingle.id}
+                  type="button"
+                  onClick={() => setSelectedJingleId(jingle.id)}
+                  className={cn(
+                    "px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border text-left",
+                    selectedJingleId === jingle.id
+                      ? "bg-neon text-black border-neon"
+                      : "bg-white/5 border-white/10 text-neutral-400 hover:border-white/20"
+                  )}
+                >
+                  <div className="truncate">{jingle.name}</div>
+                  <div className={cn("mt-1 text-[9px]", selectedJingleId === jingle.id ? "text-black/80" : "text-neutral-600")}>
+                    {jingle.position === "outro" ? "Outro" : "Intro"} · {jingle.duration}с · {jingle.volumeDb} dB
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
@@ -302,6 +616,15 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
                 Лимит генераций исчерпан. Приобретите пакет токенов, чтобы продолжить.
               </p>
             )}
+
+            {/* Preview audio player */}
+            {previewAudioUrl && (
+              <div className="mb-4 p-4 bg-white/5 border border-neon/20 rounded-2xl space-y-2">
+                <p className="text-[10px] text-neon font-black uppercase tracking-widest">Превью (токен не списан)</p>
+                <audio controls src={previewAudioUrl} className="w-full h-10 [&::-webkit-media-controls-panel]:bg-neutral-800 rounded-lg" />
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Button
                 type="button"
@@ -322,8 +645,20 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
                 )}
               </Button>
               <Button
+                type="button"
+                disabled={isPreviewing || !text || text.length > 500 || hasSsmlErrors}
+                onClick={handlePreview}
+                className="bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/30 hover:border-cyan-500/50 active:scale-[0.98] transition-all rounded-2xl h-14 px-6 font-black uppercase text-xs tracking-[0.2em] shadow-lg hover:shadow-cyan-500/20"
+              >
+                {isPreviewing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Headphones className="h-5 w-5" />
+                )}
+              </Button>
+              <Button
                 type="submit"
-                disabled={isGenerating || !text || !title || !canGenerate}
+                disabled={isGenerating || !text || !title || !canGenerate || hasSsmlErrors}
                 className="flex-1 bg-neon text-black hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl h-14 font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-neon/20"
               >
                 {isGenerating ? (

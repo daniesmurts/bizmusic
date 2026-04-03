@@ -13,6 +13,8 @@ import { AlbumEditor } from "@/components/admin/AlbumEditor";
 import { ArtistTable } from "@/components/admin/ArtistTable";
 import { ArtistEditor } from "@/components/admin/ArtistEditor";
 import { PlatformAnnouncementManager } from "@/components/admin/PlatformAnnouncementManager";
+import { AnnouncementTemplateManager } from "@/components/admin/AnnouncementTemplateManager";
+import { AnnouncementJingleManager } from "@/components/admin/AnnouncementJingleManager";
 import { Users } from "lucide-react";
 import {
   getAdminTracksAction,
@@ -734,7 +736,11 @@ export default function AdminContentPage() {
            )}
         </div>
       ) : currentView === "announcements" ? (
-        <PlatformAnnouncementManager />
+        <div className="space-y-12">
+          <PlatformAnnouncementManager />
+          <AnnouncementTemplateManager />
+          <AnnouncementJingleManager />
+        </div>
       ) : (
         <PlaylistEditor
           tracks={tracks}
