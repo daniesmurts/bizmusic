@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { users, businesses, tracks, playLogs, licenses, payments, trackReactions, playlists, playlistTracks, locations, legalAcceptanceEvents, trackSkips } from "@/db/schema";
+import { users, businesses, tracks, playLogs, licenses, payments, trackReactions, playlists, playlistTracks, locations, legalAcceptanceEvents, trackSkips, trackDownloadEvents } from "@/db/schema";
 import { eq, sql, desc, and, gte, between, or } from "drizzle-orm";
 import { startOfDay, subDays, startOfWeek, subWeeks, startOfMonth, subMonths, format, parseISO } from "date-fns";
 import { createClient } from "@/utils/supabase/server";
@@ -48,6 +48,11 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
       .select({ count: sql<number>`count(*)` })
       .from(playLogs)
       .where(and(gte(playLogs.playedAt, rangeStart), sql`${playLogs.playedAt} < ${rangeEnd}`));
+
+    const [downloadCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(trackDownloadEvents)
+      .where(and(gte(trackDownloadEvents.downloadedAt, rangeStart), sql`${trackDownloadEvents.downloadedAt} < ${rangeEnd}`));
     
     // 2. Play Time Allocation (range-filtered)
     const [totalDurationResult] = await db
@@ -146,6 +151,11 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
       .from(playLogs)
       .where(and(gte(playLogs.playedAt, previousRangeStart), sql`${playLogs.playedAt} < ${previousRangeEnd}`));
 
+    const [prevDownloadCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(trackDownloadEvents)
+      .where(and(gte(trackDownloadEvents.downloadedAt, previousRangeStart), sql`${trackDownloadEvents.downloadedAt} < ${previousRangeEnd}`));
+
     const [prevDurationResult] = await db
       .select({ total: sql<number>`sum(${tracks.duration})` })
       .from(playLogs)
@@ -190,10 +200,40 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
 
     const pop = {
       plays: calcChange(Number(playCount.count), Number(prevPlayCount.count)),
+      downloads: calcChange(Number(downloadCount.count), Number(prevDownloadCount.count)),
       hours: calcChange(totalListeningHours, prevHours),
       users: calcChange(Number(currNewUsers.count), Number(prevNewUsers.count)),
       revenue: calcChange(currRevenue, prevRevenue),
     };
+
+    const downloadsTrendRaw = await db.execute(
+      sql`SELECT to_char("downloadedAt", 'YYYY-MM-DD') as day, cast(count(*) as int) as downloads
+          FROM track_download_events
+          WHERE "downloadedAt" >= ${rangeStart} AND "downloadedAt" < ${rangeEnd}
+          GROUP BY day
+          ORDER BY day ASC`
+    );
+    const downloadsTrend = Array.isArray(downloadsTrendRaw) ? downloadsTrendRaw : downloadsTrendRaw.rows;
+
+    const [songOfWeekDownloadCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(trackDownloadEvents)
+      .where(and(
+        gte(trackDownloadEvents.downloadedAt, rangeStart),
+        sql`${trackDownloadEvents.downloadedAt} < ${rangeEnd}`,
+        sql`${trackDownloadEvents.songOfWeekId} IS NOT NULL`
+      ));
+
+    const topDownloadedTracksRaw = await db.execute(
+      sql`SELECT t.id, t.title, t.artist, cast(count(tde.id) as int) AS download_count
+          FROM track_download_events tde
+          INNER JOIN tracks t ON t.id = tde."trackId"
+          WHERE tde."downloadedAt" >= ${rangeStart} AND tde."downloadedAt" < ${rangeEnd}
+          GROUP BY t.id, t.title, t.artist
+          ORDER BY download_count DESC
+          LIMIT 10`
+    );
+    const topDownloadedTracks = Array.isArray(topDownloadedTracksRaw) ? topDownloadedTracksRaw : topDownloadedTracksRaw.rows;
     // 9. Revenue Trend (uses range)
     const revenueTrendRaw = await db.execute(
       sql`SELECT to_char(date_trunc('month', "createdAt"), 'YYYY-MM') as month, sum(amount) as revenue
@@ -592,6 +632,7 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
           businesses: Number(businessCount.count),
           tracks: Number(trackCount.count),
           plays: Number(playCount.count),
+          downloads: Number(downloadCount.count),
           hours: totalListeningHours,
           revenue: totalRevenue,
           likes,
@@ -662,6 +703,12 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
           topSkippedTracks,
           skipRate
         },
+        downloads: {
+          total: Number(downloadCount.count),
+          songOfWeekTotal: Number(songOfWeekDownloadCount.count),
+          trend: downloadsTrend,
+          topTracks: topDownloadedTracks,
+        },
         pop
       },
     };
@@ -695,6 +742,8 @@ export async function exportAdminAnalyticsCSVAction(dateRange?: { from: string; 
       ["Total Businesses", d.summary.businesses],
       ["Total Tracks", d.summary.tracks],
       ["Total Plays (Range)", d.summary.plays],
+      ["Total Downloads (Range)", d.summary.downloads || 0],
+      ["Song Of The Week Downloads (Range)", d.downloads?.songOfWeekTotal || 0],
       ["Listening Hours (Range)", d.summary.hours],
       ["Total Revenue (Range, RUB)", d.summary.revenue],
       ["Likes", d.summary.likes],
@@ -716,6 +765,7 @@ export async function exportAdminAnalyticsCSVAction(dateRange?: { from: string; 
       ["--- TOP CONTENT ---", ""],
       ["Type", "Name/Title", "Metric"],
       ...(d.topTracks || []).map((t: any) => ["Track (Plays)", t.title, t.play_count]),
+      ...(d.downloads?.topTracks || []).map((t: any) => ["Track (Downloads)", t.title, t.download_count]),
       ...(d.skipping.topSkippedTracks || []).map((t: any) => ["Track (Skips)", t.title, t.skip_count]),
       ...(d.engagement.topArtists || []).map((a: any) => ["Artist", a.artist, a.play_count]),
       ...(d.engagement.topPlaylists || []).map((p: any) => ["Playlist", p.name, p.play_count]),

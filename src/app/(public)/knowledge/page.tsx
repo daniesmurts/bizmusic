@@ -19,7 +19,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { useState, useMemo } from "react";
+
 export default function KnowledgeBasePage() {
+  const [searchQuery, setSearchQuery] = useState("");
+
   const categories = [
     {
       title: "Начало работы",
@@ -57,6 +61,22 @@ export default function KnowledgeBasePage() {
     }
   ];
 
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery.trim()) return categories;
+
+    const lowerQuery = searchQuery.toLowerCase();
+    
+    return categories
+      .map(cat => ({
+        ...cat,
+        articles: cat.articles.filter(article => 
+          article.title.toLowerCase().includes(lowerQuery) || 
+          cat.title.toLowerCase().includes(lowerQuery)
+        )
+      }))
+      .filter(cat => cat.articles.length > 0 || cat.title.toLowerCase().includes(lowerQuery));
+  }, [searchQuery]);
+
   return (
     <div className="space-y-10 pb-20 animate-fade-in relative">
       {/* Decorative Gradients */}
@@ -79,40 +99,61 @@ export default function KnowledgeBasePage() {
            <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-600 group-focus-within:text-neon transition-colors" />
            <Input 
              placeholder="Поиск по статьям..." 
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
              className="w-full h-16 pl-14 pr-6 bg-white/5 border-white/10 text-white rounded-[2rem] focus-visible:ring-neon focus-visible:border-neon transition-all"
            />
         </div>
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((category) => {
-          const Icon = category.icon;
-          return (
-            <div key={category.title} className="glass-dark border border-white/10 rounded-[2.5rem] p-8 space-y-6 hover:border-white/20 transition-all group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 group-hover:bg-neon/10 group-hover:border-neon/20 transition-colors">
-                  <Icon className="w-6 h-6 text-neutral-500 group-hover:text-neon transition-colors" />
+      {filteredCategories.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCategories.map((category) => {
+            const Icon = category.icon;
+            return (
+              <div key={category.title} className="glass-dark border border-white/10 rounded-[2.5rem] p-8 space-y-6 hover:border-white/20 transition-all group">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 group-hover:bg-neon/10 group-hover:border-neon/20 transition-colors">
+                    <Icon className="w-6 h-6 text-neutral-500 group-hover:text-neon transition-colors" />
+                  </div>
+                  <h3 className="text-lg font-black uppercase tracking-tight text-white">{category.title}</h3>
                 </div>
-                <h3 className="text-lg font-black uppercase tracking-tight text-white">{category.title}</h3>
+                
+                <nav className="flex flex-col gap-3">
+                  {category.articles.length > 0 ? (
+                    category.articles.map((article) => (
+                      <Link 
+                        key={article.title} 
+                        href={article.href}
+                        className="flex items-center justify-between p-4 bg-white/5 border border-transparent rounded-2xl text-neutral-400 hover:text-white hover:border-white/10 hover:bg-white/10 transition-all font-bold text-[11px] uppercase tracking-widest group/link"
+                      >
+                        {article.title}
+                        <ChevronRight className="w-3 h-3 text-neutral-600 group-hover/link:text-neon group-hover/link:translate-x-1 transition-all" />
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="text-neutral-600 text-[10px] font-bold uppercase tracking-widest italic p-4">Нет подходящих статей</p>
+                  )}
+                </nav>
               </div>
-              
-              <nav className="flex flex-col gap-3">
-                {category.articles.map((article) => (
-                  <Link 
-                    key={article.title} 
-                    href={article.href}
-                    className="flex items-center justify-between p-4 bg-white/5 border border-transparent rounded-2xl text-neutral-400 hover:text-white hover:border-white/10 hover:bg-white/10 transition-all font-bold text-[11px] uppercase tracking-widest group/link"
-                  >
-                    {article.title}
-                    <ChevronRight className="w-3 h-3 text-neutral-600 group-hover/link:text-neon group-hover/link:translate-x-1 transition-all" />
-                  </Link>
-                ))}
-              </nav>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="py-20 text-center space-y-4">
+          <Search className="w-12 h-12 text-neutral-800 mx-auto" />
+          <h3 className="text-xl font-black uppercase tracking-widest text-neutral-600">Результатов не найдено</h3>
+          <p className="text-neutral-500 text-sm max-w-xs mx-auto italic">Попробуйте изменить запрос или обратитесь в нашу службу заботы ниже.</p>
+          <Button 
+            variant="ghost" 
+            onClick={() => setSearchQuery("")}
+            className="text-neon font-black uppercase tracking-widest text-[10px]"
+          >
+            Сбросить поиск
+          </Button>
+        </div>
+      )}
 
       {/* Help Section */}
       <div className="glass-dark border border-white/10 rounded-[3rem] p-10 sm:p-16 flex flex-col md:flex-row items-center justify-between gap-10 mt-10 relative overflow-hidden">
@@ -127,9 +168,11 @@ export default function KnowledgeBasePage() {
              Наша служба заботы всегда на связи. Опишите вашу проблему, и мы поможем максимально оперативно.
            </p>
          </div>
-         <Button className="bg-neon text-black font-black uppercase tracking-widest text-xs h-14 px-10 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-neon/20 shrink-0">
-           Написать в поддержку
-         </Button>
+         <a href="https://t.me/SmurtsTele_bot" target="_blank" rel="noopener noreferrer" className="shrink-0">
+           <Button className="bg-neon text-black font-black uppercase tracking-widest text-xs h-14 px-10 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-neon/20 shrink-0">
+             Написать в поддержку
+           </Button>
+         </a>
       </div>
     </div>
   );
