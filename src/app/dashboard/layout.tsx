@@ -26,6 +26,7 @@ import { BottomNav } from "@/components/dashboard/BottomNav";
 import { MiniPlayer } from "@/components/dashboard/MiniPlayer";
 import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
 import { useAuth } from "@/components/AuthProvider";
+import { getMyUnreadSupportReplyAction } from "@/lib/actions/support";
 import { Button } from "@/components/ui/button";
 import { isBusinessProfileComplete } from "@/lib/validation/business";
 
@@ -38,6 +39,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const { signOut, user, role } = useAuth();
   const [isSigned, setIsSigned] = useState(false);
+  const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
   const isBranchManager = role === "STAFF";
 
   useEffect(() => {
@@ -77,6 +79,9 @@ export default function DashboardLayout({
     }
     if (role !== null) {
       checkStatus();
+      getMyUnreadSupportReplyAction().then((res) => {
+        if (res.success) setHasUnreadSupport(res.hasUnread);
+      });
     }
   }, [isBranchManager, pathname, role, router]);
 
@@ -200,7 +205,12 @@ export default function DashboardLayout({
             <div className="relative z-10 space-y-4">
               <h4 className="text-sm font-black uppercase text-white tracking-widest leading-tight">Нужна помощь <br />с настройкой?</h4>
               <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed">Наш персональный менеджер доступен 24/7</p>
-              <Link href="#" className="inline-block text-neon text-[10px] font-black uppercase tracking-[0.2em] hover:underline underline-offset-4 transition-all">Чат поддержки</Link>
+              <Link href="/dashboard/support" className="inline-flex items-center gap-2 text-neon text-[10px] font-black uppercase tracking-[0.2em] hover:underline underline-offset-4 transition-all">
+                Чат поддержки
+                {hasUnreadSupport && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)] animate-pulse" />
+                )}
+              </Link>
             </div>
           </div>
         </aside>

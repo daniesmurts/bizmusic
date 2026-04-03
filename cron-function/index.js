@@ -1,20 +1,12 @@
 const https = require('https');
 
-module.exports.handler = async function() {
-    console.log("Cron triggered! Calling https://bizmuzik.ru/api/cron/billing");
-    
-    const CRON_SECRET = process.env.CRON_SECRET;
-    if (!CRON_SECRET) {
-        console.error("CRON_SECRET env var is not set!");
-        return { statusCode: 500, body: "CRON_SECRET not configured" };
-    }
-
+function callEndpoint(path, cronSecret) {
     const options = {
         hostname: 'bizmuzik.ru',
-        path: '/api/cron/billing',
+        path,
         method: 'GET',
         headers: {
-            'Authorization': `Bearer ${CRON_SECRET}`,
+            'Authorization': `Bearer ${cronSecret}`,
         },
     };
 
@@ -25,18 +17,41 @@ module.exports.handler = async function() {
                 data += chunk;
             });
             res.on('end', () => {
-                console.log(`Response received with status: ${res.statusCode}`);
-                console.log(`Response body: ${data}`);
-                resolve({ 
-                    statusCode: res.statusCode, 
-                    body: data 
+                console.log(`[Cron] ${path} -> ${res.statusCode}`);
+                resolve({
+                    path,
+                    statusCode: res.statusCode,
+                    body: data,
                 });
             });
         });
         req.on('error', (e) => {
-            console.error(`Error HTTP request: ${e.message}`);
+            console.error(`[Cron] HTTP error for ${path}: ${e.message}`);
             reject(e);
         });
         req.end();
     });
+}
+
+module.exports.handler = async function() {
+    console.log("Cron triggered! Calling billing and support retry jobs");
+    
+    const CRON_SECRET = process.env.CRON_SECRET;
+    if (!CRON_SECRET) {
+        console.error("CRON_SECRET env var is not set!");
+        return { statusCode: 500, body: "CRON_SECRET not configured" };
+    }
+
+    const billingResult = await callEndpoint('/api/cron/billing', CRON_SECRET);
+    const supportRetryResult = await callEndpoint('/api/cron/support-delivery-retry', CRON_SECRET);
+
+    const hasFailure = billingResult.statusCode >= 400 || supportRetryResult.statusCode >= 400;
+
+    return {
+        statusCode: hasFailure ? 500 : 200,
+        body: JSON.stringify({
+            billing: billingResult,
+            supportRetry: supportRetryResult,
+        }),
+    };
 };

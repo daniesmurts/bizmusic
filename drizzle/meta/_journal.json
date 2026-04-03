@@ -148,6 +148,13 @@
       "when": 1775383200000,
       "tag": "0020_track_download_events",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1775469600000,
+      "tag": "0021_support_chat",
+      "breakpoints": true
     }
   ]
 }
