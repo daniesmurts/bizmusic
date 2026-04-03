@@ -3,11 +3,12 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, Scale, Cookie, ChevronRight, Home, FileText, UserCheck, Mail } from "lucide-react";
+import { ShieldCheck, Scale, Cookie, ChevronRight, Home, FileText, UserCheck, Mail, Mic } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 
 const legalLinks = [
   { name: "Публичная оферта", href: "/legal/public-offer", icon: FileText },
+  { name: "Оферта Brand Voice", href: "/legal/brand-voice-offer", icon: Mic },
   { name: "Пользовательское соглашение", href: "/legal/terms", icon: Scale },
   { name: "Политика конфиденциальности", href: "/legal/privacy", icon: ShieldCheck },
   { name: "Согласие на обработку ПД", href: "/legal/data-processing", icon: UserCheck },

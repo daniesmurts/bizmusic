@@ -122,7 +122,8 @@ export function Footer({ variant = "default" }: FooterProps) {
              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-white">Юридические данные</h4>
              <nav className="flex flex-col gap-4">
               {[
-                { name: "Публичная оферта", href: "/legal/terms" },
+                { name: "Публичная оферта", href: "/legal/public-offer" },
+                { name: "Оферта Brand Voice", href: "/legal/brand-voice-offer" },
                 { name: "Конфиденциальность", href: "/legal/privacy" },
                 { name: "Личный кабинет", href: "/dashboard" },
                 { name: "Вопросы и ответы", href: "/#faq" }

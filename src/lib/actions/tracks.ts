@@ -520,6 +520,8 @@ export async function getAdminTracksAction(filters?: {
   search?: string;
   limit?: number;
   offset?: number;
+  page?: number;
+  pageSize?: number;
 }) {
   try {
     const supabase = await createClient();
@@ -547,6 +549,18 @@ export async function getAdminTracksAction(filters?: {
       );
     }
 
+    const page = Math.max(1, filters?.page ?? 1);
+    const pageSize = Math.min(100, Math.max(10, filters?.pageSize ?? filters?.limit ?? 50));
+    const offset = (page - 1) * pageSize;
+
+    const [totalRow] = await db
+      .select({ total: sql<number>`cast(count(*) as int)` })
+      .from(tracks)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+    const total = totalRow?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
     const tracksList = await db
       .select({
         track: tracks,
@@ -562,8 +576,8 @@ export async function getAdminTracksAction(filters?: {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .groupBy(tracks.id, artists.id)
       .orderBy(desc(tracks.createdAt))
-      .limit(filters?.limit || 1000)
-      .offset(filters?.offset || 0);
+      .limit(pageSize)
+      .offset(offset);
 
     const tracksWithCount = tracksList.map(({ track, artistProfile, playLogsCount, likesCount, dislikesCount }) => ({
       ...track,
@@ -617,6 +631,12 @@ export async function getAdminTracksAction(filters?: {
     return {
       success: true,
       data: tracksWithUrls,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+      },
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to fetch admin tracks";
