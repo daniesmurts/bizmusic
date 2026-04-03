@@ -9,6 +9,12 @@ export async function register() {
       "SUPABASE_SERVICE_ROLE_KEY",
     ];
 
+    const optionalSupport = [
+      "TELEGRAM_BOT_TOKEN",
+      "TELEGRAM_SUPPORT_CHAT_ID",
+      "BITRIX24_WEBHOOK_URL",
+    ];
+
     const missing = required.filter((key) => !process.env[key]);
 
     if (missing.length > 0) {
@@ -32,6 +38,15 @@ export async function register() {
         console.error(`  • ${key}`);
       }
       console.error("[ENV] These must be passed as --build-arg during docker build.\n");
+    }
+
+    const missingSupport = optionalSupport.filter((key) => !process.env[key]);
+    if (missingSupport.length > 0) {
+      console.warn("\n[ENV] ⚠️  SUPPORT INTEGRATION VARIABLES ARE NOT FULLY CONFIGURED:");
+      for (const key of missingSupport) {
+        console.warn(`  • ${key}`);
+      }
+      console.warn("[ENV] Support chat will still work, but Telegram/Bitrix24 forwarding may be skipped.\n");
     }
 
     if (missing.length === 0 && missingBuild.length === 0) {

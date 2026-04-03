@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -15,9 +16,11 @@ import {
   ShieldAlert,
   BookOpen,
   BarChart3,
+  MessageSquare,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { getAdminSupportBadgeCountAction } from "@/lib/actions/support";
 
 const adminNavItems = [
   { name: "Обзор", href: "/admin", icon: LayoutDashboard },
@@ -26,6 +29,7 @@ const adminNavItems = [
   { name: "Аналитика", href: "/admin/analytics", icon: BarChart3 },
   { name: "Блог", href: "/admin/blog", icon: BookOpen },
   { name: "Клиенты", href: "/admin/clients", icon: Users },
+  { name: "Поддержка", href: "/admin/support", icon: MessageSquare },
   { name: "Комплаенс", href: "/admin/logs", icon: ShieldCheck },
   { name: "Финансы", href: "/admin/billing", icon: CreditCard },
   { name: "Настройки", href: "/admin/settings", icon: Settings },
@@ -35,6 +39,13 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [supportBadge, setSupportBadge] = useState(0);
+
+  useEffect(() => {
+    getAdminSupportBadgeCountAction().then((res) => {
+      if (res.success) setSupportBadge(res.count);
+    });
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -62,6 +73,7 @@ export function AdminSidebar() {
         {adminNavItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
+          const isSupport = item.href === "/admin/support";
 
           return (
             <Link
@@ -78,7 +90,14 @@ export function AdminSidebar() {
                 <Icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive ? "text-neon" : "text-neutral-500 group-hover:text-white")} />
                 <span className="text-xs font-black uppercase tracking-widest leading-none">{item.name}</span>
               </div>
-              <ChevronRight className={cn("w-4 h-4 opacity-0 transition-all", isActive ? "opacity-30" : "group-hover:opacity-20 translate-x-1")} />
+              <div className="flex items-center gap-2">
+                {isSupport && supportBadge > 0 && (
+                  <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                    {supportBadge > 99 ? "99+" : supportBadge}
+                  </span>
+                )}
+                <ChevronRight className={cn("w-4 h-4 opacity-0 transition-all", isActive ? "opacity-30" : "group-hover:opacity-20 translate-x-1")} />
+              </div>
             </Link>
           );
         })}

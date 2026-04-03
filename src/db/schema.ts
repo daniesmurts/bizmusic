@@ -41,6 +41,13 @@ export const platformAnnouncementAccessEnum = pgEnum("platform_announcement_acce
 export const platformAnnouncementSourceEnum = pgEnum("platform_announcement_source", ["UPLOAD", "TTS"]);
 export const trackReactionTypeEnum = pgEnum("track_reaction_type", ["LIKE", "DISLIKE"]);
 export const demoRequestStatusEnum = pgEnum("demo_request_status", ["PENDING", "CONTACTED", "COMPLETED", "CANCELLED"]);
+export const supportConversationStatusEnum = pgEnum("support_conversation_status", ["OPEN", "PENDING", "CLOSED"]);
+export const supportPriorityEnum = pgEnum("support_priority", ["LOW", "NORMAL", "HIGH", "URGENT"]);
+export const supportCategoryEnum = pgEnum("support_category", ["GENERAL", "TECHNICAL", "BILLING", "LEGAL"]);
+export const supportMessageDirectionEnum = pgEnum("support_message_direction", ["USER", "SUPPORT", "SYSTEM"]);
+export const supportMessageSourceEnum = pgEnum("support_message_source", ["PUBLIC_WIDGET", "DASHBOARD", "ADMIN"]);
+export const supportDeliveryProviderEnum = pgEnum("support_delivery_provider", ["TELEGRAM", "BITRIX24"]);
+export const supportDeliveryStatusEnum = pgEnum("support_delivery_status", ["PENDING", "SENT", "FAILED"]);
 
 // Users Table
 export const users = pgTable("users", {
@@ -529,6 +536,62 @@ export const businessAnnouncementAcquisitions = pgTable("business_announcement_a
   businessClaimedIdx: index("business_announcement_acquisition_business_claimed_idx").on(t.businessId, t.claimedAt),
 }));
 
+export const supportConversations = pgTable("support_conversations", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  publicSessionKey: text("publicSessionKey"),
+  userId: text("userId").references(() => users.id, { onDelete: "set null" }),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "set null" }),
+  assignedToUserId: text("assignedToUserId").references(() => users.id, { onDelete: "set null" }),
+  visitorName: text("visitorName"),
+  visitorEmail: text("visitorEmail"),
+  visitorPhone: text("visitorPhone"),
+  subject: text("subject"),
+  category: supportCategoryEnum("category").default("GENERAL").notNull(),
+  priority: supportPriorityEnum("priority").default("NORMAL").notNull(),
+  status: supportConversationStatusEnum("status").default("OPEN").notNull(),
+  bitrixTaskId: text("bitrixTaskId"),
+  lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
+  closedAt: timestamp("closedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  statusLastMessageIdx: index("idx_support_conversations_status_last_message").on(t.status, t.lastMessageAt),
+  userCreatedIdx: index("idx_support_conversations_user_created").on(t.userId, t.createdAt),
+  businessCreatedIdx: index("idx_support_conversations_business_created").on(t.businessId, t.createdAt),
+  publicSessionKeyIdx: index("idx_support_conversations_public_session_key").on(t.publicSessionKey),
+}));
+
+export const supportMessages = pgTable("support_messages", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  conversationId: text("conversationId").references(() => supportConversations.id, { onDelete: "cascade" }).notNull(),
+  senderUserId: text("senderUserId").references(() => users.id, { onDelete: "set null" }),
+  direction: supportMessageDirectionEnum("direction").notNull(),
+  source: supportMessageSourceEnum("source").notNull(),
+  body: text("body").notNull(),
+  isInternal: boolean("isInternal").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  conversationCreatedIdx: index("idx_support_messages_conversation_created").on(t.conversationId, t.createdAt),
+  senderCreatedIdx: index("idx_support_messages_sender_created").on(t.senderUserId, t.createdAt),
+}));
+
+export const supportMessageDeliveries = pgTable("support_message_deliveries", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  messageId: text("messageId").references(() => supportMessages.id, { onDelete: "cascade" }).notNull(),
+  provider: supportDeliveryProviderEnum("provider").notNull(),
+  status: supportDeliveryStatusEnum("status").default("PENDING").notNull(),
+  target: text("target").notNull(),
+  externalId: text("externalId"),
+  attemptCount: integer("attemptCount").default(0).notNull(),
+  lastError: text("lastError"),
+  lastAttemptAt: timestamp("lastAttemptAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  messageProviderTargetUnique: uniqueIndex("support_message_delivery_unique_target").on(t.messageId, t.provider, t.target),
+  statusUpdatedIdx: index("idx_support_message_deliveries_status_updated").on(t.status, t.updatedAt),
+}));
+
 // RELATIONS
 export const usersRelations = relations(users, ({ one, many }) => ({
   businesses: many(businesses),
@@ -541,6 +604,9 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   announcementBulkJobs: many(announcementBulkJobs),
   locationPlaylistAssignments: many(locationPlaylistAssignments),
   trackReactions: many(trackReactions),
+  supportConversations: many(supportConversations, { relationName: "support_conversation_owner" }),
+  supportMessages: many(supportMessages),
+  assignedSupportConversations: many(supportConversations, { relationName: "support_conversation_assignee" }),
 }));
 
 export const businessesRelations = relations(businesses, ({ one, many }) => ({
@@ -557,6 +623,7 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   announcementBulkJobs: many(announcementBulkJobs),
   locationPlaylistAssignments: many(locationPlaylistAssignments),
   waveSettings: one(waveSettings),
+  supportConversations: many(supportConversations),
 }));
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({
@@ -688,6 +755,23 @@ export const trackSkipsRelations = relations(trackSkips, ({ one }) => ({
   user: one(users, { fields: [trackSkips.userId], references: [users.id] }),
   business: one(businesses, { fields: [trackSkips.businessId], references: [businesses.id] }),
   location: one(locations, { fields: [trackSkips.locationId], references: [locations.id] }),
+}));
+
+export const supportConversationsRelations = relations(supportConversations, ({ one, many }) => ({
+  user: one(users, { relationName: "support_conversation_owner", fields: [supportConversations.userId], references: [users.id] }),
+  business: one(businesses, { fields: [supportConversations.businessId], references: [businesses.id] }),
+  assignedToUser: one(users, { relationName: "support_conversation_assignee", fields: [supportConversations.assignedToUserId], references: [users.id] }),
+  messages: many(supportMessages),
+}));
+
+export const supportMessagesRelations = relations(supportMessages, ({ one, many }) => ({
+  conversation: one(supportConversations, { fields: [supportMessages.conversationId], references: [supportConversations.id] }),
+  senderUser: one(users, { fields: [supportMessages.senderUserId], references: [users.id] }),
+  deliveries: many(supportMessageDeliveries),
+}));
+
+export const supportMessageDeliveriesRelations = relations(supportMessageDeliveries, ({ one }) => ({
+  message: one(supportMessages, { fields: [supportMessageDeliveries.messageId], references: [supportMessages.id] }),
 }));
 
 export const trackReactionsRelations = relations(trackReactions, ({ one }) => ({
