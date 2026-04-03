@@ -128,97 +128,110 @@ export function PlaylistManager({
       <div 
         onClick={() => !isLocked && handlePlaylistEdit(list, isGlobal)}
         className={cn(
-          "glass-dark border group transition-all cursor-pointer relative overflow-hidden",
+          "glass-dark border group transition-all duration-500 cursor-pointer relative overflow-hidden",
           // Mobile: compact horizontal row
           "flex flex-row items-center gap-3 p-3 rounded-2xl h-auto",
-          // Desktop: tall card
-          "md:flex-col md:justify-between md:p-6 md:rounded-[2.5rem] md:h-[200px]",
-          isGlobal ? "border-purple-500/20 hover:border-purple-500/40" : "border-white/10 hover:border-white/20",
-          isLocked && "cursor-default border-white/5"
+          // Desktop: tall card with proper spacing
+          "sm:flex-col sm:p-7 sm:rounded-[2.5rem] sm:min-h-[240px]",
+          isGlobal 
+            ? "border-purple-500/10 hover:border-purple-500/40 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]" 
+            : "border-white/5 hover:border-neon/40 hover:shadow-[0_0_30px_rgba(34,197,94,0.05)]",
+          isLocked && "cursor-default border-white/5 grayscale-[0.5] opacity-80"
         )}
       >
-        {isGlobal && (
-          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none hidden md:block" />
-        )}
-
-        {/* Mobile Layout: icon | info | play */}
-        {/* Desktop Layout: icon + badge top, name + play bottom */}
-
-        {/* Icon */}
+        {/* Card Glow Effect - Desktop */}
         <div className={cn(
-          "shrink-0 rounded-xl flex items-center justify-center border transition-transform group-hover:scale-110",
-          "w-10 h-10 md:w-14 md:h-14 md:rounded-2xl",
-          isGlobal ? "bg-purple-500/10 border-purple-500/20" : "bg-white/5 border-white/5 group-hover:bg-white/10"
-        )}>
-          <ListMusic className={cn("w-5 h-5 md:w-7 md:h-7", isGlobal ? "text-purple-400" : "text-white")} />
-        </div>
+          "absolute top-0 right-0 w-32 h-32 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity duration-700",
+          isGlobal ? "bg-purple-500/10" : "bg-neon/5"
+        )} />
 
         {/* Badge - desktop only, positioned top-right */}
-        <div className="hidden md:block absolute top-6 right-6 z-10">
+        <div className="hidden sm:block absolute top-5 right-6 z-20">
           {isGlobal ? (
-            <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-[9px] font-black uppercase tracking-widest border border-purple-500/30">
+            <div className="px-3 py-1 bg-purple-500/10 text-purple-300 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border border-purple-500/20 backdrop-blur-md shadow-sm">
               Официальный
             </div>
           ) : (
-            <div className="px-3 py-1 bg-neon/10 text-neon rounded-full text-[9px] font-black uppercase tracking-widest border border-neon/20">
+            <div className="px-3 py-1 bg-white/5 text-neutral-400 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border border-white/10 backdrop-blur-md shadow-sm group-hover:border-neon/30 group-hover:text-neon transition-colors">
               Ваш Плейлист
             </div>
           )}
         </div>
 
+        {/* Icon Pedestal */}
+        <div className={cn(
+          "shrink-0 rounded-xl flex items-center justify-center border transition-all duration-500 shadow-inner",
+          "w-11 h-11 sm:w-14 sm:h-14 sm:rounded-[1.1rem] sm:mb-3 sm:mt-1",
+          isGlobal 
+            ? "bg-purple-500/10 border-purple-500/20 group-hover:bg-purple-500/20 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]" 
+            : "bg-white/5 border-white/10 group-hover:bg-white/10 group-hover:scale-110 group-hover:border-neon/30 group-hover:shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+        )}>
+          <ListMusic className={cn("w-5 h-5 sm:w-7 sm:h-7", isGlobal ? "text-purple-400" : "text-white/80 group-hover:text-white")} />
+        </div>
+
         {/* Info */}
-        <div className={cn("flex-1 min-w-0", isLocked && "md:blur-[2px] md:opacity-40 transition-all")}>
+        <div className={cn("flex-1 min-w-0 sm:flex-1 sm:flex sm:flex-col sm:justify-center sm:items-center sm:text-center", isLocked && "sm:blur-[1px] sm:opacity-50 transition-all")}>
           <h4 className={cn(
-            "font-black uppercase tracking-tight text-white leading-tight truncate",
-            "text-sm md:text-xl md:mb-1"
+            "font-black uppercase tracking-tight text-white leading-tight truncate w-full",
+            "text-sm sm:text-xl sm:mb-2 group-hover:translate-y-[-2px] transition-transform duration-500"
           )}>{list.name}</h4>
-          <p className="text-neutral-500 text-[10px] md:text-xs font-bold uppercase tracking-widest">{list.trackCount} ТРЕКОВ • {list.duration || "0Ч 00М"}</p>
+          <div className="flex items-center gap-2 sm:justify-center flex-wrap">
+            <span className="text-neutral-500 text-[10px] sm:text-[10px] font-black uppercase tracking-widest tabular-nums">
+              {list.trackCount} ТРЕКОВ
+            </span>
+            <span className="text-white/10 hidden sm:inline">•</span>
+            <span className="text-neutral-500 text-[10px] sm:text-[10px] font-black uppercase tracking-widest tabular-nums">
+              {list.duration || "0Ч 00М"}
+            </span>
+          </div>
         </div>
 
         {/* Play / Lock Button */}
-        <div className="shrink-0 relative z-10">
+        <div className="shrink-0 relative z-10 sm:mt-auto">
           {!isLocked ? (
             <Button 
               onClick={(e) => handlePlaylistPlay(e, list)}
               variant="ghost" 
               size="icon" 
               className={cn(
-                "w-9 h-9 md:w-10 md:h-10 transition-all group-hover:scale-110",
-                isGlobal ? "text-purple-400 hover:text-purple-300" : "group-hover:text-white text-neutral-500"
+                "w-10 h-10 sm:w-12 sm:h-12 transition-all duration-500 rounded-full",
+                isGlobal 
+                  ? "bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-black shadow-[0_0_20px_rgba(168,85,247,0.2)] border border-purple-500/20" 
+                  : "bg-white/5 text-white/80 hover:bg-white hover:text-black border border-white/10 hover:border-white shadow-xl"
               )}
             >
-              <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" />
+              <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current ml-0.5" />
             </Button>
           ) : (
             <div className={cn(
-              "w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center border",
-              isGlobal ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-neon/10 border-neon/20 text-neon"
+              "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border backdrop-blur-sm",
+              isGlobal ? "bg-purple-500/5 border-purple-500/10 text-purple-900/40" : "bg-white/5 border-white/5 text-neutral-800"
             )}>
-               <Lock className="w-3.5 h-3.5 md:w-4 md:h-4" />
+               <Lock className="w-4 h-4" />
             </div>
           )}
         </div>
 
-        {/* Premium Lock Overlay - desktop only full card overlay, mobile inline lock icon suffices */}
+        {/* Premium Lock Overlay */}
         {isLocked && (
-          <div className="absolute inset-0 z-20 hidden md:flex flex-col items-center justify-center bg-black/40 backdrop-blur-[4px] p-4 text-center animate-fade-in group-hover:bg-black/50 transition-all duration-500">
-             <div className="space-y-3">
+          <div className="absolute inset-0 z-20 hidden sm:flex flex-col items-center justify-center bg-black/60 backdrop-blur-[8px] p-4 text-center opacity-0 group-hover:opacity-100 transition-all duration-500">
+             <div className="space-y-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                 <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center border mx-auto transition-transform group-hover:scale-110",
+                  "w-12 h-12 rounded-2xl flex items-center justify-center border mx-auto shadow-2xl",
                   isGlobal ? "bg-purple-500/20 border-purple-500/30 text-purple-400" : "bg-neon/20 border-neon/30 text-neon"
                 )}>
-                   <Crown className="w-5 h-5" />
+                   <Crown className="w-6 h-6" />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                    <p className={cn(
-                     "text-[9px] font-black uppercase tracking-[0.2em]",
-                     isGlobal ? "text-purple-300" : "text-neon/80"
+                     "text-[10px] font-black uppercase tracking-[0.2em]",
+                     isGlobal ? "text-purple-300" : "text-neon"
                    )}>
-                     Нужна подписка
+                     Требуется Elite-подписка
                    </p>
                    <Link 
                      href="/dashboard/subscription"
-                     className="text-[10px] font-bold uppercase tracking-widest text-white hover:text-neon underline underline-offset-4 decoration-neon/50 transition-colors"
+                     className="inline-block px-4 py-1.5 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-transform"
                    >
                      Активировать
                    </Link>
@@ -258,11 +271,11 @@ export function PlaylistManager({
         <section className="space-y-6">
           <div className="flex items-center gap-3 px-2">
             <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
-            <h3 className="text-2xl font-black uppercase tracking-tighter">Кураторские <span className="text-purple-400">Подборки</span></h3>
+            <h3 className="text-lg sm:text-2xl lg:text-2xl font-black uppercase tracking-tighter">Кураторские <span className="text-purple-400">Подборки</span></h3>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory custom-scrollbar md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-6 md:overflow-visible md:pb-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
             {globalPlaylists.map((list: any) => (
-              <div key={list.id} className="min-w-[260px] snap-start md:min-w-0">
+              <div key={list.id} className="">
                 <PlaylistCard list={list} isGlobal={true} />
               </div>
             ))}
@@ -272,12 +285,12 @@ export function PlaylistManager({
 
       {/* User Playlists Section */}
       <section className="space-y-6">
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="flex items-center gap-3 px-2">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 sm:items-center justify-between px-0">
+          <div className="flex items-center gap-3 px-2 sm:px-0">
             <div className="w-2 h-2 rounded-full bg-neon shadow-[0_0_10px_rgba(92,243,135,0.5)]" />
-            <h3 className="text-2xl font-black uppercase tracking-tighter">Ваши <span className="text-neon">Плейлисты</span></h3>
+            <h3 className="text-lg sm:text-2xl lg:text-2xl font-black uppercase tracking-tighter">Ваши <span className="text-neon">Плейлисты</span></h3>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
             <Button 
               onClick={() => {
                 if (!isSubscribed) {
@@ -288,14 +301,14 @@ export function PlaylistManager({
               }}
               variant="outline" 
               className={cn(
-                "rounded-2xl px-6 font-black uppercase text-xs tracking-widest h-12 transition-all",
+                "rounded-xl sm:rounded-2xl px-4 sm:px-6 font-black uppercase text-[10px] sm:text-xs tracking-widest h-10 sm:h-12 transition-all shrink-0",
                 isSubscribed 
                   ? "border-neon/20 text-neon hover:bg-neon/10" 
                   : "border-white/5 text-neutral-600 cursor-not-allowed"
               )}
             >
-              {!isSubscribed && <Lock className="w-3 h-3 mr-2 opacity-50" />}
-              <Download className="w-4 h-4 mr-2" /> Шаблоны
+              {!isSubscribed && <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1.5 sm:mr-2 opacity-50" />}
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">Шаблоны</span>
             </Button>
             <Button 
               onClick={() => {
@@ -306,72 +319,72 @@ export function PlaylistManager({
                 setIsCreateOpen(true);
               }}
               className={cn(
-                "rounded-2xl px-6 font-black uppercase text-xs tracking-widest h-12 transition-all",
+                "rounded-xl sm:rounded-2xl px-4 sm:px-6 font-black uppercase text-[10px] sm:text-xs tracking-widest h-10 sm:h-12 transition-all shrink-0",
                 isSubscribed 
                   ? "bg-white text-black hover:scale-105" 
                   : "bg-white/5 text-neutral-600 cursor-not-allowed"
               )}
             >
-              {!isSubscribed && <Lock className="w-3 h-3 mr-2 opacity-50" />}
-              <Plus className="w-4 h-4 mr-2" /> Создать
+              {!isSubscribed && <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1.5 sm:mr-2 opacity-50" />}
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">Создать</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
           {/* Favorite Card */}
           <div className={cn(
-            "glass-dark border border-neon/30 group hover:border-neon/60 hover:shadow-[0_0_30px_rgba(92,243,135,0.1)] transition-all relative overflow-hidden",
+            "glass-dark border border-neon/20 group hover:border-neon/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.1)] transition-all duration-500 relative overflow-hidden",
             "flex flex-row items-center gap-3 p-3 rounded-2xl h-auto",
-            "md:flex-col md:justify-between md:p-6 md:rounded-[2.5rem] md:h-[200px]"
+            "sm:flex-col sm:p-7 sm:rounded-[2.5rem] sm:min-h-[240px]"
           )}>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-neon/10 blur-[50px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none hidden md:block" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-neon/10 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             
-            {/* Icon */}
-            <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center border border-neon/20 bg-neon/10 backdrop-blur-sm z-10 shrink-0">
-              <Star className="w-5 h-5 md:w-7 md:h-7 text-neon fill-neon" />
-            </div>
-
             {/* Badge - desktop only */}
-            <div className="hidden md:block absolute top-6 right-6 z-10 px-3 py-1 bg-neon/20 text-neon rounded-full text-[10px] font-black uppercase tracking-widest border border-neon/30">
+            <div className="hidden sm:block absolute top-5 right-6 z-20 px-3 py-1 bg-neon/20 text-neon rounded-full text-[8px] font-black uppercase tracking-[0.2em] border border-neon/30 backdrop-blur-md shadow-sm">
               Любимый
             </div>
 
+            {/* Icon Pedestal */}
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-[1.1rem] flex items-center justify-center border border-neon/30 bg-neon/10 backdrop-blur-sm z-10 shrink-0 sm:mb-3 sm:mt-1 transition-transform group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(34,197,94,0.2)] shadow-inner">
+              <Star className="w-5 h-5 sm:w-7 sm:h-7 text-neon fill-neon" />
+            </div>
+
             {/* Info */}
-            <div className={cn("flex-1 min-w-0 z-10", !isSubscribed && "md:blur-[2px] md:opacity-40")}>
-              <h4 className="text-sm md:text-xl font-black uppercase tracking-tight text-white md:mb-1 shadow-sm truncate">Избранное</h4>
-              <p className="text-neon text-[10px] md:text-xs font-bold uppercase tracking-widest">СКОРО</p>
+            <div className={cn("flex-1 min-w-0 z-10 sm:flex sm:flex-col sm:justify-center sm:items-center sm:text-center", !isSubscribed && "sm:blur-[1px] sm:opacity-50")}>
+              <h4 className="text-sm sm:text-xl font-black uppercase tracking-tight text-white sm:mb-2 truncate w-full group-hover:translate-y-[-2px] transition-transform duration-500">Избранное</h4>
+              <p className="text-neon text-[10px] sm:text-[10px] font-black uppercase tracking-[0.25em] tabular-nums">СКОРО</p>
             </div>
 
             {/* Play/Lock */}
-            <div className="shrink-0 z-10">
+            <div className="shrink-0 z-10 sm:mt-auto">
               {!isSubscribed ? (
-                <div className="w-9 h-9 md:w-12 md:h-12 rounded-full border border-neon/20 bg-neon/10 flex items-center justify-center text-neon">
-                   <Lock className="w-3.5 h-3.5 md:w-5 md:h-5" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-neon/10 bg-neon/5 flex items-center justify-center text-neon/20 backdrop-blur-sm">
+                   <Lock className="w-4 h-4" />
                 </div>
               ) : (
                 <Button 
                   onClick={(e) => handlePlaylistPlay(e, { id: 'starred', name: 'Избранное', trackCount: 34 })}
                   variant="ghost" 
                   size="icon" 
-                  className="hover:text-neon text-white bg-white/5 hover:bg-white/10 rounded-full h-9 w-9 md:h-12 md:w-12 transition-all group-hover:scale-110"
+                  className="bg-white/5 border border-white/10 hover:bg-neon hover:text-black hover:border-neon text-white rounded-full h-10 w-10 sm:h-12 sm:w-12 transition-all duration-500 group-hover:scale-110 hover:shadow-[0_0_20px_rgba(34,197,94,0.3)] shadow-lg"
                 >
-                  <Play className="w-4 h-4 md:w-5 md:h-5 fill-current ml-0.5" />
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
                 </Button>
               )}
             </div>
             
             {!isSubscribed && (
-              <div className="absolute inset-0 z-20 hidden md:flex flex-col items-center justify-center bg-black/40 backdrop-blur-[4px] p-4 text-center animate-fade-in group-hover:bg-black/50 transition-all duration-500">
-                <div className="space-y-3">
-                    <div className="w-10 h-10 bg-neon/20 rounded-xl flex items-center justify-center border border-neon/30 text-neon mx-auto transition-transform group-hover:scale-110">
-                      <Crown className="w-5 h-5" />
+              <div className="absolute inset-0 z-30 hidden sm:flex flex-col items-center justify-center bg-black/60 backdrop-blur-[8px] p-4 text-center opacity-0 group-hover:opacity-100 transition-all duration-500">
+                <div className="space-y-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                    <div className="w-12 h-12 bg-neon/20 rounded-2xl flex items-center justify-center border border-neon/30 text-neon mx-auto shadow-2xl">
+                      <Crown className="w-6 h-6" />
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-neon/80">Только с подпиской</p>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neon">Только с подпиской</p>
                       <Link 
                         href="/dashboard/subscription"
-                        className="text-[10px] font-bold uppercase tracking-widest text-white hover:text-neon underline underline-offset-4 decoration-neon/50 transition-colors"
+                        className="inline-block px-4 py-1.5 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-transform"
                       >
                         Активировать
                       </Link>
@@ -388,14 +401,14 @@ export function PlaylistManager({
           ) : (
             <div 
               onClick={() => setIsCreateOpen(true)}
-              className="glass-dark border border-white/10 border-dashed flex items-center gap-3 p-3 rounded-2xl md:flex-col md:items-center md:justify-center md:text-center md:p-8 md:rounded-[2.5rem] md:h-[200px] hover:bg-white/5 hover:border-white/20 transition-colors cursor-pointer group"
+              className="glass-dark border border-white/10 border-dashed flex items-center gap-3 p-3 rounded-2xl sm:flex-col sm:items-center sm:justify-center sm:text-center sm:p-8 sm:rounded-[2.5rem] sm:h-[200px] hover:bg-white/5 hover:border-white/20 transition-colors cursor-pointer group"
             >
-               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center md:mb-4 group-hover:scale-110 transition-transform shrink-0">
-                 <Plus className="w-5 h-5 md:w-6 md:h-6 text-neutral-400 group-hover:text-white transition-colors" />
+               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 flex items-center justify-center sm:mb-4 group-hover:scale-110 transition-transform shrink-0">
+                 <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-400 group-hover:text-white transition-colors" />
                </div>
                <div>
-                 <h4 className="text-white font-bold text-sm md:text-lg">Создать плейлист</h4>
-                 <p className="text-neutral-500 text-[10px] md:text-xs">Начните с чистого листа</p>
+                 <h4 className="text-white font-bold text-sm sm:text-lg">Создать плейлист</h4>
+                 <p className="text-neutral-500 text-[10px] sm:text-xs">Начните с чистого листа</p>
                </div>
             </div>
           )}

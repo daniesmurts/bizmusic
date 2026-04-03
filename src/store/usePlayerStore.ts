@@ -8,6 +8,18 @@ export interface Track {
   streamUrl?: string;
   duration: number;
   cover_url?: string;
+  isAnnouncement?: boolean;
+  announcementId?: string; // voiceAnnouncements.id for logging
+}
+
+export interface AnnouncementScheduleState {
+  enabled: boolean;
+  frequency: number; // every N tracks
+  mode: "sequential" | "random" | "weighted";
+  announcements: Track[];
+  weights: Record<string, number>;
+  nextIndex: number;
+  tracksSinceLastAnnouncement: number;
 }
 
 interface PlayerState {
@@ -25,6 +37,10 @@ interface PlayerState {
   waveBusinessId: string | null;
   activeLocationId: string | null;
   isFetchingWave: boolean;
+
+  // Announcement Scheduling
+  announcementSchedule: AnnouncementScheduleState;
+
   // Actions
   setTrack: (track: Track) => void;
   loadPlaylist: (tracks: Track[], startIndex?: number) => void;
@@ -44,6 +60,49 @@ interface PlayerState {
   setActiveLocationId: (locationId: string | null) => void;
   fetchNextWaveBatch: () => Promise<void>;
   skipWaveTrack: () => void;
+
+  // Announcement scheduling actions
+  setAnnouncementSchedule: (config: Partial<AnnouncementScheduleState>) => void;
+  loadAnnouncementQueue: (announcements: Track[], config?: { frequency?: number; mode?: "sequential" | "random" | "weighted"; weights?: Record<string, number> }) => void;
+  disableAnnouncementSchedule: () => void;
+}
+
+const defaultAnnouncementSchedule: AnnouncementScheduleState = {
+  enabled: false,
+  frequency: 0,
+  mode: "sequential",
+  announcements: [],
+  weights: {},
+  nextIndex: 0,
+  tracksSinceLastAnnouncement: 0,
+};
+
+function pickNextAnnouncement(schedule: AnnouncementScheduleState): Track | null {
+  if (schedule.announcements.length === 0) return null;
+
+  if (schedule.mode === "random") {
+    const idx = Math.floor(Math.random() * schedule.announcements.length);
+    return schedule.announcements[idx];
+  }
+
+  if (schedule.mode === "weighted") {
+    // Weighted random: higher weight = more likely
+    const weighted: { track: Track; weight: number }[] = schedule.announcements.map((a) => ({
+      track: a,
+      weight: schedule.weights[a.id] ?? 5,
+    }));
+    const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
+    let rand = Math.random() * totalWeight;
+    for (const entry of weighted) {
+      rand -= entry.weight;
+      if (rand <= 0) return entry.track;
+    }
+    return weighted[weighted.length - 1].track;
+  }
+
+  // Sequential
+  const idx = schedule.nextIndex % schedule.announcements.length;
+  return schedule.announcements[idx];
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -59,6 +118,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   waveBusinessId: null,
   activeLocationId: null,
   isFetchingWave: false,
+  announcementSchedule: { ...defaultAnnouncementSchedule },
 
   setTrack: (track) => set({ currentTrack: track, isPlaying: true, progress: 0 }),
   loadPlaylist: (tracks, startIndex = 0) => set({
@@ -84,6 +144,28 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   })),
   toggleShuffle: () => set((state) => ({ isShuffle: !state.isShuffle })),
   setRepeatMode: (mode) => set({ repeatMode: mode }),
+
+  // Announcement scheduling actions
+  setAnnouncementSchedule: (config) => set((state) => ({
+    announcementSchedule: { ...state.announcementSchedule, ...config },
+  })),
+
+  loadAnnouncementQueue: (announcements, config) => set((state) => ({
+    announcementSchedule: {
+      ...state.announcementSchedule,
+      enabled: true,
+      announcements,
+      frequency: config?.frequency ?? state.announcementSchedule.frequency,
+      mode: config?.mode ?? state.announcementSchedule.mode,
+      weights: config?.weights ?? state.announcementSchedule.weights,
+      nextIndex: 0,
+      tracksSinceLastAnnouncement: 0,
+    },
+  })),
+
+  disableAnnouncementSchedule: () => set({
+    announcementSchedule: { ...defaultAnnouncementSchedule },
+  }),
 
   setWaveMode: (active, businessId) => {
     set({ isWaveMode: active, waveBusinessId: businessId || null });
@@ -161,6 +243,36 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       if (state.repeatMode === 'one' && state.currentTrack) {
         return { progress: 0, isPlaying: true };
       }
+
+      // Check if it's time for an announcement injection
+      const schedule = state.announcementSchedule;
+      if (
+        schedule.enabled &&
+        schedule.frequency > 0 &&
+        schedule.announcements.length > 0 &&
+        schedule.tracksSinceLastAnnouncement + 1 >= schedule.frequency
+      ) {
+        const announcement = pickNextAnnouncement(schedule);
+        if (announcement) {
+          const newHistory = state.currentTrack
+            ? [...state.history, state.currentTrack]
+            : state.history;
+
+          return {
+            currentTrack: announcement,
+            history: newHistory,
+            progress: 0,
+            isPlaying: true,
+            announcementSchedule: {
+              ...schedule,
+              tracksSinceLastAnnouncement: 0,
+              nextIndex: schedule.mode === "sequential"
+                ? (schedule.nextIndex + 1) % schedule.announcements.length
+                : schedule.nextIndex,
+            },
+          };
+        }
+      }
       
       if (state.queue.length === 0) {
         if (state.repeatMode === 'all' && state.currentTrack) {
@@ -185,7 +297,13 @@ export const usePlayerStore = create<PlayerState>((set) => ({
         queue: newQueue,
         history: newHistory,
         progress: 0,
-        isPlaying: true
+        isPlaying: true,
+        announcementSchedule: {
+          ...state.announcementSchedule,
+          tracksSinceLastAnnouncement: state.announcementSchedule.enabled
+            ? state.announcementSchedule.tracksSinceLastAnnouncement + 1
+            : 0,
+        },
       };
     });
   },

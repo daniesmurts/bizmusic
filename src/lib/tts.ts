@@ -161,6 +161,7 @@ async function getSaluteToken(): Promise<string | null> {
 
 export interface TTSRequest {
   text: string;
+  ssml?: string;
   languageCode?: string;
   voiceName: string;
   speakingRate?: number;
@@ -175,8 +176,10 @@ async function generateSpeechGoogle(request: TTSRequest): Promise<Buffer> {
   const ttsClient = getGoogleClient();
   if (!ttsClient) throw new Error("Google Cloud TTS is not configured.");
 
+  const hasSsml = typeof request.ssml === "string" && request.ssml.trim().length > 0;
+
   const [response] = await ttsClient.synthesizeSpeech({
-    input: { text: request.text },
+    input: hasSsml ? { ssml: request.ssml } : { text: request.text },
     voice: {
       languageCode: request.languageCode || "ru-RU",
       name: request.voiceName,
@@ -198,6 +201,10 @@ async function generateSpeechGoogle(request: TTSRequest): Promise<Buffer> {
 async function generateSpeechSalute(request: TTSRequest): Promise<Buffer> {
   const token = await getSaluteToken();
   if (!token) throw new Error("SaluteSpeech is not configured.");
+
+  if (request.ssml && request.ssml.trim().length > 0) {
+    throw new Error("SSML в текущей реализации поддерживается только для Google Cloud TTS");
+  }
 
   const endpoint = await buildSaluteSynthesizeUrl(request.voiceName);
 

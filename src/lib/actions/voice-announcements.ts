@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { tracks, voiceAnnouncements, businesses } from "@/db/schema";
+import { tracks, voiceAnnouncements, businesses, announcementJingles } from "@/db/schema";
 import { generateSpeech, TTSRequest, isProviderConfigured } from "@/lib/tts";
 import { uploadFileBuffer, generateUniqueFileName, deleteFile, parseStorageObjectRef } from "@/lib/supabase-storage";
 import {
@@ -18,6 +18,10 @@ import {
   getTtsEntitlementStatus,
 } from "@/lib/tts-entitlements";
 import { resolveAccessScope } from "@/lib/auth/scope";
+import { ANNOUNCEMENT_TEMPLATES } from "@/lib/announcement-templates";
+import { announcementTemplates } from "@/db/schema";
+import { asc, desc } from "drizzle-orm";
+import { MAX_JINGLE_DURATION_SEC, mixAnnouncementWithJingle } from "@/lib/audio-jingle-mixer";
 
 async function resolveAnnouncementScope() {
   const supabase = await createClient();
@@ -37,12 +41,18 @@ async function resolveAnnouncementScope() {
 
 export interface CreateAnnouncementInput {
   text: string;
+  ssmlText?: string;
   title: string;
   voiceName: string;
   speakingRate?: number;
   pitch?: number;
   languageCode?: string;
   provider?: "google" | "sberbank";
+  jingleId?: string;
+}
+
+function estimateTextLengthFromSsml(ssml: string): number {
+  return ssml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length;
 }
 
 /**
@@ -73,6 +83,19 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
       return { success: false, error: "Текст объявления не должен превышать 500 символов." };
     }
 
+    const hasSsml = Boolean(input.ssmlText && input.ssmlText.trim().length > 0);
+    if (hasSsml && (input.provider || "google") !== "google") {
+      return { success: false, error: "SSML поддерживается только при использовании Google Cloud TTS" };
+    }
+
+    if (hasSsml && (input.ssmlText?.length || 0) > 3000) {
+      return { success: false, error: "SSML не должен превышать 3000 символов" };
+    }
+
+    const charsForBilling = hasSsml
+      ? estimateTextLengthFromSsml(input.ssmlText || "")
+      : input.text.length;
+
     const entitlement = await getTtsEntitlementStatus(business.id);
     if (!entitlement.canGenerate) {
       return { success: false, error: entitlement.denialReason || "Лимит генераций исчерпан." };
@@ -83,6 +106,7 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
     // 1. Generate Speech
     const ttsRequest: TTSRequest = {
       text: input.text,
+      ssml: hasSsml ? input.ssmlText : undefined,
       voiceName: input.voiceName,
       languageCode: input.languageCode || "ru-RU",
       speakingRate: input.speakingRate,
@@ -92,13 +116,49 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
 
     const audioBuffer = await generateSpeech(ttsRequest);
 
+    let finalAudioBuffer = audioBuffer;
+
+    if (input.jingleId) {
+      const selectedJingle = await db.query.announcementJingles.findFirst({
+        where: and(
+          eq(announcementJingles.id, input.jingleId),
+          eq(announcementJingles.isPublished, true)
+        ),
+      });
+
+      if (!selectedJingle) {
+        return { success: false, error: "Выбранный джингл не найден или снят с публикации" };
+      }
+
+      if (selectedJingle.duration <= 0) {
+        return { success: false, error: "У выбранного джингла некорректная длительность" };
+      }
+
+      if (selectedJingle.duration > MAX_JINGLE_DURATION_SEC) {
+        return { success: false, error: `Джингл должен быть не длиннее ${MAX_JINGLE_DURATION_SEC} секунд` };
+      }
+
+      const jingleResponse = await fetch(selectedJingle.fileUrl);
+      if (!jingleResponse.ok) {
+        return { success: false, error: "Не удалось загрузить аудио джингла" };
+      }
+
+      const jingleBytes = Buffer.from(await jingleResponse.arrayBuffer());
+      finalAudioBuffer = await mixAnnouncementWithJingle({
+        announcementBuffer: audioBuffer,
+        jingleBuffer: jingleBytes,
+        position: selectedJingle.position === "outro" ? "outro" : "intro",
+        volumeDb: selectedJingle.volumeDb,
+      });
+    }
+
     // 2. Calculate duration
-    const metadata = await mm.parseBuffer(audioBuffer, "audio/mpeg");
+    const metadata = await mm.parseBuffer(finalAudioBuffer, "audio/mpeg");
     const duration = Math.round(metadata.format.duration || 0);
 
     // 3. Upload to Supabase Storage
     const fileName = generateUniqueFileName(`${input.title.replace(/\s+/g, '_')}.mp3`);
-    const publicUrl = await uploadFileBuffer(audioBuffer, fileName, "announcements");
+    const publicUrl = await uploadFileBuffer(finalAudioBuffer, fileName, "announcements");
 
     // 4. Save to Database
     const result = await db.transaction(async (tx) => {
@@ -129,7 +189,7 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
         business: entitlementBusiness,
         announcementId: newAnnouncement.id,
         provider: ttsRequest.provider || "google",
-        charsCount: input.text.length,
+        charsCount: Math.max(1, charsForBilling),
       });
 
       return { track: newTrack, announcement: newAnnouncement };
@@ -303,5 +363,133 @@ export async function getTtsProvidersStatusAction() {
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch TTS provider status",
     };
+  }
+}
+
+/**
+ * Return built-in announcement templates grouped by seasonal/business packs.
+ */
+export async function getAnnouncementTemplatesAction() {
+  try {
+    const { user } = await resolveAnnouncementScope();
+
+    if (!user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const dbTemplates = await db.query.announcementTemplates.findMany({
+      where: eq(announcementTemplates.isPublished, true),
+      orderBy: [asc(announcementTemplates.sortOrder), desc(announcementTemplates.createdAt)],
+    });
+
+    if (dbTemplates.length > 0) {
+      return {
+        success: true,
+        data: dbTemplates.map((t) => ({
+          id: t.id,
+          pack: t.pack,
+          packLabel: t.packLabel,
+          name: t.name,
+          title: t.title,
+          text: t.text,
+          provider: t.provider === "google" ? "google" : "sberbank",
+        })),
+      };
+    }
+
+    return {
+      success: true,
+      data: ANNOUNCEMENT_TEMPLATES,
+    };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to load announcement templates",
+    };
+  }
+}
+
+// Rate limit: track preview timestamps per business
+const previewRateLimitMap = new Map<string, number[]>();
+const PREVIEW_LIMIT = 3;
+const PREVIEW_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Generate a TTS preview without consuming credits or saving to storage.
+ * Returns base64-encoded audio for inline playback.
+ * Rate limited to 3 previews per hour per business.
+ */
+export async function previewVoiceAnnouncementAction(input: {
+  text: string;
+  ssmlText?: string;
+  voiceName: string;
+  speakingRate?: number;
+  pitch?: number;
+  languageCode?: string;
+  provider?: "google" | "sberbank";
+}) {
+  try {
+    const { user, scope, business } = await resolveAnnouncementScope();
+
+    if (!user) return { success: false, error: "Unauthorized" };
+    if (scope?.isBranchManager) return { success: false, error: "Менеджер филиала не может создавать превью" };
+    if (!business) return { success: false, error: "Business not found" };
+
+    if (!input.text || input.text.length === 0) {
+      return { success: false, error: "Текст не должен быть пустым." };
+    }
+    if (input.text.length > 500) {
+      return { success: false, error: "Текст не должен превышать 500 символов." };
+    }
+
+    const hasSsml = Boolean(input.ssmlText && input.ssmlText.trim().length > 0);
+    if (hasSsml && (input.provider || "google") !== "google") {
+      return { success: false, error: "SSML поддерживается только для Google Cloud TTS" };
+    }
+
+    if (hasSsml && (input.ssmlText?.length || 0) > 3000) {
+      return { success: false, error: "SSML не должен превышать 3000 символов" };
+    }
+
+    // Rate limiting
+    const now = Date.now();
+    const key = business.id;
+    const timestamps = previewRateLimitMap.get(key) ?? [];
+    const recent = timestamps.filter((t) => now - t < PREVIEW_WINDOW_MS);
+
+    if (recent.length >= PREVIEW_LIMIT) {
+      return { success: false, error: `Лимит превью: ${PREVIEW_LIMIT} в час. Попробуйте позже.` };
+    }
+
+    const ttsRequest: TTSRequest = {
+      text: input.text,
+      ssml: hasSsml ? input.ssmlText : undefined,
+      voiceName: input.voiceName,
+      languageCode: input.languageCode || "ru-RU",
+      speakingRate: input.speakingRate,
+      pitch: input.pitch,
+      provider: input.provider || "google",
+    };
+
+    const audioBuffer = await generateSpeech(ttsRequest);
+
+    // Update rate limit
+    recent.push(now);
+    previewRateLimitMap.set(key, recent);
+
+    // Return base64 audio for inline playback
+    const base64Audio = Buffer.from(audioBuffer).toString("base64");
+
+    return {
+      success: true,
+      data: {
+        audioBase64: base64Audio,
+        mimeType: "audio/mpeg",
+      },
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Ошибка генерации превью";
+    console.error("Preview generation error:", error);
+    return { success: false, error: message };
   }
 }

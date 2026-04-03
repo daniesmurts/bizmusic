@@ -28,11 +28,15 @@ import {
   ListPlus,
   X,
   Sparkles,
+  CalendarClock,
+  BarChart3,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useAuth } from "@/components/AuthProvider";
+import Link from "next/link";
 
 interface PlaylistSummary {
   id: string;
@@ -398,12 +402,38 @@ export default function AnnouncementsPage() {
           </p>
         </div>
         {!isAdding && !isBranchManager && (
-          <Button 
-            onClick={() => setIsAdding(true)}
-            className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 h-14 font-black uppercase text-xs tracking-widest gap-2 shadow-lg shadow-neon/20"
-          >
-            <Plus className="w-4 h-4" /> Создать анонс
-          </Button>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/announcements/bulk">
+              <Button 
+                variant="outline"
+                className="border-white/15 text-white hover:bg-white/10 hover:border-white/25 rounded-2xl px-6 h-14 font-black uppercase text-xs tracking-widest gap-2 transition-all"
+              >
+                <Layers className="w-4 h-4" /> Bulk
+              </Button>
+            </Link>
+            <Link href="/dashboard/announcements/analytics">
+              <Button 
+                variant="outline"
+                className="border-white/15 text-white hover:bg-white/10 hover:border-white/25 rounded-2xl px-6 h-14 font-black uppercase text-xs tracking-widest gap-2 transition-all"
+              >
+                <BarChart3 className="w-4 h-4" /> Аналитика
+              </Button>
+            </Link>
+            <Link href="/dashboard/announcements/schedule">
+              <Button 
+                variant="outline"
+                className="border-white/15 text-white hover:bg-neon hover:text-black hover:border-neon rounded-2xl px-6 h-14 font-black uppercase text-xs tracking-widest gap-2 transition-all"
+              >
+                <CalendarClock className="w-4 h-4" /> Авто-расписание
+              </Button>
+            </Link>
+            <Button 
+              onClick={() => setIsAdding(true)}
+              className="bg-neon text-black hover:scale-105 transition-transform rounded-2xl px-8 h-14 font-black uppercase text-xs tracking-widest gap-2 shadow-lg shadow-neon/20"
+            >
+              <Plus className="w-4 h-4" /> Создать анонс
+            </Button>
+          </div>
         )}
       </div>
 
