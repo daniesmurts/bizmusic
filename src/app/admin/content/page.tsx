@@ -50,6 +50,7 @@ type ContentView = "tracks" | "playlists" | "albums" | "artists" | "announcement
 
 export default function AdminContentPage() {
   const queryClient = useQueryClient();
+  const TRACKS_PAGE_SIZE_OPTIONS = [25, 50, 100];
 
   // Listen for playback events to refresh play counts
   useEffect(() => {
@@ -68,6 +69,9 @@ export default function AdminContentPage() {
   const [showAlbumEditor, setShowAlbumEditor] = useState(false);
   const [editingArtist, setEditingArtist] = useState<AdminArtist | null>(null);
   const [showArtistEditor, setShowArtistEditor] = useState(false);
+  const [tracksPage, setTracksPage] = useState(1);
+  const [tracksPageSize, setTracksPageSize] = useState(50);
+  const [tracksPageInput, setTracksPageInput] = useState("1");
   const [uploadedFile, setUploadedFile] = useState<{
     fileName: string;
     url: string;
@@ -76,14 +80,25 @@ export default function AdminContentPage() {
   } | null>(null);
 
   // Fetch tracks
-  const { data: tracksData } = useQuery({
-    queryKey: ["admin-tracks"],
+  const { data: tracksData, isFetching: isTracksFetching } = useQuery({
+    queryKey: ["admin-tracks", tracksPage, tracksPageSize],
     queryFn: async () => {
-      const result = await getAdminTracksAction();
+      const result = await getAdminTracksAction({
+        page: tracksPage,
+        pageSize: tracksPageSize,
+      });
       if (!result.success) {
         throw new Error(result.error);
       }
-      return result.data as AdminTrack[];
+      return {
+        tracks: (result.data as AdminTrack[]) || [],
+        pagination: result.pagination || {
+          page: tracksPage,
+          pageSize: tracksPageSize,
+          total: 0,
+          totalPages: 1,
+        },
+      };
     },
   });
 
@@ -375,10 +390,37 @@ export default function AdminContentPage() {
     await deletePlaylistMutation.mutateAsync(playlistId);
   };
 
-  const tracks: AdminTrack[] = tracksData || [];
+  const tracks: AdminTrack[] = tracksData?.tracks || [];
+  const tracksPagination = tracksData?.pagination || {
+    page: tracksPage,
+    pageSize: tracksPageSize,
+    total: 0,
+    totalPages: 1,
+  };
   const playlists: AdminPlaylist[] = playlistsData || [];
   const albums: AlbumWithTracks[] = albumsData || [];
   const artists: AdminArtist[] = artistsData || [];
+
+  useEffect(() => {
+    setTracksPageInput(String(tracksPagination.page));
+  }, [tracksPagination.page]);
+
+  useEffect(() => {
+    if (tracksPage > tracksPagination.totalPages) {
+      setTracksPage(tracksPagination.totalPages);
+    }
+  }, [tracksPage, tracksPagination.totalPages]);
+
+  const handleTracksPageJump = () => {
+    const parsedPage = Number.parseInt(tracksPageInput, 10);
+    if (Number.isNaN(parsedPage)) {
+      setTracksPageInput(String(tracksPagination.page));
+      return;
+    }
+
+    const nextPage = Math.min(Math.max(parsedPage, 1), tracksPagination.totalPages);
+    setTracksPage(nextPage);
+  };
 
   return (
     <div className="space-y-12">
@@ -571,7 +613,7 @@ export default function AdminContentPage() {
               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
                 Всего треков
               </p>
-              <p className="text-4xl font-black text-white">{tracks.length}</p>
+              <p className="text-4xl font-black text-white">{tracksPagination.total}</p>
             </div>
             <div className="glass-dark border border-white/5 rounded-2xl p-6">
               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
@@ -622,6 +664,71 @@ export default function AdminContentPage() {
             onPlay={handlePlayTrack}
             onToggleFeatured={handleToggleFeatured}
           />
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+              Страница {tracksPagination.page} из {tracksPagination.totalPages} · Показано {tracks.length} из {tracksPagination.total}
+            </p>
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                На странице
+                <select
+                  value={tracksPageSize}
+                  onChange={(event) => {
+                    const nextSize = Number.parseInt(event.target.value, 10);
+                    setTracksPageSize(nextSize);
+                    setTracksPage(1);
+                  }}
+                  className="h-10 rounded-xl border border-white/15 bg-black/40 px-3 text-xs font-black uppercase tracking-widest text-white outline-none"
+                >
+                  {TRACKS_PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size} className="bg-neutral-950 text-white">
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={tracksPagination.totalPages}
+                  value={tracksPageInput}
+                  onChange={(event) => setTracksPageInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      handleTracksPageJump();
+                    }
+                  }}
+                  className="h-10 w-24 rounded-xl border border-white/15 bg-black/40 px-3 text-sm font-bold text-white outline-none"
+                />
+                <Button
+                  variant="outline"
+                  className="border-white/15 text-white hover:bg-white/5"
+                  onClick={handleTracksPageJump}
+                  disabled={isTracksFetching}
+                >
+                  Перейти
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                className="border-white/15 text-white hover:bg-white/5"
+                onClick={() => setTracksPage((prev) => Math.max(1, prev - 1))}
+                disabled={tracksPagination.page <= 1 || isTracksFetching}
+              >
+                Назад
+              </Button>
+              <Button
+                variant="outline"
+                className="border-white/15 text-white hover:bg-white/5"
+                onClick={() => setTracksPage((prev) => Math.min(tracksPagination.totalPages, prev + 1))}
+                disabled={tracksPagination.page >= tracksPagination.totalPages || isTracksFetching}
+              >
+                Вперед
+              </Button>
+            </div>
+          </div>
         </>
       ) : currentView === "albums" ? (
         <div className="space-y-12">
