@@ -7,6 +7,8 @@ import { announcementJingles, users } from "@/db/schema";
 import { createClient } from "@/utils/supabase/server";
 import { MAX_JINGLE_DURATION_SEC } from "@/lib/audio-jingle-mixer";
 
+export type AnnouncementJingleRow = typeof announcementJingles.$inferSelect;
+
 async function requireAdminUser() {
   const supabase = await createClient();
   const {

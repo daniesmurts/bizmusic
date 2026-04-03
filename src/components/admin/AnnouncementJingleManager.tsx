@@ -13,6 +13,7 @@ import {
   getAdminAnnouncementJinglesAction,
   updateAnnouncementJingleAction,
   type AnnouncementJingleInput,
+  type AnnouncementJingleRow,
 } from "@/lib/actions/announcement-jingles";
 import { toast } from "sonner";
 import { Music, Save, Trash2 } from "lucide-react";
@@ -27,16 +28,7 @@ const EMPTY_FORM: AnnouncementJingleInput = {
   sortOrder: 0,
 };
 
-type JingleRow = Awaited<ReturnType<typeof getAdminAnnouncementJinglesAction>> extends {
-  success: true;
-  data: infer T;
-}
-  ? T extends Array<infer U>
-    ? U
-    : never
-  : never;
-
-function toForm(row: JingleRow): AnnouncementJingleInput {
+function toForm(row: AnnouncementJingleRow): AnnouncementJingleInput {
   return {
     name: row.name,
     fileUrl: row.fileUrl,
