@@ -25,8 +25,8 @@ export default function KnowledgeBasePage() {
       title: "Начало работы",
       icon: Play,
       articles: [
-        { title: "Быстрый старт: запуск плеера", href: "#" },
-        { title: "Настройка музыкального расписания", href: "#" }
+        { title: "Быстрый старт: запуск плеера", href: "/knowledge/player-quick-start" },
+        { title: "Настройка музыкального расписания", href: "/knowledge/music-scheduling-setup" }
       ]
     },
     {
@@ -34,6 +34,7 @@ export default function KnowledgeBasePage() {
       icon: Mic,
       articles: [
         { title: "Как работают голосовые объявления", href: "/knowledge/voice-announcements" },
+        { title: "Новые функции: как это работает", href: "/knowledge/announcement-feature-updates" },
         { title: "Улучшение текста с ИИ (AI Assist)", href: "/knowledge/ai-assist" },
         { title: "Квоты и покупка токенов", href: "/knowledge/voice-announcements#quotas" }
       ]
@@ -42,8 +43,8 @@ export default function KnowledgeBasePage() {
       title: "Финансы и документы",
       icon: CreditCard,
       articles: [
-        { title: "Управление подпиской", href: "#" },
-        { title: "Бухгалтерские документы", href: "#" }
+        { title: "Управление подпиской", href: "/knowledge/subscription-management" },
+        { title: "Бухгалтерские документы", href: "/knowledge/accounting-documents" }
       ]
     },
     {
@@ -51,7 +52,7 @@ export default function KnowledgeBasePage() {
       icon: Sliders,
       articles: [
         { title: "Бизнес-Волна: Что это?", href: "/knowledge/business-wave" },
-        { title: "Тайм-зона и расписание", href: "#" }
+        { title: "Тайм-зона и расписание", href: "/knowledge/timezone-and-schedule" }
       ]
     }
   ];
