@@ -51,6 +51,7 @@ const MODE_OPTIONS = [
 interface ScheduleAnnouncementItem {
   id: string;
   trackId: string;
+  announcementId: string;
   title: string;
   text: string;
   provider: string;

@@ -269,9 +269,10 @@ export default function VoiceAnnouncementsKnowledgePage() {
               <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest">Другие темы</p>
               <nav className="flex flex-col gap-2">
                 {[
-                  { name: "Настройка плеера", href: "#" },
-                  { name: "Оплата и документы", href: "#" },
-                  { name: "Публикация контента", href: "#" }
+                  { name: "Новые функции анонсов", href: "/knowledge/announcement-feature-updates" },
+                  { name: "Настройка плеера", href: "/knowledge/player-quick-start" },
+                  { name: "Оплата и документы", href: "/knowledge/accounting-documents" },
+                  { name: "Публикация контента", href: "/knowledge/announcement-feature-updates" }
                 ].map((item) => (
                   <Link key={item.name} href={item.href} className="text-[11px] font-bold text-neutral-400 hover:text-neon transition-colors">
                     {item.name}
