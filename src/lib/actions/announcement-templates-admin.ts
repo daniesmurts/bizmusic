@@ -6,6 +6,8 @@ import { db } from "@/db";
 import { announcementTemplates, users } from "@/db/schema";
 import { createClient } from "@/utils/supabase/server";
 
+export type AnnouncementTemplateRow = typeof announcementTemplates.$inferSelect;
+
 async function requireAdminUser() {
   const supabase = await createClient();
   const {
