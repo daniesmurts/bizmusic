@@ -141,6 +141,13 @@
       "when": 1775365200000,
       "tag": "0019_location_playlist_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1775383200000,
+      "tag": "0020_track_download_events",
+      "breakpoints": true
     }
   ]
 }

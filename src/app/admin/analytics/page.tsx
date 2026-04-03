@@ -110,8 +110,9 @@ export default function AdminAnalyticsPage() {
     );
   }
 
-  const summary = analytics?.summary || { users: 0, businesses: 0, tracks: 0, plays: 0, hours: 0, revenue: 0, likes: 0, dislikes: 0, reactionRatio: 0 };
+  const summary = analytics?.summary || { users: 0, businesses: 0, tracks: 0, plays: 0, downloads: 0, hours: 0, revenue: 0, likes: 0, dislikes: 0, reactionRatio: 0 };
   const topTracks = analytics?.topTracks || [];
+  const topDownloadedTracks = analytics?.downloads?.topTracks || [];
   const topLikedTracks = analytics?.reactions?.topLikedTracks || [];
   const topDislikedTracks = analytics?.reactions?.topDislikedTracks || [];
 
@@ -196,7 +197,7 @@ export default function AdminAnalyticsPage() {
       )}
 
       {/* Hero Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-6">
         <StatCard 
           label="Всего пользователей" 
           value={summary.users} 
@@ -220,6 +221,14 @@ export default function AdminAnalyticsPage() {
           color="text-neon"
           bg="bg-neon/10"
           pop={analytics?.pop?.plays}
+        />
+        <StatCard 
+          label="Скачивания" 
+          value={summary.downloads.toLocaleString()} 
+          icon={Download} 
+          color="text-sky-400"
+          bg="bg-sky-400/10"
+          pop={analytics?.pop?.downloads}
         />
         <StatCard 
           label="Общая выручка" 
@@ -298,6 +307,17 @@ export default function AdminAnalyticsPage() {
               </LineChart>
             </ResponsiveContainer>
 
+            <ResponsiveContainer width="100%" height={120}>
+              <LineChart data={analytics?.downloads?.trend || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                <YAxis allowDecimals={false} width={40} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="downloads" name="Скачивания" stroke="#38bdf8" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+
             {/* Playback Heatmap */}
             <div className="mt-12">
               <h3 className="text-xl font-black uppercase tracking-tight mb-2">Тепловая карта прослушиваний</h3>
@@ -361,6 +381,23 @@ export default function AdminAnalyticsPage() {
                    </div>
                  )) : (
                    <p className="text-xs font-bold uppercase tracking-widest text-neutral-600">Нет реакций</p>
+                 )}
+               </div>
+             </div>
+
+             <div className="mt-8 space-y-6">
+               <div className="flex items-center justify-between">
+                 <h4 className="text-sm font-black uppercase tracking-widest text-sky-300">Топ по скачиваниям</h4>
+                 <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">SOW: {analytics?.downloads?.songOfWeekTotal ?? 0}</span>
+               </div>
+               <div className="space-y-3">
+                 {topDownloadedTracks.length > 0 ? topDownloadedTracks.map((track: any) => (
+                   <div key={track.id} className="flex items-center justify-between text-xs">
+                     <span className="font-bold text-white truncate max-w-[140px]">{track.title}</span>
+                     <span className="font-black text-sky-400">⬇ {track.download_count}</span>
+                   </div>
+                 )) : (
+                   <p className="text-xs font-bold uppercase tracking-widest text-neutral-600">Нет скачиваний</p>
                  )}
                </div>
              </div>

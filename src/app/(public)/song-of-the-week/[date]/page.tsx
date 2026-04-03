@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { ArrowRight, Download, Music, Shield, ArrowLeft } from "lucide-react";
 import { getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { buildTrackDownloadUrl } from "@/lib/track-download-url";
 
 export const runtime = "nodejs";
 
@@ -156,7 +157,7 @@ export default async function SongOfTheWeekDetailPage({ params }: SongOfTheWeekD
             )}
 
             <div className="space-y-3">
-              <a href={track.fileUrl} download className="inline-flex group/download">
+              <a href={buildTrackDownloadUrl(track.id, { source: "song-of-the-week-detail", songOfWeekId: song.id })} className="inline-flex group/download">
                 <div className="inline-flex items-center gap-3 bg-neon text-black font-black uppercase tracking-widest rounded-full px-7 md:px-9 py-4 hover:scale-[1.03] active:scale-[0.98] transition-transform shadow-[0_0_34px_rgba(92,243,135,0.42)] text-sm">
                   <Download className="w-4 h-4" />
                   Скачать трек бесплатно

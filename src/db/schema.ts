@@ -255,6 +255,22 @@ export const songOfTheWeek = pgTable("song_of_the_week", {
   postedAtIdx: index("idx_song_of_week_posted_at").on(t.postedAt),
 }));
 
+export const trackDownloadEvents = pgTable("track_download_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
+  songOfWeekId: text("songOfWeekId").references(() => songOfTheWeek.id, { onDelete: "set null" }),
+  source: text("source").default("unknown").notNull(),
+  ipHash: text("ipHash"),
+  userAgent: text("userAgent"),
+  referer: text("referer"),
+  downloadedAt: timestamp("downloadedAt").defaultNow().notNull(),
+}, (t) => ({
+  trackDownloadedIdx: index("track_download_events_track_downloaded_idx").on(t.trackId, t.downloadedAt),
+  downloadedAtIdx: index("track_download_events_downloaded_at_idx").on(t.downloadedAt),
+  sourceIdx: index("track_download_events_source_idx").on(t.source),
+  songOfWeekIdx: index("track_download_events_song_of_week_idx").on(t.songOfWeekId),
+}));
+
 export const trackReactions = pgTable("track_reactions", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("userId").references(() => users.id, { onDelete: "cascade" }).notNull(),
@@ -562,6 +578,7 @@ export const tracksRelations = relations(tracks, ({ one, many }) => ({
   voiceAnnouncement: one(voiceAnnouncements, { fields: [tracks.id], references: [voiceAnnouncements.trackId] }),
   platformAnnouncementProduct: one(platformAnnouncementProducts, { fields: [tracks.id], references: [platformAnnouncementProducts.trackId] }),
   songOfTheWeek: one(songOfTheWeek, { fields: [tracks.id], references: [songOfTheWeek.trackId] }),
+  downloadEvents: many(trackDownloadEvents),
 }));
 
 export const albumsRelations = relations(albums, ({ one, many }) => ({
@@ -592,8 +609,14 @@ export const playLogsRelations = relations(playLogs, ({ one }) => ({
   track: one(tracks, { fields: [playLogs.trackId], references: [tracks.id] }),
 }));
 
-export const songOfTheWeekRelations = relations(songOfTheWeek, ({ one }) => ({
+export const songOfTheWeekRelations = relations(songOfTheWeek, ({ one, many }) => ({
   track: one(tracks, { fields: [songOfTheWeek.trackId], references: [tracks.id] }),
+  downloadEvents: many(trackDownloadEvents),
+}));
+
+export const trackDownloadEventsRelations = relations(trackDownloadEvents, ({ one }) => ({
+  track: one(tracks, { fields: [trackDownloadEvents.trackId], references: [tracks.id] }),
+  songOfWeek: one(songOfTheWeek, { fields: [trackDownloadEvents.songOfWeekId], references: [songOfTheWeek.id] }),
 }));
 
 export const waveSettingsRelations = relations(waveSettings, ({ one }) => ({
