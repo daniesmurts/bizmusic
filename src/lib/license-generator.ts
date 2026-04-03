@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 
 export interface LicenseData {
   businessName: string;
@@ -14,12 +15,30 @@ export interface LicenseData {
   ownerName?: string;
 }
 
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PUBLIC_DIR = path.resolve(MODULE_DIR, "../../public");
+const DEFAULT_BOLD_FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Roboto-Bold.ttf");
+const DEFAULT_REGULAR_FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Roboto-Regular.ttf");
+const DEFAULT_SIGNATURE_IMAGE_PATH = path.join(PUBLIC_DIR, "images", "signature.png");
+
+function resolvePublicAssetPath(configuredPath: string | undefined, fallbackPath: string) {
+  if (!configuredPath || configuredPath.trim().length === 0) {
+    return fallbackPath;
+  }
+
+  if (path.isAbsolute(configuredPath)) {
+    return configuredPath;
+  }
+
+  const relativePath = configuredPath.replace(/^\/?public\/?/, "").replace(/^\/+/, "");
+  return path.join(PUBLIC_DIR, relativePath);
+}
+
 export async function generateLicensePDF(data: LicenseData): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     try {
-      // Use a more standard font path for cross-environment compatibility
-      const boldFontPath = path.join(process.cwd(), "public", "fonts", "Roboto-Bold.ttf");
-      const regularFontPath = path.join(process.cwd(), "public", "fonts", "Roboto-Regular.ttf");
+      const boldFontPath = DEFAULT_BOLD_FONT_PATH;
+      const regularFontPath = DEFAULT_REGULAR_FONT_PATH;
 
       // Verify fonts exist
       if (!fs.existsSync(boldFontPath) || !fs.existsSync(regularFontPath)) {
@@ -105,9 +124,10 @@ export async function generateLicensePDF(data: LicenseData): Promise<Buffer> {
       // Signature Section
       const ownerName = data.ownerName?.trim() || process.env.LICENSOR_LEGAL_NAME || "ИП Бугембе Даниел";
       const signerName = data.signingName?.trim();
-      const signatureImagePath = process.env.LICENSOR_SIGNATURE_IMAGE_PATH
-        ? path.join(process.cwd(), process.env.LICENSOR_SIGNATURE_IMAGE_PATH)
-        : path.join(process.cwd(), "public", "images", "signature.png");
+      const signatureImagePath = resolvePublicAssetPath(
+        process.env.LICENSOR_SIGNATURE_IMAGE_PATH,
+        DEFAULT_SIGNATURE_IMAGE_PATH
+      );
 
       doc.font(regularFontPath).fontSize(12).fillColor("#000000").text("Уполномоченный представитель", 70, 650);
       doc.font(boldFontPath).text(ownerName, 70, 670);

@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 
 export interface AgreementData {
   legalName: string;
@@ -14,13 +15,18 @@ export interface AgreementData {
   acceptedIp?: string;
 }
 
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PUBLIC_DIR = path.resolve(MODULE_DIR, "../../public");
+const OFFER_PATH = path.resolve(MODULE_DIR, "../../publicoffer.md");
+const DEFAULT_BOLD_FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Roboto-Bold.ttf");
+const DEFAULT_REGULAR_FONT_PATH = path.join(PUBLIC_DIR, "fonts", "Roboto-Regular.ttf");
+
 function readOfferText(): string {
-  const offerPath = path.join(process.cwd(), "publicoffer.md");
-  if (!fs.existsSync(offerPath)) {
+  if (!fs.existsSync(OFFER_PATH)) {
     throw new Error("publicoffer.md not found");
   }
 
-  const raw = fs.readFileSync(offerPath, "utf-8");
+  const raw = fs.readFileSync(OFFER_PATH, "utf-8");
   return raw
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/\*\*/g, "")
@@ -32,8 +38,8 @@ function readOfferText(): string {
 export async function generateAgreementPDF(data: AgreementData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
-      const boldFontPath = path.join(process.cwd(), "public", "fonts", "Roboto-Bold.ttf");
-      const regularFontPath = path.join(process.cwd(), "public", "fonts", "Roboto-Regular.ttf");
+      const boldFontPath = DEFAULT_BOLD_FONT_PATH;
+      const regularFontPath = DEFAULT_REGULAR_FONT_PATH;
 
       if (!fs.existsSync(boldFontPath) || !fs.existsSync(regularFontPath)) {
         throw new Error("Fonts not found. Please ensure Roboto-Bold.ttf and Roboto-Regular.ttf are in public/fonts/");

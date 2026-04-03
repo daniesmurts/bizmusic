@@ -13,6 +13,7 @@ import {
   getAdminAnnouncementTemplatesAction,
   updateAnnouncementTemplateAction,
   type AdminAnnouncementTemplateInput,
+  type AnnouncementTemplateRow,
 } from "@/lib/actions/announcement-templates-admin";
 import { toast } from "sonner";
 import { LayoutTemplate, Plus, Save, Trash2 } from "lucide-react";
@@ -30,16 +31,7 @@ const EMPTY_FORM: AdminAnnouncementTemplateInput = {
   sortOrder: 0,
 };
 
-type TemplateRow = Awaited<ReturnType<typeof getAdminAnnouncementTemplatesAction>> extends {
-  success: true;
-  data: infer T;
-}
-  ? T extends Array<infer U>
-    ? U
-    : never
-  : never;
-
-function toForm(row: TemplateRow): AdminAnnouncementTemplateInput {
+function toForm(row: AnnouncementTemplateRow): AdminAnnouncementTemplateInput {
   return {
     name: row.name,
     title: row.title,
