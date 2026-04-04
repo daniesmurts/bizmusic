@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { businesses, ttsCreditLots, ttsUsageEvents } from "@/db/schema";
+import { brandVoiceModels, brandVoiceUsageEvents, businesses, ttsCreditLots, ttsUsageEvents } from "@/db/schema";
 import { getPlanBySlug } from "@/lib/payments/plans";
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 
@@ -12,6 +12,10 @@ type BusinessEntitlementState = {
   ttsMonthlyUsed: number;
   ttsMonthlyPeriodStart: Date | null;
   ttsMonthlyPeriodEnd: Date | null;
+  brandVoiceMonthlyUsed: number;
+  brandVoiceMonthlyPeriodStart: Date | null;
+  brandVoiceMonthlyPeriodEnd: Date | null;
+  brandVoiceOverageCharsPurchased: number;
 };
 
 export interface TtsEntitlementStatus {
@@ -25,10 +29,29 @@ export interface TtsEntitlementStatus {
   denialReason?: string;
 }
 
+export interface BrandVoiceEntitlementStatus {
+  monthlyLimit: number;
+  monthlyUsed: number;
+  monthlyRemaining: number;
+  overageCharsPurchased: number;
+  nextMonthlyResetAt: Date | null;
+  canGenerate: boolean;
+  denialReason?: string;
+}
+
 interface ConsumeCreditParams {
   business: BusinessEntitlementState;
   announcementId: string;
   provider: "google" | "sberbank";
+  charsCount: number;
+  now?: Date;
+}
+
+interface ConsumeBrandVoiceCharsParams {
+  business: BusinessEntitlementState;
+  modelId: string;
+  announcementId?: string;
+  provider: string;
   charsCount: number;
   now?: Date;
 }
@@ -58,8 +81,35 @@ export function getMonthlyLimitForPlan(
   return plan?.ttsMonthlyLimit ?? 0;
 }
 
+export function getBrandVoiceMonthlyLimitForPlan(
+  planSlug: string | null,
+  subscriptionStatus: "INACTIVE" | "ACTIVE" | "EXPIRED"
+): number {
+  if (subscriptionStatus !== "ACTIVE") {
+    return 0;
+  }
+
+  const plan = planSlug ? getPlanBySlug(planSlug) : undefined;
+  return plan?.brandVoiceMonthlyLimit ?? 0;
+}
+
 function getMonthlyLimitForBusiness(business: BusinessEntitlementState): number {
   return getMonthlyLimitForPlan(business.currentPlanSlug, business.subscriptionStatus);
+}
+
+function getBrandVoiceMonthlyLimitForBusiness(business: BusinessEntitlementState): number {
+  return getBrandVoiceMonthlyLimitForPlan(business.currentPlanSlug, business.subscriptionStatus);
+}
+
+async function getBrandVoiceModelLimitForBusiness(businessId: string): Promise<number> {
+  const rows = await db
+    .select({
+      maxLimit: sql<number>`coalesce(max(${brandVoiceModels.monthlyCharsLimit}), 0)`,
+    })
+    .from(brandVoiceModels)
+    .where(eq(brandVoiceModels.businessId, businessId));
+
+  return rows[0]?.maxLimit ?? 0;
 }
 
 export function pickNextCreditLot(lots: CreditLotCandidate[], now: Date): CreditLotCandidate | null {
@@ -115,6 +165,7 @@ async function resetMonthlyWindowIfNeeded(business: BusinessEntitlementState, no
   const periodEnded = !business.ttsMonthlyPeriodEnd || now >= business.ttsMonthlyPeriodEnd;
   const periodNotInitialized = !business.ttsMonthlyPeriodStart;
 
+  // Only reset TTS (plan-based, calendar-month). BV period is managed exclusively by the payment webhook.
   if (!periodEnded && !periodNotInitialized) {
     return;
   }
@@ -139,6 +190,10 @@ export async function getBusinessEntitlementState(businessId: string, now: Date 
       ttsMonthlyUsed: true,
       ttsMonthlyPeriodStart: true,
       ttsMonthlyPeriodEnd: true,
+      brandVoiceMonthlyUsed: true,
+      brandVoiceMonthlyPeriodStart: true,
+      brandVoiceMonthlyPeriodEnd: true,
+      brandVoiceOverageCharsPurchased: true,
     },
   });
 
@@ -157,6 +212,10 @@ export async function getBusinessEntitlementState(businessId: string, now: Date 
       ttsMonthlyUsed: true,
       ttsMonthlyPeriodStart: true,
       ttsMonthlyPeriodEnd: true,
+      brandVoiceMonthlyUsed: true,
+      brandVoiceMonthlyPeriodStart: true,
+      brandVoiceMonthlyPeriodEnd: true,
+      brandVoiceOverageCharsPurchased: true,
     },
   });
 
@@ -192,6 +251,36 @@ export async function getTtsEntitlementStatus(businessId: string): Promise<TtsEn
   };
 }
 
+export async function getBrandVoiceEntitlementStatus(businessId: string): Promise<BrandVoiceEntitlementStatus> {
+  const now = new Date();
+  const business = await getBusinessEntitlementState(businessId, now);
+  const planMonthlyLimit = getBrandVoiceMonthlyLimitForBusiness(business);
+  const modelMonthlyLimit = await getBrandVoiceModelLimitForBusiness(businessId);
+  const monthlyLimit = Math.max(planMonthlyLimit, modelMonthlyLimit);
+  // BV period is payment-based: only active if period exists and hasn't expired
+  const periodActive =
+    Boolean(business.brandVoiceMonthlyPeriodEnd) &&
+    now < business.brandVoiceMonthlyPeriodEnd!;
+  const overageCharsPurchased = business.brandVoiceOverageCharsPurchased ?? 0;
+  const effectiveLimit = monthlyLimit + overageCharsPurchased;
+  const effectiveRemaining = Math.max(0, effectiveLimit - business.brandVoiceMonthlyUsed);
+  const canGenerate = periodActive && effectiveRemaining > 0;
+
+  return {
+    monthlyLimit,
+    monthlyUsed: business.brandVoiceMonthlyUsed,
+    monthlyRemaining: Math.max(0, monthlyLimit - business.brandVoiceMonthlyUsed),
+    overageCharsPurchased,
+    nextMonthlyResetAt: business.brandVoiceMonthlyPeriodEnd,
+    canGenerate,
+    denialReason: canGenerate
+      ? undefined
+      : !periodActive
+        ? "Ежемесячная подписка Brand Voice истекла или не активирована. Оформите подписку."
+        : "Ежемесячный лимит Brand Voice исчерпан. Обновите тариф или докупите дополнительные символы.",
+  };
+}
+
 export async function consumeTtsGenerationCredit(
   executor: TtsDbExecutor,
   params: ConsumeCreditParams
@@ -206,6 +295,10 @@ export async function consumeTtsGenerationCredit(
       ttsMonthlyUsed: true,
       ttsMonthlyPeriodStart: true,
       ttsMonthlyPeriodEnd: true,
+      brandVoiceMonthlyUsed: true,
+      brandVoiceMonthlyPeriodStart: true,
+      brandVoiceMonthlyPeriodEnd: true,
+      brandVoiceOverageCharsPurchased: true,
     },
   });
 
@@ -275,4 +368,75 @@ export async function consumeTtsGenerationCredit(
   });
 
   return { sourceType: "pack" };
+}
+
+export async function consumeBrandVoiceGenerationChars(
+  executor: TtsDbExecutor,
+  params: ConsumeBrandVoiceCharsParams
+): Promise<void> {
+  const now = params.now ?? new Date();
+  const currentBusiness = await executor.query.businesses.findFirst({
+    where: eq(businesses.id, params.business.id),
+    columns: {
+      id: true,
+      currentPlanSlug: true,
+      subscriptionStatus: true,
+      ttsMonthlyUsed: true,
+      ttsMonthlyPeriodStart: true,
+      ttsMonthlyPeriodEnd: true,
+      brandVoiceMonthlyUsed: true,
+      brandVoiceMonthlyPeriodStart: true,
+      brandVoiceMonthlyPeriodEnd: true,
+      brandVoiceOverageCharsPurchased: true,
+    },
+  });
+
+  if (!currentBusiness) {
+    throw new Error("Business not found during Brand Voice credit consumption.");
+  }
+
+  const periodEnded =
+    !currentBusiness.brandVoiceMonthlyPeriodEnd || now >= currentBusiness.brandVoiceMonthlyPeriodEnd;
+  const periodNotInitialized = !currentBusiness.brandVoiceMonthlyPeriodStart;
+
+  // Enforce payment-based period — no silent calendar reset
+  if (periodNotInitialized) {
+    throw new Error("Нет активной подписки Brand Voice. Оформите ежемесячную подписку Brand Voice.");
+  }
+  if (periodEnded) {
+    throw new Error("Срок подписки Brand Voice истёк. Продлите подписку в разделе Brand Voice.");
+  }
+
+  const monthlyUsed = currentBusiness.brandVoiceMonthlyUsed;
+
+  const model = await executor.query.brandVoiceModels.findFirst({
+    where: and(eq(brandVoiceModels.id, params.modelId), eq(brandVoiceModels.businessId, currentBusiness.id)),
+    columns: { monthlyCharsLimit: true },
+  });
+
+  const planMonthlyLimit = getBrandVoiceMonthlyLimitForBusiness(currentBusiness);
+  const modelMonthlyLimit = model?.monthlyCharsLimit ?? 0;
+  const baseMonthlyLimit = Math.max(planMonthlyLimit, modelMonthlyLimit);
+  const overagePurchased = currentBusiness.brandVoiceOverageCharsPurchased ?? 0;
+  const monthlyLimit = baseMonthlyLimit + overagePurchased;
+  const charsToConsume = Math.max(0, Math.floor(params.charsCount));
+
+  if (monthlyUsed + charsToConsume > monthlyLimit) {
+    throw new Error("Недостаточно Brand Voice символов в текущем месяце. Докупите дополнительные символы.");
+  }
+
+  await executor
+    .update(businesses)
+    .set({
+      brandVoiceMonthlyUsed: monthlyUsed + charsToConsume,
+    })
+    .where(eq(businesses.id, currentBusiness.id));
+
+  await executor.insert(brandVoiceUsageEvents).values({
+    businessId: params.business.id,
+    modelId: params.modelId,
+    announcementId: params.announcementId,
+    provider: params.provider,
+    charsCount: charsToConsume,
+  });
 }

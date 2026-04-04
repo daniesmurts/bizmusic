@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Mic, Loader2, Info, Sparkles, AlertTriangle, Headphones, LayoutTemplate, CalendarDays } from "lucide-react";
 import { generateVoiceAnnouncementAction, getAnnouncementTemplatesAction, getTtsProvidersStatusAction, previewVoiceAnnouncementAction } from "@/lib/actions/voice-announcements";
+import { getBrandVoiceOverviewAction } from "@/lib/actions/brand-voice";
+import { purchaseBrandVoiceOverageAction } from "@/lib/actions/payments";
 import { getPublishedAnnouncementJinglesAction } from "@/lib/actions/announcement-jingles";
 import { generateAiAssistAction } from "@/lib/actions/ai-assists";
 import { toast } from "sonner";
@@ -55,6 +58,9 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [providerStatus, setProviderStatus] = useState<{google: boolean, sberbank: boolean} | null>(null);
   const [selectedJingleId, setSelectedJingleId] = useState<string>("");
+  const [generationMode, setGenerationMode] = useState<"standard" | "brand-voice">("standard");
+  const [selectedBrandVoiceModelId, setSelectedBrandVoiceModelId] = useState<string>("");
+  const [isOveragePurchasing, setIsOveragePurchasing] = useState(false);
   const [useSsml, setUseSsml] = useState(false);
   const [ssmlText, setSsmlText] = useState("");
 
@@ -90,7 +96,44 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: brandVoiceOverview } = useQuery<{
+    business: {
+      brandVoiceMonthlyUsed: number;
+      brandVoiceOverageCharsPurchased: number;
+    };
+    models: Array<{
+      id: string;
+      status: string;
+      actor: { fullName: string };
+      monthlyCharsLimit: number;
+      monthlyCharsUsed: number;
+    }>;
+  }>({
+    queryKey: ["brand-voice-overview-lite"],
+    queryFn: async () => {
+      const result = await getBrandVoiceOverviewAction();
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Не удалось загрузить Brand Voice модели");
+      }
+      return {
+        business: {
+          brandVoiceMonthlyUsed: result.data.business.brandVoiceMonthlyUsed,
+          brandVoiceOverageCharsPurchased: result.data.business.brandVoiceOverageCharsPurchased ?? 0,
+        },
+        models: result.data.models as Array<{
+          id: string;
+          status: string;
+          actor: { fullName: string };
+          monthlyCharsLimit: number;
+          monthlyCharsUsed: number;
+        }>,
+      };
+    },
+    staleTime: 30 * 1000,
+  });
+
   const templates = templatesData ?? [];
+  const readyBrandVoiceModels = (brandVoiceOverview?.models ?? []).filter((m) => m.status === "READY");
   const packOptions = [
     { id: "all", label: "Все" },
     ...Array.from(new Map(templates.map((template) => [template.pack, template.packLabel])).entries()).map(
@@ -99,6 +142,12 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
   ];
   const visibleTemplates =
     selectedPack === "all" ? templates : templates.filter((template) => template.pack === selectedPack);
+
+  useEffect(() => {
+    if (!selectedBrandVoiceModelId && readyBrandVoiceModels.length > 0) {
+      setSelectedBrandVoiceModelId(readyBrandVoiceModels[0].id);
+    }
+  }, [readyBrandVoiceModels, selectedBrandVoiceModelId]);
 
   useEffect(() => {
     async function checkStatus() {
@@ -133,6 +182,13 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
     }
   }, [useSsml, provider]);
 
+  useEffect(() => {
+    if (generationMode === "brand-voice" && useSsml) {
+      setUseSsml(false);
+      setSsmlText("");
+    }
+  }, [generationMode, useSsml]);
+
   const charCount = text.length;
   const isOptimal = charCount >= 150 && charCount <= 250;
   const ssmlValidation = useSsml ? validateSsmlBasic(ssmlText) : { errors: [], warnings: [] };
@@ -158,6 +214,11 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
   };
 
   const handlePreview = async () => {
+    if (generationMode === "brand-voice") {
+      toast.info("Превью пока доступно только для стандартного TTS");
+      return;
+    }
+
     if (!text) {
       toast.error("Пожалуйста, напишите текст анонса.");
       return;
@@ -232,8 +293,13 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
       return;
     }
 
-    if (!canGenerate) {
+    if (generationMode === "standard" && !canGenerate) {
       toast.error("Лимит генераций исчерпан. Приобретите пакет токенов.");
+      return;
+    }
+
+    if (generationMode === "brand-voice" && !selectedBrandVoiceModelId) {
+      toast.error("Выберите готовую Brand Voice модель.");
       return;
     }
 
@@ -256,7 +322,10 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
         ssmlText,
       });
 
-      const result = await generateVoiceAnnouncementAction(payload);
+      const result = await generateVoiceAnnouncementAction({
+        ...payload,
+        brandVoiceModelId: generationMode === "brand-voice" ? selectedBrandVoiceModelId : undefined,
+      });
 
       if (result.success) {
         toast.success("Анонс успешно создан и добавлен в библиотеку.");
@@ -381,10 +450,117 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
             ) : (
               <p className="text-[11px] text-neutral-500">Шаблоны пока не найдены.</p>
             )}
+
+            {generationMode === "brand-voice" && (
+              <div className="space-y-2">
+                {readyBrandVoiceModels.length === 0 ? (
+                  <div className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-3 space-y-2">
+                    <p>Нет готовых Brand Voice моделей.</p>
+                    <Link
+                      href="/dashboard/brand-voice"
+                      className="block text-center py-1.5 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg font-black uppercase tracking-wider transition-all"
+                    >
+                      Настроить Brand Voice →
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2">
+                    {readyBrandVoiceModels.map((model) => (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => setSelectedBrandVoiceModelId(model.id)}
+                        className={cn(
+                          "px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border text-left",
+                          selectedBrandVoiceModelId === model.id
+                            ? "bg-neon text-black border-neon"
+                            : "bg-white/5 border-white/10 text-neutral-300 hover:border-white/20"
+                        )}
+                      >
+                        <div className="truncate">{model.actor?.fullName || "Диктор"}</div>
+                        <div className={cn("mt-1 text-[9px]", selectedBrandVoiceModelId === model.id ? "text-black/80" : "text-neutral-500")}>ID: {model.id.slice(0, 8)} • Лимит: {model.monthlyCharsLimit.toLocaleString("ru-RU")}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {generationMode === "brand-voice" && selectedBrandVoiceModelId && (() => {
+              const activeModel = readyBrandVoiceModels.find((m) => m.id === selectedBrandVoiceModelId);
+              if (!activeModel) return null;
+              const businessUsed = brandVoiceOverview?.business.brandVoiceMonthlyUsed ?? activeModel.monthlyCharsUsed;
+              const overagePurchased = brandVoiceOverview?.business.brandVoiceOverageCharsPurchased ?? 0;
+              const effectiveLimit = activeModel.monthlyCharsLimit + overagePurchased;
+              const remaining = Math.max(0, effectiveLimit - businessUsed);
+              if (remaining > 0) return null;
+              return (
+                <div className="mt-2 text-xs text-orange-300 bg-orange-500/10 border border-orange-500/20 rounded-xl px-3 py-3 space-y-2">
+                  <p className="font-bold">Лимит символов исчерпан.</p>
+                  <p className="text-orange-400/80">Докупите +1 000 символов по вашему тарифу (от 5 ₽ / 1 000).</p>
+                  <button
+                    type="button"
+                    disabled={isOveragePurchasing}
+                    onClick={async () => {
+                      setIsOveragePurchasing(true);
+                      try {
+                        const res = await purchaseBrandVoiceOverageAction(selectedBrandVoiceModelId, 10);
+                        if (res.success && res.paymentUrl) {
+                          window.location.href = res.paymentUrl;
+                        } else {
+                          toast.error(res.error || "Ошибка платежа");
+                        }
+                      } catch {
+                        toast.error("Не удалось создать платёж на овердрафт");
+                      } finally {
+                        setIsOveragePurchasing(false);
+                      }
+                    }}
+                    className="w-full py-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg font-black uppercase tracking-wider transition-all disabled:opacity-50"
+                  >
+                    {isOveragePurchasing ? "Ожидайте..." : "Докупить +10 000 символов →"}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="title" className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Название (для библиотеки)</Label>
+            <Label className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">
+              Режим генерации
+            </Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setGenerationMode("standard")}
+                className={cn(
+                  "px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border text-left",
+                  generationMode === "standard"
+                    ? "bg-neon text-black border-neon"
+                    : "bg-white/5 border-white/10 text-neutral-400 hover:border-white/20"
+                )}
+              >
+                Стандартный TTS
+              </button>
+              <button
+                type="button"
+                onClick={() => setGenerationMode("brand-voice")}
+                className={cn(
+                  "px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border text-left",
+                  generationMode === "brand-voice"
+                    ? "bg-neon text-black border-neon"
+                    : "bg-white/5 border-white/10 text-neutral-400 hover:border-white/20"
+                )}
+              >
+                Brand Voice
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="title" className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">
+              Название (для библиотеки)
+            </Label>
             <Input
               id="title"
               placeholder="Напр: Акция на кофе 1+1"
@@ -611,7 +787,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
           </div>
 
           <div className="pt-6">
-            {!canGenerate && (
+            {generationMode === "standard" && !canGenerate && (
               <p className="text-sm text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 mb-4">
                 Лимит генераций исчерпан. Приобретите пакет токенов, чтобы продолжить.
               </p>
@@ -646,7 +822,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
               </Button>
               <Button
                 type="button"
-                disabled={isPreviewing || !text || text.length > 500 || hasSsmlErrors}
+                disabled={generationMode === "brand-voice" || isPreviewing || !text || text.length > 500 || hasSsmlErrors}
                 onClick={handlePreview}
                 className="bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/30 hover:border-cyan-500/50 active:scale-[0.98] transition-all rounded-2xl h-14 px-6 font-black uppercase text-xs tracking-[0.2em] shadow-lg hover:shadow-cyan-500/20"
               >
@@ -658,7 +834,7 @@ export function VoiceAnnouncementForm({ onSuccess, canGenerate = true }: { onSuc
               </Button>
               <Button
                 type="submit"
-                disabled={isGenerating || !text || !title || !canGenerate || hasSsmlErrors}
+                disabled={isGenerating || !text || !title || (generationMode === "standard" && !canGenerate) || (generationMode === "brand-voice" && !selectedBrandVoiceModelId) || hasSsmlErrors}
                 className="flex-1 bg-neon text-black hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl h-14 font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-neon/20"
               >
                 {isGenerating ? (

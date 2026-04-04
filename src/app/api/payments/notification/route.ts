@@ -1,7 +1,7 @@
 import { tbank } from "@/lib/payments/tbank";
 import { db } from "@/db";
-import { payments, businesses, users, ttsCreditLots, licenses } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { payments, businesses, users, ttsCreditLots, licenses, brandVoiceModels } from "@/db/schema";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
 import { generateLicenseAction } from "@/lib/actions/licenses";
@@ -13,6 +13,12 @@ import {
   isConfirmedPaymentStatus,
   shouldCreateCreditLot,
 } from "@/lib/payments/webhook-credit-pack";
+
+function getCurrentMonthBounds(now: Date) {
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0, 0));
+  return { start, end };
+}
 
 export async function POST(req: Request) {
   try {
@@ -53,7 +59,7 @@ export async function POST(req: Request) {
       return new NextResponse("Payment not found", { status: 404 });
     }
 
-    const wasAlreadyConfirmed = isConfirmedPaymentStatus(payment.status);
+    let wasAlreadyConfirmed = isConfirmedPaymentStatus(payment.status);
 
     // 5. Validate amount matches what we initiated
     if (typeof Amount === "number" && Amount !== payment.amount) {
@@ -62,14 +68,35 @@ export async function POST(req: Request) {
     }
 
     // 6. Update payment status
-    await db.update(payments)
-      .set({
-        status: Status,
-        rebillId: RebillId || null,
-        errorCode: ErrorCode || null,
-        tbankPaymentId: PaymentId,
-      })
-      .where(eq(payments.orderId, OrderId));
+    if (isConfirmedPaymentStatus(Status)) {
+      const confirmationTransition = await db
+        .update(payments)
+        .set({
+          status: Status,
+          rebillId: RebillId || null,
+          errorCode: ErrorCode || null,
+          tbankPaymentId: PaymentId,
+        })
+        .where(
+          and(
+            eq(payments.orderId, OrderId),
+            notInArray(payments.status, ["CONFIRMED", "AUTHORIZED"]),
+          ),
+        )
+        .returning({ id: payments.id });
+
+      wasAlreadyConfirmed = confirmationTransition.length === 0;
+    } else {
+      await db
+        .update(payments)
+        .set({
+          status: Status,
+          rebillId: RebillId || null,
+          errorCode: ErrorCode || null,
+          tbankPaymentId: PaymentId,
+        })
+        .where(eq(payments.orderId, OrderId));
+    }
 
     // 7. Handle successful confirmation
     if (isConfirmedPaymentStatus(Status)) {
@@ -125,6 +152,132 @@ export async function POST(req: Request) {
             pricePaidKopeks: payment.amount,
           });
         }
+
+        return new NextResponse("OK");
+      }
+
+      if (payment.paymentType === "brand_voice_setup") {
+        if (wasAlreadyConfirmed) {
+          return new NextResponse("OK");
+        }
+
+        const metadata = payment.metadata ?? {};
+        const modelId = typeof metadata.modelId === "string" ? metadata.modelId : null;
+        const tier = typeof metadata.tier === "string" ? metadata.tier : null;
+        const monthlyCharsRaw = typeof metadata.monthlyChars === "number"
+          ? metadata.monthlyChars
+          : Number(metadata.monthlyChars ?? 0);
+        const monthlyChars = Number.isFinite(monthlyCharsRaw) ? Math.max(0, Math.floor(monthlyCharsRaw)) : 0;
+
+        if (!modelId || !tier || monthlyChars <= 0) {
+          console.error(`[Webhook] Invalid Brand Voice setup metadata for payment ${payment.id}`);
+          return new NextResponse("Invalid brand voice setup metadata", { status: 400 });
+        }
+
+        const model = await db.query.brandVoiceModels.findFirst({
+          where: eq(brandVoiceModels.id, modelId),
+          with: { actor: true },
+        });
+
+        if (!model || model.businessId !== payment.businessId) {
+          return new NextResponse("Brand Voice model not found", { status: 404 });
+        }
+
+        await db.update(brandVoiceModels)
+          .set({
+            setupPaymentId: payment.id,
+            subscriptionTier: tier,
+            monthlyCharsLimit: monthlyChars,
+            status: model.actor.consentAcceptedAt && !model.actor.consentRevokedAt
+              ? "SAMPLES_PENDING"
+              : "CONSENT_PENDING",
+            errorMessage: null,
+          })
+          .where(eq(brandVoiceModels.id, model.id));
+
+        const { start, end } = getCurrentMonthBounds(new Date());
+        await db.update(businesses)
+          .set({
+            brandVoiceMonthlyUsed: 0,
+            brandVoiceMonthlyPeriodStart: start,
+            brandVoiceMonthlyPeriodEnd: end,
+          })
+          .where(eq(businesses.id, payment.businessId));
+
+        return new NextResponse("OK");
+      }
+
+      if (payment.paymentType === "brand_voice_monthly") {
+        if (wasAlreadyConfirmed) {
+          return new NextResponse("OK");
+        }
+
+        const metadata = payment.metadata ?? {};
+        const modelId = typeof metadata.modelId === "string" ? metadata.modelId : null;
+        const monthlyCharsRaw = typeof metadata.monthlyChars === "number"
+          ? metadata.monthlyChars
+          : Number(metadata.monthlyChars ?? 0);
+        const monthlyChars = Number.isFinite(monthlyCharsRaw) ? Math.max(0, Math.floor(monthlyCharsRaw)) : 0;
+
+        if (!modelId || monthlyChars <= 0) {
+          console.error(`[Webhook] Invalid Brand Voice monthly metadata for payment ${payment.id}`);
+          return new NextResponse("Invalid brand voice monthly metadata", { status: 400 });
+        }
+
+        const model = await db.query.brandVoiceModels.findFirst({
+          where: eq(brandVoiceModels.id, modelId),
+        });
+
+        if (!model || model.businessId !== payment.businessId) {
+          return new NextResponse("Brand Voice model not found", { status: 404 });
+        }
+
+        const now = new Date();
+        const { start, end } = getCurrentMonthBounds(now);
+
+        await db.update(brandVoiceModels)
+          .set({
+            monthlyCharsLimit: monthlyChars,
+            monthlyCharsUsed: 0,
+            monthlyPeriodStart: start,
+            monthlyPeriodEnd: end,
+            errorMessage: null,
+          })
+          .where(eq(brandVoiceModels.id, model.id));
+
+        await db.update(businesses)
+          .set({
+            brandVoiceMonthlyUsed: 0,
+            brandVoiceMonthlyPeriodStart: start,
+            brandVoiceMonthlyPeriodEnd: end,
+            brandVoiceOverageCharsPurchased: 0, // \u0421\u0431\u0440\u043e\u0441 \u043e\u0432\u0435\u0440\u0434\u0440\u0430\u0444\u0442\u0430 \u043f\u0440\u0438 \u043f\u0440\u043e\u0434\u043b\u0435\u043d\u0438\u0438
+          })
+          .where(eq(businesses.id, payment.businessId));
+
+        return new NextResponse("OK");
+      }
+
+      if (payment.paymentType === "brand_voice_overage") {
+        if (wasAlreadyConfirmed) {
+          return new NextResponse("OK");
+        }
+
+        const metadata = payment.metadata ?? {};
+        const overageCharsRaw = typeof metadata.overageChars === "number"
+          ? metadata.overageChars
+          : Number(metadata.overageChars ?? 0);
+        const overageChars = Number.isFinite(overageCharsRaw) ? Math.max(0, Math.floor(overageCharsRaw)) : 0;
+
+        if (overageChars <= 0) {
+          console.error(`[Webhook] Invalid Brand Voice overage metadata for payment ${payment.id}`);
+          return new NextResponse("Invalid brand voice overage metadata", { status: 400 });
+        }
+
+        await db.update(businesses)
+          .set({
+            brandVoiceOverageCharsPurchased: sql`"brandVoiceOverageCharsPurchased" + ${overageChars}`,
+          })
+          .where(eq(businesses.id, payment.businessId));
 
         return new NextResponse("OK");
       }

@@ -155,6 +155,13 @@
       "when": 1775469600000,
       "tag": "0021_support_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1775241025892,
+      "tag": "0022_shallow_epoch",
+      "breakpoints": true
     }
   ]
 }

@@ -1,13 +1,46 @@
 "use server";
 
 import { db } from "@/db";
-import { businessAnnouncementAcquisitions, businesses, payments, platformAnnouncementProducts, users } from "@/db/schema";
+import {
+  brandVoiceModels,
+  businessAnnouncementAcquisitions,
+  businesses,
+  payments,
+  platformAnnouncementProducts,
+  users,
+} from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { tbank } from "@/lib/payments/tbank";
 import { getPlanBySlug, getTtsTokenPackById } from "@/lib/payments/plans";
 import { createClient } from "@/utils/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { validateBusinessLegalData } from "@/lib/validation/business";
+
+const BRAND_VOICE_TIERS = {
+  starter: {
+    setupKopeks: 2_500_000,
+    monthlyKopeks: 390_000,
+    monthlyChars: 10_000,
+    overageKopeksPer1000: 9_000,
+    label: "Старт",
+  },
+  business: {
+    setupKopeks: 3_500_000,
+    monthlyKopeks: 790_000,
+    monthlyChars: 50_000,
+    overageKopeksPer1000: 7_000,
+    label: "Бизнес",
+  },
+  enterprise: {
+    setupKopeks: 6_000_000,
+    monthlyKopeks: 1_490_000,
+    monthlyChars: 250_000,
+    overageKopeksPer1000: 5_000,
+    label: "Корпоратив",
+  },
+} as const;
+
+type BrandVoiceTier = keyof typeof BRAND_VOICE_TIERS;
 
 export async function startFreeTrial(businessId: string, planSlug: string, interval: "monthly" | "yearly" = "monthly") {
   try {
@@ -316,6 +349,317 @@ export async function removePaymentMethod(businessId: string) {
     console.error("Remove payment method error:", error);
     const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
     return { success: false, error: message };
+  }
+}
+
+export async function startBrandVoiceSetupPaymentAction(modelId: string, tier: BrandVoiceTier) {
+  try {
+    const tierConfig = BRAND_VOICE_TIERS[tier];
+    if (!tierConfig) {
+      return { success: false, error: "Неизвестный тариф Brand Voice" };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Авторизация обязательна" };
+    }
+
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      with: { user: true },
+    });
+
+    if (!business) {
+      return { success: false, error: "Бизнес не найден" };
+    }
+
+    const model = await db.query.brandVoiceModels.findFirst({
+      where: and(eq(brandVoiceModels.id, modelId), eq(brandVoiceModels.businessId, business.id)),
+      with: { actor: true },
+    });
+
+    if (!model) {
+      return { success: false, error: "Модель Brand Voice не найдена" };
+    }
+
+    if (!process.env.TBANK_TERMINAL_KEY || !process.env.TBANK_PASSWORD) {
+      return { success: false, error: "Платежный шлюз не настроен" };
+    }
+
+    const shortBizId = business.id.replace(/-/g, "").substring(0, 10);
+    const orderId = `BVS_${shortBizId}_${Date.now()}`;
+    const safeCustomerKey = business.userId.replace(/-/g, "").substring(0, 36);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
+
+    const initResult = await tbank.init({
+      Amount: tierConfig.setupKopeks,
+      OrderId: orderId,
+      Description: `Brand Voice setup: ${tierConfig.label}`,
+      Recurrent: "N",
+      CustomerKey: safeCustomerKey,
+      SuccessURL: `${appUrl}/dashboard/brand-voice?setup=success`,
+      FailURL: `${appUrl}/dashboard/brand-voice?setup=failed`,
+      NotificationURL: `${appUrl}/api/payments/notification`,
+      Receipt: {
+        Email: user.email,
+        Taxation: "usn_income_outcome",
+        Items: [
+          {
+            Name: `Brand Voice Setup ${tierConfig.label}`,
+            Price: tierConfig.setupKopeks,
+            Quantity: 1,
+            Amount: tierConfig.setupKopeks,
+            Tax: "none",
+            PaymentMethod: "full_prepayment",
+            PaymentObject: "service",
+          },
+        ],
+      },
+      DATA: {
+        type: "brand_voice_setup",
+        modelId,
+        tier,
+        monthlyChars: String(tierConfig.monthlyChars),
+        businessId: business.id,
+      },
+    });
+
+    if (!initResult.Success) {
+      return {
+        success: false,
+        error: initResult.Message || initResult.Details || "Ошибка инициализации платежа",
+      };
+    }
+
+    await db.insert(payments).values({
+      businessId: business.id,
+      amount: tierConfig.setupKopeks,
+      status: "NEW",
+      orderId,
+      tbankPaymentId: initResult.PaymentId,
+      paymentType: "brand_voice_setup",
+      metadata: {
+        modelId,
+        tier,
+        monthlyChars: tierConfig.monthlyChars,
+      },
+      recurrent: false,
+    });
+
+    return {
+      success: true,
+      paymentUrl: initResult.PaymentURL,
+    };
+  } catch (error: unknown) {
+    console.error("Start Brand Voice setup payment error:", error);
+    const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
+    return { success: false, error: message };
+  }
+}
+
+export async function purchaseBrandVoiceMonthlyAction(modelId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Авторизация обязательна" };
+    }
+
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      with: { user: true },
+    });
+
+    if (!business) {
+      return { success: false, error: "Бизнес не найден" };
+    }
+
+    const model = await db.query.brandVoiceModels.findFirst({
+      where: and(eq(brandVoiceModels.id, modelId), eq(brandVoiceModels.businessId, business.id)),
+    });
+
+    if (!model || !model.subscriptionTier) {
+      return { success: false, error: "Модель Brand Voice не настроена для продления" };
+    }
+
+    const tier = model.subscriptionTier as BrandVoiceTier;
+    const tierConfig = BRAND_VOICE_TIERS[tier];
+    if (!tierConfig) {
+      return { success: false, error: "Неизвестный тариф модели" };
+    }
+
+    if (!process.env.TBANK_TERMINAL_KEY || !process.env.TBANK_PASSWORD) {
+      return { success: false, error: "Платежный шлюз не настроен" };
+    }
+
+    const shortBizId = business.id.replace(/-/g, "").substring(0, 10);
+    const orderId = `BVM_${shortBizId}_${Date.now()}`;
+    const safeCustomerKey = business.userId.replace(/-/g, "").substring(0, 36);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
+
+    const initResult = await tbank.init({
+      Amount: tierConfig.monthlyKopeks,
+      OrderId: orderId,
+      Description: `Brand Voice monthly: ${tierConfig.label}`,
+      Recurrent: "N",
+      CustomerKey: safeCustomerKey,
+      SuccessURL: `${appUrl}/dashboard/brand-voice?monthly=success`,
+      FailURL: `${appUrl}/dashboard/brand-voice?monthly=failed`,
+      NotificationURL: `${appUrl}/api/payments/notification`,
+      Receipt: {
+        Email: user.email,
+        Taxation: "usn_income_outcome",
+        Items: [
+          {
+            Name: `Brand Voice ${tierConfig.label} - месячный лимит`,
+            Price: tierConfig.monthlyKopeks,
+            Quantity: 1,
+            Amount: tierConfig.monthlyKopeks,
+            Tax: "none",
+            PaymentMethod: "full_prepayment",
+            PaymentObject: "service",
+          },
+        ],
+      },
+      DATA: {
+        type: "brand_voice_monthly",
+        modelId,
+        tier,
+        monthlyChars: String(tierConfig.monthlyChars),
+        businessId: business.id,
+      },
+    });
+
+    if (!initResult.Success) {
+      return {
+        success: false,
+        error: initResult.Message || initResult.Details || "Ошибка инициализации платежа",
+      };
+    }
+
+    await db.insert(payments).values({
+      businessId: business.id,
+      amount: tierConfig.monthlyKopeks,
+      status: "NEW",
+      orderId,
+      tbankPaymentId: initResult.PaymentId,
+      paymentType: "brand_voice_monthly",
+      metadata: {
+        modelId,
+        tier,
+        monthlyChars: tierConfig.monthlyChars,
+      },
+      recurrent: false,
+    });
+
+    return {
+      success: true,
+      paymentUrl: initResult.PaymentURL,
+    };
+  } catch (error: unknown) {
+    console.error("Purchase Brand Voice monthly error:", error);
+    const message = error instanceof Error ? error.message : "Внутренняя ошибка сервера";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * \u0414\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u0441\u0438\u043c\u0432\u043e\u043b\u044b Brand Voice \u043f\u043e\u0432\u0435\u0440\u0445 \u043c\u0435\u0441\u044f\u0447\u043d\u043e\u0433\u043e \u043b\u0438\u043c\u0438\u0442\u0430 (\u043e\u0432\u0435\u0440\u0434\u0440\u0430\u0444\u0442).
+ * blocksCount \u2014 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e \u0431\u043b\u043e\u043a\u043e\u0432 \u043f\u043e 1000 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432.
+ */
+export async function purchaseBrandVoiceOverageAction(modelId: string, blocksCount: number) {
+  try {
+    if (!Number.isFinite(blocksCount) || blocksCount < 1 || blocksCount > 1000) {
+      return { success: false, error: "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u043e\u0435 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e \u0431\u043b\u043e\u043a\u043e\u0432" };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "\u0410\u0432\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u044f \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u0430" };
+
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.userId, user.id),
+      with: { user: true },
+    });
+    if (!business) return { success: false, error: "\u0411\u0438\u0437\u043d\u0435\u0441 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d" };
+
+    const model = await db.query.brandVoiceModels.findFirst({
+      where: and(eq(brandVoiceModels.id, modelId), eq(brandVoiceModels.businessId, business.id)),
+    });
+    if (!model || !model.subscriptionTier) {
+      return { success: false, error: "\u041c\u043e\u0434\u0435\u043b\u044c Brand Voice \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u0430" };
+    }
+
+    const tier = model.subscriptionTier as BrandVoiceTier;
+    const tierConfig = BRAND_VOICE_TIERS[tier];
+    if (!tierConfig) return { success: false, error: "\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u0442\u0430\u0440\u0438\u0444 \u043c\u043e\u0434\u0435\u043b\u0438" };
+
+    const totalKopeks = tierConfig.overageKopeksPer1000 * blocksCount;
+    const overageChars = blocksCount * 1_000;
+
+    if (!process.env.TBANK_TERMINAL_KEY || !process.env.TBANK_PASSWORD) {
+      return { success: false, error: "\u041f\u043b\u0430\u0442\u0435\u0436\u043d\u044b\u0439 \u0448\u043b\u044e\u0437 \u043d\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d" };
+    }
+
+    const shortBizId = business.id.replace(/-/g, "").substring(0, 10);
+    const orderId = `BVO_${shortBizId}_${Date.now()}`;
+    const safeCustomerKey = business.userId.replace(/-/g, "").substring(0, 36);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
+
+    const initResult = await tbank.init({
+      Amount: totalKopeks,
+      OrderId: orderId,
+      Description: `Brand Voice \u043e\u0432\u0435\u0440\u0434\u0440\u0430\u0444\u0442: ${overageChars.toLocaleString("ru-RU")} \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432`,
+      Recurrent: "N",
+      CustomerKey: safeCustomerKey,
+      SuccessURL: `${appUrl}/dashboard/brand-voice?overage=success`,
+      FailURL: `${appUrl}/dashboard/brand-voice?overage=failed`,
+      NotificationURL: `${appUrl}/api/payments/notification`,
+      Receipt: {
+        Email: user.email,
+        Taxation: "usn_income_outcome",
+        Items: [
+          {
+            Name: `Brand Voice \u043e\u0432\u0435\u0440\u0434\u0440\u0430\u0444\u0442 ${overageChars.toLocaleString("ru-RU")} \u0441\u0438\u043c.`,
+            Price: tierConfig.overageKopeksPer1000,
+            Quantity: blocksCount,
+            Amount: totalKopeks,
+            Tax: "none",
+            PaymentMethod: "full_prepayment",
+            PaymentObject: "service",
+          },
+        ],
+      },
+      DATA: {
+        type: "brand_voice_overage",
+        modelId,
+        overageChars: String(overageChars),
+        businessId: business.id,
+      },
+    });
+
+    if (!initResult.Success) {
+      return { success: false, error: initResult.Message || initResult.Details || "\u041e\u0448\u0438\u0431\u043a\u0430 \u0438\u043d\u0438\u0446\u0438\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u0438 \u043f\u043b\u0430\u0442\u0435\u0436\u0430" };
+    }
+
+    await db.insert(payments).values({
+      businessId: business.id,
+      amount: totalKopeks,
+      status: "NEW",
+      orderId,
+      tbankPaymentId: initResult.PaymentId,
+      paymentType: "brand_voice_overage",
+      metadata: { modelId, overageChars },
+      recurrent: false,
+    });
+
+    return { success: true, paymentUrl: initResult.PaymentURL };
+  } catch (error: unknown) {
+    console.error("Purchase Brand Voice overage error:", error);
+    return { success: false, error: error instanceof Error ? error.message : "\u0412\u043d\u0443\u0442\u0440\u0435\u043d\u043d\u044f\u044f \u043e\u0448\u0438\u0431\u043a\u0430" };
   }
 }
 

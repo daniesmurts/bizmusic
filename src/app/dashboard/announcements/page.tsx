@@ -23,11 +23,11 @@ import {
   Clock, 
   ChevronRight,
   MessageSquare,
+  Mic,
   Play,
   ShieldCheck,
   ListPlus,
   X,
-  Sparkles,
   CalendarClock,
   BarChart3,
   Layers,
@@ -258,11 +258,13 @@ export default function AnnouncementsPage() {
                       <Badge variant="outline" className={`text-[9px] font-black uppercase tracking-widest px-2 py-0 border-white/10 leading-none ${
                         item.platformAnnouncementId
                           ? "text-blue-300 bg-blue-500/10"
+                          : item.provider === "brand_voice"
+                          ? "text-emerald-300 bg-emerald-500/10"
                           : item.provider === "google"
                           ? "text-indigo-400 bg-indigo-500/5"
                           : "text-amber-400 bg-amber-500/5"
                       }`}>
-                        {item.platformAnnouncementId ? "Платформа" : item.provider === "google" ? "Google" : "Salute"}
+                        {item.platformAnnouncementId ? "Платформа" : item.provider === "brand_voice" ? "Brand Voice" : item.provider === "google" ? "Google" : "Salute"}
                       </Badge>
                       {item.platformAnnouncement?.accessModel === "PAID" && (
                         <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0 border-amber-500/20 text-amber-300 bg-amber-500/10 leading-none">
@@ -425,6 +427,14 @@ export default function AnnouncementsPage() {
                 className="border-white/15 text-white hover:bg-neon hover:text-black hover:border-neon rounded-2xl px-6 h-14 font-black uppercase text-xs tracking-widest gap-2 transition-all"
               >
                 <CalendarClock className="w-4 h-4" /> Авто-расписание
+              </Button>
+            </Link>
+            <Link href="/dashboard/brand-voice">
+              <Button
+                variant="outline"
+                className="border-white/15 text-white hover:bg-white/10 hover:border-white/25 rounded-2xl px-6 h-14 font-black uppercase text-xs tracking-widest gap-2 transition-all"
+              >
+                <Mic className="w-4 h-4" /> Brand Voice
               </Button>
             </Link>
             <Button 

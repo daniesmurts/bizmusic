@@ -5,6 +5,7 @@ export interface Plan {
   yearlyPrice: number;  // in kopeks
   ttsMonthlyLimit: number;
   aiMonthlyLimit: number;
+  brandVoiceMonthlyLimit: number;
 }
 
 export interface TtsTokenPack {
@@ -21,6 +22,7 @@ export const PLANS: Record<string, Plan> = {
     yearlyPrice: 840000,
     ttsMonthlyLimit: 30,
     aiMonthlyLimit: 5,
+    brandVoiceMonthlyLimit: 0,
   },
   content: {
     name: "Контент",
@@ -29,6 +31,7 @@ export const PLANS: Record<string, Plan> = {
     yearlyPrice: 1200000,
     ttsMonthlyLimit: 10,
     aiMonthlyLimit: 2,
+    brandVoiceMonthlyLimit: 0,
   },
   "business-plus": {
     name: "Бизнес +",
@@ -37,6 +40,7 @@ export const PLANS: Record<string, Plan> = {
     yearlyPrice: 4800000,
     ttsMonthlyLimit: 100,
     aiMonthlyLimit: 10,
+    brandVoiceMonthlyLimit: 0,
   },
 };
 

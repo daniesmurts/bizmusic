@@ -107,6 +107,10 @@ export const businesses = pgTable("businesses", {
   aiMonthlyUsed: integer("aiMonthlyUsed").default(0).notNull(),
   aiMonthlyPeriodStart: timestamp("aiMonthlyPeriodStart"),
   aiMonthlyPeriodEnd: timestamp("aiMonthlyPeriodEnd"),
+  brandVoiceMonthlyUsed: integer("brandVoiceMonthlyUsed").default(0).notNull(),
+  brandVoiceMonthlyPeriodStart: timestamp("brandVoiceMonthlyPeriodStart"),
+  brandVoiceMonthlyPeriodEnd: timestamp("brandVoiceMonthlyPeriodEnd"),
+  brandVoiceOverageCharsPurchased: integer("brandVoiceOverageCharsPurchased").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
@@ -316,6 +320,7 @@ export const voiceAnnouncements = pgTable("voice_announcements", {
   businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
   trackId: text("trackId").references(() => tracks.id, { onDelete: "cascade" }).notNull(),
   platformAnnouncementId: text("platformAnnouncementId").references(() => platformAnnouncementProducts.id, { onDelete: "set null" }),
+  brandVoiceModelId: text("brandVoiceModelId").references(() => brandVoiceModels.id, { onDelete: "set null" }),
   text: text("text").notNull(),
   languageCode: text("languageCode").default("ru-RU").notNull(),
   provider: text("provider").default("google").notNull(),
@@ -325,6 +330,90 @@ export const voiceAnnouncements = pgTable("voice_announcements", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
+
+export const voiceActors = pgTable("voice_actors", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  fullName: text("fullName").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  role: text("role").default("employee").notNull(),
+  consentDocumentUrl: text("consentDocumentUrl"),
+  consentVersion: text("consentVersion"),
+  consentAcceptedAt: timestamp("consentAcceptedAt"),
+  consentIpAddress: text("consentIpAddress"),
+  consentUserAgent: text("consentUserAgent"),
+  consentRevokedAt: timestamp("consentRevokedAt"),
+  consentToken: text("consentToken").unique(),
+  consentTokenExpiresAt: timestamp("consentTokenExpiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  businessEmailIdx: index("voice_actors_business_email_idx").on(t.businessId, t.email),
+}));
+
+export const brandVoiceModels = pgTable("brand_voice_models", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  actorId: text("actorId").references(() => voiceActors.id, { onDelete: "restrict" }).notNull(),
+  status: text("status").default("PENDING").notNull(),
+  provider: text("provider").default("external").notNull(),
+  providerModelId: text("providerModelId"),
+  providerJobId: text("providerJobId"),
+  subscriptionTier: text("subscriptionTier"),
+  setupPaymentId: text("setupPaymentId").references(() => payments.id, { onDelete: "set null" }),
+  monthlyCharsLimit: integer("monthlyCharsLimit").default(0).notNull(),
+  monthlyCharsUsed: integer("monthlyCharsUsed").default(0).notNull(),
+  monthlyPeriodStart: timestamp("monthlyPeriodStart"),
+  monthlyPeriodEnd: timestamp("monthlyPeriodEnd"),
+  samplesRequiredMinutes: integer("samplesRequiredMinutes").default(10).notNull(),
+  samplesUploadedSeconds: integer("samplesUploadedSeconds").default(0).notNull(),
+  qualityScore: integer("qualityScore"),
+  consentCheckedAt: timestamp("consentCheckedAt"),
+  trainingStartedAt: timestamp("trainingStartedAt"),
+  trainingCompletedAt: timestamp("trainingCompletedAt"),
+  estimatedCompletionAt: timestamp("estimatedCompletionAt"),
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  businessStatusIdx: index("brand_voice_models_business_status_idx").on(t.businessId, t.status),
+  actorIdx: index("brand_voice_models_actor_idx").on(t.actorId),
+  providerModelIdx: uniqueIndex("brand_voice_models_provider_model_unique").on(t.provider, t.providerModelId),
+}));
+
+export const voiceSamples = pgTable("voice_samples", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  actorId: text("actorId").references(() => voiceActors.id, { onDelete: "cascade" }).notNull(),
+  modelId: text("modelId").references(() => brandVoiceModels.id, { onDelete: "set null" }),
+  fileUrl: text("fileUrl").notNull(),
+  fileName: text("fileName").notNull(),
+  fileSizeBytes: integer("fileSizeBytes"),
+  mimeType: text("mimeType"),
+  durationSeconds: integer("durationSeconds"),
+  transcript: text("transcript"),
+  approvalStatus: text("approvalStatus").default("PENDING").notNull(),
+  approvalReason: text("approvalReason"),
+  approvedAt: timestamp("approvedAt"),
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  actorApprovalIdx: index("voice_samples_actor_approval_idx").on(t.actorId, t.approvalStatus),
+  modelUploadedIdx: index("voice_samples_model_uploaded_idx").on(t.modelId, t.uploadedAt),
+}));
+
+export const brandVoiceUsageEvents = pgTable("brand_voice_usage_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  modelId: text("modelId").references(() => brandVoiceModels.id, { onDelete: "cascade" }).notNull(),
+  announcementId: text("announcementId").references(() => voiceAnnouncements.id, { onDelete: "set null" }),
+  provider: text("provider").notNull(),
+  charsCount: integer("charsCount").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  businessCreatedIdx: index("brand_voice_usage_events_business_created_idx").on(t.businessId, t.createdAt),
+  modelCreatedIdx: index("brand_voice_usage_events_model_created_idx").on(t.modelId, t.createdAt),
+}));
 
 export const announcementTemplates = pgTable("announcement_templates", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -619,6 +708,9 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   ttsCreditLots: many(ttsCreditLots),
   ttsUsageEvents: many(ttsUsageEvents),
   aiUsageEvents: many(aiUsageEvents),
+  voiceActors: many(voiceActors),
+  brandVoiceModels: many(brandVoiceModels),
+  brandVoiceUsageEvents: many(brandVoiceUsageEvents),
   announcementAcquisitions: many(businessAnnouncementAcquisitions),
   announcementBulkJobs: many(announcementBulkJobs),
   locationPlaylistAssignments: many(locationPlaylistAssignments),
@@ -809,9 +901,11 @@ export const voiceAnnouncementsRelations = relations(voiceAnnouncements, ({ one,
   business: one(businesses, { fields: [voiceAnnouncements.businessId], references: [businesses.id] }),
   track: one(tracks, { fields: [voiceAnnouncements.trackId], references: [tracks.id] }),
   platformAnnouncement: one(platformAnnouncementProducts, { fields: [voiceAnnouncements.platformAnnouncementId], references: [platformAnnouncementProducts.id] }),
+  brandVoiceModel: one(brandVoiceModels, { fields: [voiceAnnouncements.brandVoiceModelId], references: [brandVoiceModels.id] }),
   generatedByBulkJobs: many(announcementBulkJobs),
   bulkTargets: many(announcementBulkJobTargets),
   acquisitions: many(businessAnnouncementAcquisitions),
+  brandVoiceUsageEvents: many(brandVoiceUsageEvents),
 }));
 
 export const announcementTemplatesRelations = relations(announcementTemplates, ({ one }) => ({
@@ -867,4 +961,30 @@ export const ttsCreditLotsRelations = relations(ttsCreditLots, ({ one }) => ({
 export const ttsUsageEventsRelations = relations(ttsUsageEvents, ({ one }) => ({
   business: one(businesses, { fields: [ttsUsageEvents.businessId], references: [businesses.id] }),
   announcement: one(voiceAnnouncements, { fields: [ttsUsageEvents.announcementId], references: [voiceAnnouncements.id] }),
+}));
+
+export const voiceActorsRelations = relations(voiceActors, ({ one, many }) => ({
+  business: one(businesses, { fields: [voiceActors.businessId], references: [businesses.id] }),
+  models: many(brandVoiceModels),
+  samples: many(voiceSamples),
+}));
+
+export const brandVoiceModelsRelations = relations(brandVoiceModels, ({ one, many }) => ({
+  business: one(businesses, { fields: [brandVoiceModels.businessId], references: [businesses.id] }),
+  actor: one(voiceActors, { fields: [brandVoiceModels.actorId], references: [voiceActors.id] }),
+  setupPayment: one(payments, { fields: [brandVoiceModels.setupPaymentId], references: [payments.id] }),
+  samples: many(voiceSamples),
+  announcements: many(voiceAnnouncements),
+  usageEvents: many(brandVoiceUsageEvents),
+}));
+
+export const voiceSamplesRelations = relations(voiceSamples, ({ one }) => ({
+  actor: one(voiceActors, { fields: [voiceSamples.actorId], references: [voiceActors.id] }),
+  model: one(brandVoiceModels, { fields: [voiceSamples.modelId], references: [brandVoiceModels.id] }),
+}));
+
+export const brandVoiceUsageEventsRelations = relations(brandVoiceUsageEvents, ({ one }) => ({
+  business: one(businesses, { fields: [brandVoiceUsageEvents.businessId], references: [businesses.id] }),
+  model: one(brandVoiceModels, { fields: [brandVoiceUsageEvents.modelId], references: [brandVoiceModels.id] }),
+  announcement: one(voiceAnnouncements, { fields: [brandVoiceUsageEvents.announcementId], references: [voiceAnnouncements.id] }),
 }));

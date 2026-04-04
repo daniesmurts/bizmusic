@@ -1,0 +1,5827 @@
+{
+  "id": "9c7af500-b002-4be8-a7a4-ccb526ff1b0c",
+  "prevId": "20b614a5-1309-4896-8ca1-53b48e3848b6",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.ai_usage_events": {
+      "name": "ai_usage_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sourceType": {
+          "name": "sourceType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "charsCount": {
+          "name": "charsCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ai_usage_events_business_created_idx": {
+          "name": "ai_usage_events_business_created_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ai_usage_events_businessId_businesses_id_fk": {
+          "name": "ai_usage_events_businessId_businesses_id_fk",
+          "tableFrom": "ai_usage_events",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.albums": {
+      "name": "albums",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artist": {
+          "name": "artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artistId": {
+          "name": "artistId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coverUrl": {
+          "name": "coverUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "releaseDate": {
+          "name": "releaseDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "albums_artistId_artists_id_fk": {
+          "name": "albums_artistId_artists_id_fk",
+          "tableFrom": "albums",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artistId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.announcement_bulk_job_targets": {
+      "name": "announcement_bulk_job_targets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "jobId": {
+          "name": "jobId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locationId": {
+          "name": "locationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "playlistId": {
+          "name": "playlistId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "announcementId": {
+          "name": "announcementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "errorMessage": {
+          "name": "errorMessage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "announcement_bulk_job_targets_job_status_idx": {
+          "name": "announcement_bulk_job_targets_job_status_idx",
+          "columns": [
+            {
+              "expression": "jobId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "announcement_bulk_job_targets_playlist_idx": {
+          "name": "announcement_bulk_job_targets_playlist_idx",
+          "columns": [
+            {
+              "expression": "playlistId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "announcement_bulk_job_targets_location_idx": {
+          "name": "announcement_bulk_job_targets_location_idx",
+          "columns": [
+            {
+              "expression": "locationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "announcement_bulk_job_targets_jobId_announcement_bulk_jobs_id_fk": {
+          "name": "announcement_bulk_job_targets_jobId_announcement_bulk_jobs_id_fk",
+          "tableFrom": "announcement_bulk_job_targets",
+          "tableTo": "announcement_bulk_jobs",
+          "columnsFrom": [
+            "jobId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "announcement_bulk_job_targets_locationId_locations_id_fk": {
+          "name": "announcement_bulk_job_targets_locationId_locations_id_fk",
+          "tableFrom": "announcement_bulk_job_targets",
+          "tableTo": "locations",
+          "columnsFrom": [
+            "locationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "announcement_bulk_job_targets_playlistId_playlists_id_fk": {
+          "name": "announcement_bulk_job_targets_playlistId_playlists_id_fk",
+          "tableFrom": "announcement_bulk_job_targets",
+          "tableTo": "playlists",
+          "columnsFrom": [
+            "playlistId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "announcement_bulk_job_targets_announcementId_voice_announcements_id_fk": {
+          "name": "announcement_bulk_job_targets_announcementId_voice_announcements_id_fk",
+          "tableFrom": "announcement_bulk_job_targets",
+          "tableTo": "voice_announcements",
+          "columnsFrom": [
+            "announcementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "announcement_bulk_job_targets_trackId_tracks_id_fk": {
+          "name": "announcement_bulk_job_targets_trackId_tracks_id_fk",
+          "tableFrom": "announcement_bulk_job_targets",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.announcement_bulk_jobs": {
+      "name": "announcement_bulk_jobs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdByUserId": {
+          "name": "createdByUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ssmlText": {
+          "name": "ssmlText",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'sberbank'"
+        },
+        "voiceName": {
+          "name": "voiceName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "speakingRate": {
+          "name": "speakingRate",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "pitch": {
+          "name": "pitch",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "jingleId": {
+          "name": "jingleId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "totalTargets": {
+          "name": "totalTargets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "successTargets": {
+          "name": "successTargets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "failedTargets": {
+          "name": "failedTargets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "generatedAnnouncementId": {
+          "name": "generatedAnnouncementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "announcement_bulk_jobs_business_created_idx": {
+          "name": "announcement_bulk_jobs_business_created_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "announcement_bulk_jobs_status_created_idx": {
+          "name": "announcement_bulk_jobs_status_created_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "announcement_bulk_jobs_businessId_businesses_id_fk": {
+          "name": "announcement_bulk_jobs_businessId_businesses_id_fk",
+          "tableFrom": "announcement_bulk_jobs",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "announcement_bulk_jobs_createdByUserId_users_id_fk": {
+          "name": "announcement_bulk_jobs_createdByUserId_users_id_fk",
+          "tableFrom": "announcement_bulk_jobs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "createdByUserId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "announcement_bulk_jobs_jingleId_announcement_jingles_id_fk": {
+          "name": "announcement_bulk_jobs_jingleId_announcement_jingles_id_fk",
+          "tableFrom": "announcement_bulk_jobs",
+          "tableTo": "announcement_jingles",
+          "columnsFrom": [
+            "jingleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "announcement_bulk_jobs_generatedAnnouncementId_voice_announcements_id_fk": {
+          "name": "announcement_bulk_jobs_generatedAnnouncementId_voice_announcements_id_fk",
+          "tableFrom": "announcement_bulk_jobs",
+          "tableTo": "voice_announcements",
+          "columnsFrom": [
+            "generatedAnnouncementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.announcement_jingles": {
+      "name": "announcement_jingles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fileUrl": {
+          "name": "fileUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "position": {
+          "name": "position",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'intro'"
+        },
+        "volumeDb": {
+          "name": "volumeDb",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": -6
+        },
+        "isPublished": {
+          "name": "isPublished",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "createdByUserId": {
+          "name": "createdByUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "announcement_jingles_published_sort_idx": {
+          "name": "announcement_jingles_published_sort_idx",
+          "columns": [
+            {
+              "expression": "isPublished",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sortOrder",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "announcement_jingles_position_published_idx": {
+          "name": "announcement_jingles_position_published_idx",
+          "columns": [
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "isPublished",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "announcement_jingles_createdByUserId_users_id_fk": {
+          "name": "announcement_jingles_createdByUserId_users_id_fk",
+          "tableFrom": "announcement_jingles",
+          "tableTo": "users",
+          "columnsFrom": [
+            "createdByUserId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.announcement_play_logs": {
+      "name": "announcement_play_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "announcementId": {
+          "name": "announcementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locationId": {
+          "name": "locationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wasSkipped": {
+          "name": "wasSkipped",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "listenDurationSec": {
+          "name": "listenDurationSec",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "playedAt": {
+          "name": "playedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "announcement_play_logs_business_played_idx": {
+          "name": "announcement_play_logs_business_played_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "playedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "announcement_play_logs_announcement_played_idx": {
+          "name": "announcement_play_logs_announcement_played_idx",
+          "columns": [
+            {
+              "expression": "announcementId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "playedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "announcement_play_logs_track_played_idx": {
+          "name": "announcement_play_logs_track_played_idx",
+          "columns": [
+            {
+              "expression": "trackId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "playedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "announcement_play_logs_announcementId_voice_announcements_id_fk": {
+          "name": "announcement_play_logs_announcementId_voice_announcements_id_fk",
+          "tableFrom": "announcement_play_logs",
+          "tableTo": "voice_announcements",
+          "columnsFrom": [
+            "announcementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "announcement_play_logs_trackId_tracks_id_fk": {
+          "name": "announcement_play_logs_trackId_tracks_id_fk",
+          "tableFrom": "announcement_play_logs",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "announcement_play_logs_businessId_businesses_id_fk": {
+          "name": "announcement_play_logs_businessId_businesses_id_fk",
+          "tableFrom": "announcement_play_logs",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "announcement_play_logs_locationId_locations_id_fk": {
+          "name": "announcement_play_logs_locationId_locations_id_fk",
+          "tableFrom": "announcement_play_logs",
+          "tableTo": "locations",
+          "columnsFrom": [
+            "locationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.announcement_templates": {
+      "name": "announcement_templates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pack": {
+          "name": "pack",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'base'"
+        },
+        "packLabel": {
+          "name": "packLabel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Базовые'"
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'sberbank'"
+        },
+        "isSeasonal": {
+          "name": "isSeasonal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isPublished": {
+          "name": "isPublished",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "createdByUserId": {
+          "name": "createdByUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "announcement_templates_published_sort_idx": {
+          "name": "announcement_templates_published_sort_idx",
+          "columns": [
+            {
+              "expression": "isPublished",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sortOrder",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "announcement_templates_pack_idx": {
+          "name": "announcement_templates_pack_idx",
+          "columns": [
+            {
+              "expression": "pack",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "isPublished",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "announcement_templates_createdByUserId_users_id_fk": {
+          "name": "announcement_templates_createdByUserId_users_id_fk",
+          "tableFrom": "announcement_templates",
+          "tableTo": "users",
+          "columnsFrom": [
+            "createdByUserId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.artists": {
+      "name": "artists",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "imageUrl": {
+          "name": "imageUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isFeatured": {
+          "name": "isFeatured",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "externalLinks": {
+          "name": "externalLinks",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "artists_slug_unique": {
+          "name": "artists_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.blog_categories": {
+      "name": "blog_categories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "blog_categories_name_unique": {
+          "name": "blog_categories_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.blog_post_tags": {
+      "name": "blog_post_tags",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "postId": {
+          "name": "postId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tagName": {
+          "name": "tagName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "blog_post_tags_post_idx": {
+          "name": "blog_post_tags_post_idx",
+          "columns": [
+            {
+              "expression": "postId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "blog_post_tags_tag_idx": {
+          "name": "blog_post_tags_tag_idx",
+          "columns": [
+            {
+              "expression": "tagName",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "blog_post_tags_postId_blog_posts_id_fk": {
+          "name": "blog_post_tags_postId_blog_posts_id_fk",
+          "tableFrom": "blog_post_tags",
+          "tableTo": "blog_posts",
+          "columnsFrom": [
+            "postId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.blog_posts": {
+      "name": "blog_posts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "excerpt": {
+          "name": "excerpt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categoryId": {
+          "name": "categoryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "authorId": {
+          "name": "authorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "imageUrl": {
+          "name": "imageUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "published": {
+          "name": "published",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "featured": {
+          "name": "featured",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "views": {
+          "name": "views",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "publishedAt": {
+          "name": "publishedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "blog_post_slug_idx": {
+          "name": "blog_post_slug_idx",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "blog_post_category_idx": {
+          "name": "blog_post_category_idx",
+          "columns": [
+            {
+              "expression": "categoryId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "blog_post_published_idx": {
+          "name": "blog_post_published_idx",
+          "columns": [
+            {
+              "expression": "published",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "blog_posts_categoryId_blog_categories_id_fk": {
+          "name": "blog_posts_categoryId_blog_categories_id_fk",
+          "tableFrom": "blog_posts",
+          "tableTo": "blog_categories",
+          "columnsFrom": [
+            "categoryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "blog_posts_authorId_users_id_fk": {
+          "name": "blog_posts_authorId_users_id_fk",
+          "tableFrom": "blog_posts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "authorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "blog_posts_slug_unique": {
+          "name": "blog_posts_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.brand_voice_models": {
+      "name": "brand_voice_models",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'external'"
+        },
+        "providerModelId": {
+          "name": "providerModelId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "providerJobId": {
+          "name": "providerJobId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscriptionTier": {
+          "name": "subscriptionTier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "setupPaymentId": {
+          "name": "setupPaymentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monthlyCharsLimit": {
+          "name": "monthlyCharsLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "monthlyCharsUsed": {
+          "name": "monthlyCharsUsed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "monthlyPeriodStart": {
+          "name": "monthlyPeriodStart",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monthlyPeriodEnd": {
+          "name": "monthlyPeriodEnd",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "samplesRequiredMinutes": {
+          "name": "samplesRequiredMinutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 10
+        },
+        "samplesUploadedSeconds": {
+          "name": "samplesUploadedSeconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "qualityScore": {
+          "name": "qualityScore",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consentCheckedAt": {
+          "name": "consentCheckedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trainingStartedAt": {
+          "name": "trainingStartedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trainingCompletedAt": {
+          "name": "trainingCompletedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estimatedCompletionAt": {
+          "name": "estimatedCompletionAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "errorMessage": {
+          "name": "errorMessage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "brand_voice_models_business_status_idx": {
+          "name": "brand_voice_models_business_status_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "brand_voice_models_actor_idx": {
+          "name": "brand_voice_models_actor_idx",
+          "columns": [
+            {
+              "expression": "actorId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "brand_voice_models_provider_model_unique": {
+          "name": "brand_voice_models_provider_model_unique",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "providerModelId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "brand_voice_models_businessId_businesses_id_fk": {
+          "name": "brand_voice_models_businessId_businesses_id_fk",
+          "tableFrom": "brand_voice_models",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "brand_voice_models_actorId_voice_actors_id_fk": {
+          "name": "brand_voice_models_actorId_voice_actors_id_fk",
+          "tableFrom": "brand_voice_models",
+          "tableTo": "voice_actors",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "brand_voice_models_setupPaymentId_payments_id_fk": {
+          "name": "brand_voice_models_setupPaymentId_payments_id_fk",
+          "tableFrom": "brand_voice_models",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "setupPaymentId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.brand_voice_usage_events": {
+      "name": "brand_voice_usage_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modelId": {
+          "name": "modelId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "announcementId": {
+          "name": "announcementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "charsCount": {
+          "name": "charsCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "brand_voice_usage_events_business_created_idx": {
+          "name": "brand_voice_usage_events_business_created_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "brand_voice_usage_events_model_created_idx": {
+          "name": "brand_voice_usage_events_model_created_idx",
+          "columns": [
+            {
+              "expression": "modelId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "brand_voice_usage_events_businessId_businesses_id_fk": {
+          "name": "brand_voice_usage_events_businessId_businesses_id_fk",
+          "tableFrom": "brand_voice_usage_events",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "brand_voice_usage_events_modelId_brand_voice_models_id_fk": {
+          "name": "brand_voice_usage_events_modelId_brand_voice_models_id_fk",
+          "tableFrom": "brand_voice_usage_events",
+          "tableTo": "brand_voice_models",
+          "columnsFrom": [
+            "modelId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "brand_voice_usage_events_announcementId_voice_announcements_id_fk": {
+          "name": "brand_voice_usage_events_announcementId_voice_announcements_id_fk",
+          "tableFrom": "brand_voice_usage_events",
+          "tableTo": "voice_announcements",
+          "columnsFrom": [
+            "announcementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.business_announcement_acquisitions": {
+      "name": "business_announcement_acquisitions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platformAnnouncementId": {
+          "name": "platformAnnouncementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paymentId": {
+          "name": "paymentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "importedAnnouncementId": {
+          "name": "importedAnnouncementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pricePaidKopeks": {
+          "name": "pricePaidKopeks",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "claimedAt": {
+          "name": "claimedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "business_announcement_acquisition_unique": {
+          "name": "business_announcement_acquisition_unique",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "platformAnnouncementId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "business_announcement_acquisition_payment_unique": {
+          "name": "business_announcement_acquisition_payment_unique",
+          "columns": [
+            {
+              "expression": "paymentId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "business_announcement_acquisition_business_claimed_idx": {
+          "name": "business_announcement_acquisition_business_claimed_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claimedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "business_announcement_acquisitions_businessId_businesses_id_fk": {
+          "name": "business_announcement_acquisitions_businessId_businesses_id_fk",
+          "tableFrom": "business_announcement_acquisitions",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "business_announcement_acquisitions_platformAnnouncementId_platform_announcement_products_id_fk": {
+          "name": "business_announcement_acquisitions_platformAnnouncementId_platform_announcement_products_id_fk",
+          "tableFrom": "business_announcement_acquisitions",
+          "tableTo": "platform_announcement_products",
+          "columnsFrom": [
+            "platformAnnouncementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "business_announcement_acquisitions_paymentId_payments_id_fk": {
+          "name": "business_announcement_acquisitions_paymentId_payments_id_fk",
+          "tableFrom": "business_announcement_acquisitions",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "paymentId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "business_announcement_acquisitions_importedAnnouncementId_voice_announcements_id_fk": {
+          "name": "business_announcement_acquisitions_importedAnnouncementId_voice_announcements_id_fk",
+          "tableFrom": "business_announcement_acquisitions",
+          "tableTo": "voice_announcements",
+          "columnsFrom": [
+            "importedAnnouncementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.businesses": {
+      "name": "businesses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inn": {
+          "name": "inn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ogrn": {
+          "name": "ogrn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kpp": {
+          "name": "kpp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "legalName": {
+          "name": "legalName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contactPerson": {
+          "name": "contactPerson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "businessType": {
+          "name": "businessType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "businessCategory": {
+          "name": "businessCategory",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bankName": {
+          "name": "bankName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bik": {
+          "name": "bik",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "settlementAccount": {
+          "name": "settlementAccount",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corrAccount": {
+          "name": "corrAccount",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscriptionStatus": {
+          "name": "subscriptionStatus",
+          "type": "subscription_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'INACTIVE'"
+        },
+        "subscriptionExpiresAt": {
+          "name": "subscriptionExpiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trialEndsAt": {
+          "name": "trialEndsAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rebillId": {
+          "name": "rebillId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardMask": {
+          "name": "cardMask",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardExpiry": {
+          "name": "cardExpiry",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currentPlanSlug": {
+          "name": "currentPlanSlug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "billingInterval": {
+          "name": "billingInterval",
+          "type": "billing_interval",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'monthly'"
+        },
+        "cancelAtPeriodEnd": {
+          "name": "cancelAtPeriodEnd",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "ttsMonthlyUsed": {
+          "name": "ttsMonthlyUsed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ttsMonthlyPeriodStart": {
+          "name": "ttsMonthlyPeriodStart",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ttsMonthlyPeriodEnd": {
+          "name": "ttsMonthlyPeriodEnd",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aiMonthlyUsed": {
+          "name": "aiMonthlyUsed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "aiMonthlyPeriodStart": {
+          "name": "aiMonthlyPeriodStart",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aiMonthlyPeriodEnd": {
+          "name": "aiMonthlyPeriodEnd",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "brandVoiceMonthlyUsed": {
+          "name": "brandVoiceMonthlyUsed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "brandVoiceMonthlyPeriodStart": {
+          "name": "brandVoiceMonthlyPeriodStart",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "brandVoiceMonthlyPeriodEnd": {
+          "name": "brandVoiceMonthlyPeriodEnd",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "businesses_userId_users_id_fk": {
+          "name": "businesses_userId_users_id_fk",
+          "tableFrom": "businesses",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "businesses_inn_unique": {
+          "name": "businesses_inn_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "inn"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.demo_requests": {
+      "name": "demo_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "interest": {
+          "name": "interest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "demo_request_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "consentAccepted": {
+          "name": "consentAccepted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "consentAcceptedAt": {
+          "name": "consentAcceptedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_demo_requests_email": {
+          "name": "idx_demo_requests_email",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_demo_requests_status": {
+          "name": "idx_demo_requests_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.legal_acceptance_events": {
+      "name": "legal_acceptance_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acceptedAt": {
+          "name": "acceptedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "ipAddress": {
+          "name": "ipAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "userAgent": {
+          "name": "userAgent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "termsVersion": {
+          "name": "termsVersion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "legal_acceptance_events_userId_users_id_fk": {
+          "name": "legal_acceptance_events_userId_users_id_fk",
+          "tableFrom": "legal_acceptance_events",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.licenses": {
+      "name": "licenses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "licenseNumber": {
+          "name": "licenseNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signingName": {
+          "name": "signingName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "issuedAt": {
+          "name": "issuedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "validFrom": {
+          "name": "validFrom",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "validTo": {
+          "name": "validTo",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "totalCost": {
+          "name": "totalCost",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "pdfUrl": {
+          "name": "pdfUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "documentStatus": {
+          "name": "documentStatus",
+          "type": "document_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'READY'"
+        },
+        "generationError": {
+          "name": "generationError",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agreementAcceptedAt": {
+          "name": "agreementAcceptedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agreementAcceptedIp": {
+          "name": "agreementAcceptedIp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "licenses_businessId_businesses_id_fk": {
+          "name": "licenses_businessId_businesses_id_fk",
+          "tableFrom": "licenses",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "licenses_licenseNumber_unique": {
+          "name": "licenses_licenseNumber_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "licenseNumber"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.location_playlist_assignments": {
+      "name": "location_playlist_assignments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locationId": {
+          "name": "locationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "playlistId": {
+          "name": "playlistId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updatedByUserId": {
+          "name": "updatedByUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "location_playlist_assignments_business_location_idx": {
+          "name": "location_playlist_assignments_business_location_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "locationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "location_playlist_assignments_playlist_idx": {
+          "name": "location_playlist_assignments_playlist_idx",
+          "columns": [
+            {
+              "expression": "playlistId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "location_playlist_assignments_businessId_businesses_id_fk": {
+          "name": "location_playlist_assignments_businessId_businesses_id_fk",
+          "tableFrom": "location_playlist_assignments",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "location_playlist_assignments_locationId_locations_id_fk": {
+          "name": "location_playlist_assignments_locationId_locations_id_fk",
+          "tableFrom": "location_playlist_assignments",
+          "tableTo": "locations",
+          "columnsFrom": [
+            "locationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "location_playlist_assignments_playlistId_playlists_id_fk": {
+          "name": "location_playlist_assignments_playlistId_playlists_id_fk",
+          "tableFrom": "location_playlist_assignments",
+          "tableTo": "playlists",
+          "columnsFrom": [
+            "playlistId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "location_playlist_assignments_updatedByUserId_users_id_fk": {
+          "name": "location_playlist_assignments_updatedByUserId_users_id_fk",
+          "tableFrom": "location_playlist_assignments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "updatedByUserId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "location_playlist_assignments_locationId_unique": {
+          "name": "location_playlist_assignments_locationId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "locationId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.locations": {
+      "name": "locations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deviceId": {
+          "name": "deviceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "locations_businessId_businesses_id_fk": {
+          "name": "locations_businessId_businesses_id_fk",
+          "tableFrom": "locations",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "locations_deviceId_unique": {
+          "name": "locations_deviceId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "deviceId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.payments": {
+      "name": "payments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tbankPaymentId": {
+          "name": "tbankPaymentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "orderId": {
+          "name": "orderId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paymentType": {
+          "name": "paymentType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'subscription'"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "recurrent": {
+          "name": "recurrent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "rebillId": {
+          "name": "rebillId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "errorCode": {
+          "name": "errorCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "payments_businessId_businesses_id_fk": {
+          "name": "payments_businessId_businesses_id_fk",
+          "tableFrom": "payments",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "payments_tbankPaymentId_unique": {
+          "name": "payments_tbankPaymentId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tbankPaymentId"
+          ]
+        },
+        "payments_orderId_unique": {
+          "name": "payments_orderId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "orderId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.platform_announcement_products": {
+      "name": "platform_announcement_products",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdByUserId": {
+          "name": "createdByUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transcript": {
+          "name": "transcript",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "languageCode": {
+          "name": "languageCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ru-RU'"
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'uploaded'"
+        },
+        "voiceName": {
+          "name": "voiceName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'uploaded'"
+        },
+        "speakingRate": {
+          "name": "speakingRate",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "pitch": {
+          "name": "pitch",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "accessModel": {
+          "name": "accessModel",
+          "type": "platform_announcement_access",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'FREE'"
+        },
+        "priceKopeks": {
+          "name": "priceKopeks",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "isFeatured": {
+          "name": "isFeatured",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "isPublished": {
+          "name": "isPublished",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "sourceType": {
+          "name": "sourceType",
+          "type": "platform_announcement_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "platform_announcement_featured_published_idx": {
+          "name": "platform_announcement_featured_published_idx",
+          "columns": [
+            {
+              "expression": "isFeatured",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "isPublished",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sortOrder",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "platform_announcement_access_model_idx": {
+          "name": "platform_announcement_access_model_idx",
+          "columns": [
+            {
+              "expression": "accessModel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "platform_announcement_products_trackId_tracks_id_fk": {
+          "name": "platform_announcement_products_trackId_tracks_id_fk",
+          "tableFrom": "platform_announcement_products",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "platform_announcement_products_createdByUserId_users_id_fk": {
+          "name": "platform_announcement_products_createdByUserId_users_id_fk",
+          "tableFrom": "platform_announcement_products",
+          "tableTo": "users",
+          "columnsFrom": [
+            "createdByUserId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "platform_announcement_products_trackId_unique": {
+          "name": "platform_announcement_products_trackId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "trackId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.play_logs": {
+      "name": "play_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "locationId": {
+          "name": "locationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "playedAt": {
+          "name": "playedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "play_logs_locationId_locations_id_fk": {
+          "name": "play_logs_locationId_locations_id_fk",
+          "tableFrom": "play_logs",
+          "tableTo": "locations",
+          "columnsFrom": [
+            "locationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "play_logs_businessId_businesses_id_fk": {
+          "name": "play_logs_businessId_businesses_id_fk",
+          "tableFrom": "play_logs",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "play_logs_trackId_tracks_id_fk": {
+          "name": "play_logs_trackId_tracks_id_fk",
+          "tableFrom": "play_logs",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.playlist_tracks": {
+      "name": "playlist_tracks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "playlistId": {
+          "name": "playlistId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "playlist_track_unique": {
+          "name": "playlist_track_unique",
+          "columns": [
+            {
+              "expression": "playlistId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "trackId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "playlist_position_idx": {
+          "name": "playlist_position_idx",
+          "columns": [
+            {
+              "expression": "playlistId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "playlist_tracks_playlistId_playlists_id_fk": {
+          "name": "playlist_tracks_playlistId_playlists_id_fk",
+          "tableFrom": "playlist_tracks",
+          "tableTo": "playlists",
+          "columnsFrom": [
+            "playlistId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "playlist_tracks_trackId_tracks_id_fk": {
+          "name": "playlist_tracks_trackId_tracks_id_fk",
+          "tableFrom": "playlist_tracks",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.playlists": {
+      "name": "playlists",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduleConfig": {
+          "name": "scheduleConfig",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "playlists_businessId_businesses_id_fk": {
+          "name": "playlists_businessId_businesses_id_fk",
+          "tableFrom": "playlists",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.song_of_the_week": {
+      "name": "song_of_the_week",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "postedAt": {
+          "name": "postedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isActive": {
+          "name": "isActive",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_song_of_week_active": {
+          "name": "idx_song_of_week_active",
+          "columns": [
+            {
+              "expression": "isActive",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"song_of_the_week\".\"isActive\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_song_of_week_expires_at": {
+          "name": "idx_song_of_week_expires_at",
+          "columns": [
+            {
+              "expression": "expiresAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_song_of_week_posted_at": {
+          "name": "idx_song_of_week_posted_at",
+          "columns": [
+            {
+              "expression": "postedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "song_of_the_week_trackId_tracks_id_fk": {
+          "name": "song_of_the_week_trackId_tracks_id_fk",
+          "tableFrom": "song_of_the_week",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.support_conversations": {
+      "name": "support_conversations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "publicSessionKey": {
+          "name": "publicSessionKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assignedToUserId": {
+          "name": "assignedToUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "visitorName": {
+          "name": "visitorName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "visitorEmail": {
+          "name": "visitorEmail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "visitorPhone": {
+          "name": "visitorPhone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "support_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'GENERAL'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "support_priority",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'NORMAL'"
+        },
+        "status": {
+          "name": "status",
+          "type": "support_conversation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OPEN'"
+        },
+        "bitrixTaskId": {
+          "name": "bitrixTaskId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastMessageAt": {
+          "name": "lastMessageAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "closedAt": {
+          "name": "closedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_support_conversations_status_last_message": {
+          "name": "idx_support_conversations_status_last_message",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lastMessageAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_support_conversations_user_created": {
+          "name": "idx_support_conversations_user_created",
+          "columns": [
+            {
+              "expression": "userId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_support_conversations_business_created": {
+          "name": "idx_support_conversations_business_created",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_support_conversations_public_session_key": {
+          "name": "idx_support_conversations_public_session_key",
+          "columns": [
+            {
+              "expression": "publicSessionKey",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "support_conversations_userId_users_id_fk": {
+          "name": "support_conversations_userId_users_id_fk",
+          "tableFrom": "support_conversations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "support_conversations_businessId_businesses_id_fk": {
+          "name": "support_conversations_businessId_businesses_id_fk",
+          "tableFrom": "support_conversations",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "support_conversations_assignedToUserId_users_id_fk": {
+          "name": "support_conversations_assignedToUserId_users_id_fk",
+          "tableFrom": "support_conversations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "assignedToUserId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.support_message_deliveries": {
+      "name": "support_message_deliveries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "messageId": {
+          "name": "messageId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "support_delivery_provider",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "support_delivery_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "target": {
+          "name": "target",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "externalId": {
+          "name": "externalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attemptCount": {
+          "name": "attemptCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "lastError": {
+          "name": "lastError",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastAttemptAt": {
+          "name": "lastAttemptAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "support_message_delivery_unique_target": {
+          "name": "support_message_delivery_unique_target",
+          "columns": [
+            {
+              "expression": "messageId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "target",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_support_message_deliveries_status_updated": {
+          "name": "idx_support_message_deliveries_status_updated",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updatedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "support_message_deliveries_messageId_support_messages_id_fk": {
+          "name": "support_message_deliveries_messageId_support_messages_id_fk",
+          "tableFrom": "support_message_deliveries",
+          "tableTo": "support_messages",
+          "columnsFrom": [
+            "messageId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.support_messages": {
+      "name": "support_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "conversationId": {
+          "name": "conversationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "senderUserId": {
+          "name": "senderUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "direction": {
+          "name": "direction",
+          "type": "support_message_direction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "support_message_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isInternal": {
+          "name": "isInternal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_support_messages_conversation_created": {
+          "name": "idx_support_messages_conversation_created",
+          "columns": [
+            {
+              "expression": "conversationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_support_messages_sender_created": {
+          "name": "idx_support_messages_sender_created",
+          "columns": [
+            {
+              "expression": "senderUserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "support_messages_conversationId_support_conversations_id_fk": {
+          "name": "support_messages_conversationId_support_conversations_id_fk",
+          "tableFrom": "support_messages",
+          "tableTo": "support_conversations",
+          "columnsFrom": [
+            "conversationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "support_messages_senderUserId_users_id_fk": {
+          "name": "support_messages_senderUserId_users_id_fk",
+          "tableFrom": "support_messages",
+          "tableTo": "users",
+          "columnsFrom": [
+            "senderUserId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.track_download_events": {
+      "name": "track_download_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "songOfWeekId": {
+          "name": "songOfWeekId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "ipHash": {
+          "name": "ipHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "userAgent": {
+          "name": "userAgent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "referer": {
+          "name": "referer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "downloadedAt": {
+          "name": "downloadedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "track_download_events_track_downloaded_idx": {
+          "name": "track_download_events_track_downloaded_idx",
+          "columns": [
+            {
+              "expression": "trackId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "downloadedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "track_download_events_downloaded_at_idx": {
+          "name": "track_download_events_downloaded_at_idx",
+          "columns": [
+            {
+              "expression": "downloadedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "track_download_events_source_idx": {
+          "name": "track_download_events_source_idx",
+          "columns": [
+            {
+              "expression": "source",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "track_download_events_song_of_week_idx": {
+          "name": "track_download_events_song_of_week_idx",
+          "columns": [
+            {
+              "expression": "songOfWeekId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "track_download_events_trackId_tracks_id_fk": {
+          "name": "track_download_events_trackId_tracks_id_fk",
+          "tableFrom": "track_download_events",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "track_download_events_songOfWeekId_song_of_the_week_id_fk": {
+          "name": "track_download_events_songOfWeekId_song_of_the_week_id_fk",
+          "tableFrom": "track_download_events",
+          "tableTo": "song_of_the_week",
+          "columnsFrom": [
+            "songOfWeekId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.track_reactions": {
+      "name": "track_reactions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reactionType": {
+          "name": "reactionType",
+          "type": "track_reaction_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "track_reactions_user_track_unique": {
+          "name": "track_reactions_user_track_unique",
+          "columns": [
+            {
+              "expression": "userId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "trackId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "track_reactions_track_type_idx": {
+          "name": "track_reactions_track_type_idx",
+          "columns": [
+            {
+              "expression": "trackId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "reactionType",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "track_reactions_created_at_idx": {
+          "name": "track_reactions_created_at_idx",
+          "columns": [
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "track_reactions_userId_users_id_fk": {
+          "name": "track_reactions_userId_users_id_fk",
+          "tableFrom": "track_reactions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "track_reactions_trackId_tracks_id_fk": {
+          "name": "track_reactions_trackId_tracks_id_fk",
+          "tableFrom": "track_reactions",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.track_skips": {
+      "name": "track_skips",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "locationId": {
+          "name": "locationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "skippedAt": {
+          "name": "skippedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "playedAt": {
+          "name": "playedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "device": {
+          "name": "device",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_track_skips_skipped_at": {
+          "name": "idx_track_skips_skipped_at",
+          "columns": [
+            {
+              "expression": "skippedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_track_skips_track_id": {
+          "name": "idx_track_skips_track_id",
+          "columns": [
+            {
+              "expression": "trackId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_track_skips_business_id": {
+          "name": "idx_track_skips_business_id",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_track_skips_location_id": {
+          "name": "idx_track_skips_location_id",
+          "columns": [
+            {
+              "expression": "locationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "track_skips_trackId_tracks_id_fk": {
+          "name": "track_skips_trackId_tracks_id_fk",
+          "tableFrom": "track_skips",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "track_skips_userId_users_id_fk": {
+          "name": "track_skips_userId_users_id_fk",
+          "tableFrom": "track_skips",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "track_skips_businessId_businesses_id_fk": {
+          "name": "track_skips_businessId_businesses_id_fk",
+          "tableFrom": "track_skips",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "track_skips_locationId_locations_id_fk": {
+          "name": "track_skips_locationId_locations_id_fk",
+          "tableFrom": "track_skips",
+          "tableTo": "locations",
+          "columnsFrom": [
+            "locationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tracks": {
+      "name": "tracks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artist": {
+          "name": "artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fileUrl": {
+          "name": "fileUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bpm": {
+          "name": "bpm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "genre": {
+          "name": "genre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Unknown'"
+        },
+        "moodTags": {
+          "name": "moodTags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isExplicit": {
+          "name": "isExplicit",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "isFeatured": {
+          "name": "isFeatured",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "isAnnouncement": {
+          "name": "isAnnouncement",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "rightsStatus": {
+          "name": "rightsStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Direct Owner'"
+        },
+        "territoryRestriction": {
+          "name": "territoryRestriction",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vocalType": {
+          "name": "vocalType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Instrumental'"
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Russian'"
+        },
+        "timeSuitability": {
+          "name": "timeSuitability",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "energyLevel": {
+          "name": "energyLevel",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "downloadsCount": {
+          "name": "downloadsCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "sharesCount": {
+          "name": "sharesCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "artistId": {
+          "name": "artistId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "albumId": {
+          "name": "albumId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trackNumber": {
+          "name": "trackNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coverUrl": {
+          "name": "coverUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tracks_businessId_businesses_id_fk": {
+          "name": "tracks_businessId_businesses_id_fk",
+          "tableFrom": "tracks",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tracks_artistId_artists_id_fk": {
+          "name": "tracks_artistId_artists_id_fk",
+          "tableFrom": "tracks",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artistId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tracks_albumId_albums_id_fk": {
+          "name": "tracks_albumId_albums_id_fk",
+          "tableFrom": "tracks",
+          "tableTo": "albums",
+          "columnsFrom": [
+            "albumId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tts_credit_lots": {
+      "name": "tts_credit_lots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creditsTotal": {
+          "name": "creditsTotal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creditsRemaining": {
+          "name": "creditsRemaining",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purchasedAt": {
+          "name": "purchasedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paymentId": {
+          "name": "paymentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "tts_credit_lots_business_expiry_idx": {
+          "name": "tts_credit_lots_business_expiry_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "expiresAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tts_credit_lots_payment_unique": {
+          "name": "tts_credit_lots_payment_unique",
+          "columns": [
+            {
+              "expression": "paymentId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tts_credit_lots_businessId_businesses_id_fk": {
+          "name": "tts_credit_lots_businessId_businesses_id_fk",
+          "tableFrom": "tts_credit_lots",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tts_credit_lots_paymentId_payments_id_fk": {
+          "name": "tts_credit_lots_paymentId_payments_id_fk",
+          "tableFrom": "tts_credit_lots",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "paymentId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tts_usage_events": {
+      "name": "tts_usage_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "announcementId": {
+          "name": "announcementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sourceType": {
+          "name": "sourceType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consumedCredits": {
+          "name": "consumedCredits",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "charsCount": {
+          "name": "charsCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tts_usage_events_business_created_idx": {
+          "name": "tts_usage_events_business_created_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tts_usage_events_businessId_businesses_id_fk": {
+          "name": "tts_usage_events_businessId_businesses_id_fk",
+          "tableFrom": "tts_usage_events",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tts_usage_events_announcementId_voice_announcements_id_fk": {
+          "name": "tts_usage_events_announcementId_voice_announcements_id_fk",
+          "tableFrom": "tts_usage_events",
+          "tableTo": "voice_announcements",
+          "columnsFrom": [
+            "announcementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "passwordHash": {
+          "name": "passwordHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'SUPABASE_AUTH'"
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'BUSINESS_OWNER'"
+        },
+        "userType": {
+          "name": "userType",
+          "type": "user_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'BUSINESS'"
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assignedLocationId": {
+          "name": "assignedLocationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "termsAccepted": {
+          "name": "termsAccepted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "termsAcceptedAt": {
+          "name": "termsAcceptedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.voice_actors": {
+      "name": "voice_actors",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fullName": {
+          "name": "fullName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'employee'"
+        },
+        "consentDocumentUrl": {
+          "name": "consentDocumentUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consentVersion": {
+          "name": "consentVersion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consentAcceptedAt": {
+          "name": "consentAcceptedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consentIpAddress": {
+          "name": "consentIpAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consentUserAgent": {
+          "name": "consentUserAgent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consentRevokedAt": {
+          "name": "consentRevokedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "voice_actors_business_email_idx": {
+          "name": "voice_actors_business_email_idx",
+          "columns": [
+            {
+              "expression": "businessId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "voice_actors_businessId_businesses_id_fk": {
+          "name": "voice_actors_businessId_businesses_id_fk",
+          "tableFrom": "voice_actors",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.voice_announcements": {
+      "name": "voice_announcements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trackId": {
+          "name": "trackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platformAnnouncementId": {
+          "name": "platformAnnouncementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "brandVoiceModelId": {
+          "name": "brandVoiceModelId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "languageCode": {
+          "name": "languageCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ru-RU'"
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'google'"
+        },
+        "voiceName": {
+          "name": "voiceName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "speakingRate": {
+          "name": "speakingRate",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "pitch": {
+          "name": "pitch",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "voice_announcements_businessId_businesses_id_fk": {
+          "name": "voice_announcements_businessId_businesses_id_fk",
+          "tableFrom": "voice_announcements",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "voice_announcements_trackId_tracks_id_fk": {
+          "name": "voice_announcements_trackId_tracks_id_fk",
+          "tableFrom": "voice_announcements",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "trackId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "voice_announcements_platformAnnouncementId_platform_announcement_products_id_fk": {
+          "name": "voice_announcements_platformAnnouncementId_platform_announcement_products_id_fk",
+          "tableFrom": "voice_announcements",
+          "tableTo": "platform_announcement_products",
+          "columnsFrom": [
+            "platformAnnouncementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "voice_announcements_brandVoiceModelId_brand_voice_models_id_fk": {
+          "name": "voice_announcements_brandVoiceModelId_brand_voice_models_id_fk",
+          "tableFrom": "voice_announcements",
+          "tableTo": "brand_voice_models",
+          "columnsFrom": [
+            "brandVoiceModelId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.voice_samples": {
+      "name": "voice_samples",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modelId": {
+          "name": "modelId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fileUrl": {
+          "name": "fileUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fileName": {
+          "name": "fileName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fileSizeBytes": {
+          "name": "fileSizeBytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mimeType": {
+          "name": "mimeType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durationSeconds": {
+          "name": "durationSeconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transcript": {
+          "name": "transcript",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approvalStatus": {
+          "name": "approvalStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "approvalReason": {
+          "name": "approvalReason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approvedAt": {
+          "name": "approvedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploadedAt": {
+          "name": "uploadedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "voice_samples_actor_approval_idx": {
+          "name": "voice_samples_actor_approval_idx",
+          "columns": [
+            {
+              "expression": "actorId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "approvalStatus",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "voice_samples_model_uploaded_idx": {
+          "name": "voice_samples_model_uploaded_idx",
+          "columns": [
+            {
+              "expression": "modelId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "uploadedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "voice_samples_actorId_voice_actors_id_fk": {
+          "name": "voice_samples_actorId_voice_actors_id_fk",
+          "tableFrom": "voice_samples",
+          "tableTo": "voice_actors",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "voice_samples_modelId_brand_voice_models_id_fk": {
+          "name": "voice_samples_modelId_brand_voice_models_id_fk",
+          "tableFrom": "voice_samples",
+          "tableTo": "brand_voice_models",
+          "columnsFrom": [
+            "modelId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.wave_settings": {
+      "name": "wave_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "businessId": {
+          "name": "businessId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "energyPreference": {
+          "name": "energyPreference",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 5
+        },
+        "vocalPreference": {
+          "name": "vocalPreference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'both'"
+        },
+        "focusProfile": {
+          "name": "focusProfile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
+        },
+        "announcementScheduleEnabled": {
+          "name": "announcementScheduleEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "announcementScheduleConfig": {
+          "name": "announcementScheduleConfig",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{\"frequency\":0,\"mode\":\"sequential\",\"timeRules\":[],\"weights\":{}}'::jsonb"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "wave_settings_businessId_businesses_id_fk": {
+          "name": "wave_settings_businessId_businesses_id_fk",
+          "tableFrom": "wave_settings",
+          "tableTo": "businesses",
+          "columnsFrom": [
+            "businessId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "wave_settings_businessId_unique": {
+          "name": "wave_settings_businessId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "businessId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.billing_interval": {
+      "name": "billing_interval",
+      "schema": "public",
+      "values": [
+        "monthly",
+        "yearly"
+      ]
+    },
+    "public.demo_request_status": {
+      "name": "demo_request_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "CONTACTED",
+        "COMPLETED",
+        "CANCELLED"
+      ]
+    },
+    "public.document_status": {
+      "name": "document_status",
+      "schema": "public",
+      "values": [
+        "GENERATING",
+        "READY",
+        "FAILED"
+      ]
+    },
+    "public.platform_announcement_access": {
+      "name": "platform_announcement_access",
+      "schema": "public",
+      "values": [
+        "FREE",
+        "PAID"
+      ]
+    },
+    "public.platform_announcement_source": {
+      "name": "platform_announcement_source",
+      "schema": "public",
+      "values": [
+        "UPLOAD",
+        "TTS"
+      ]
+    },
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "ADMIN",
+        "BUSINESS_OWNER",
+        "STAFF"
+      ]
+    },
+    "public.subscription_status": {
+      "name": "subscription_status",
+      "schema": "public",
+      "values": [
+        "INACTIVE",
+        "ACTIVE",
+        "EXPIRED"
+      ]
+    },
+    "public.support_category": {
+      "name": "support_category",
+      "schema": "public",
+      "values": [
+        "GENERAL",
+        "TECHNICAL",
+        "BILLING",
+        "LEGAL"
+      ]
+    },
+    "public.support_conversation_status": {
+      "name": "support_conversation_status",
+      "schema": "public",
+      "values": [
+        "OPEN",
+        "PENDING",
+        "CLOSED"
+      ]
+    },
+    "public.support_delivery_provider": {
+      "name": "support_delivery_provider",
+      "schema": "public",
+      "values": [
+        "TELEGRAM",
+        "BITRIX24"
+      ]
+    },
+    "public.support_delivery_status": {
+      "name": "support_delivery_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "SENT",
+        "FAILED"
+      ]
+    },
+    "public.support_message_direction": {
+      "name": "support_message_direction",
+      "schema": "public",
+      "values": [
+        "USER",
+        "SUPPORT",
+        "SYSTEM"
+      ]
+    },
+    "public.support_message_source": {
+      "name": "support_message_source",
+      "schema": "public",
+      "values": [
+        "PUBLIC_WIDGET",
+        "DASHBOARD",
+        "ADMIN"
+      ]
+    },
+    "public.support_priority": {
+      "name": "support_priority",
+      "schema": "public",
+      "values": [
+        "LOW",
+        "NORMAL",
+        "HIGH",
+        "URGENT"
+      ]
+    },
+    "public.track_reaction_type": {
+      "name": "track_reaction_type",
+      "schema": "public",
+      "values": [
+        "LIKE",
+        "DISLIKE"
+      ]
+    },
+    "public.user_type": {
+      "name": "user_type",
+      "schema": "public",
+      "values": [
+        "BUSINESS",
+        "CREATOR"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

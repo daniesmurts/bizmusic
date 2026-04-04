@@ -4,15 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { 
-  Music, 
-  Menu, 
-  User, 
-  X, 
-  LayoutDashboard, 
-  Play, 
-  CreditCard, 
-  FileText, 
+import {
+  Music,
+  Menu,
+  User,
+  X,
+  LayoutDashboard,
+  Play,
+  CreditCard,
+  FileText,
   Settings,
   ChevronRight,
   Mic,
@@ -25,7 +25,7 @@ import {
   Scissors,
   Car,
   ShoppingCart,
-  BookOpen
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
@@ -55,15 +55,11 @@ export const Navbar = () => {
     };
   }, [isMenuOpen]);
 
-  // Close menu on route change
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [pathname]);
-
   const dashboardNavItems = [
     { name: "Обзор", href: "/dashboard", icon: LayoutDashboard },
     { name: "Плеер", href: "/dashboard/player", icon: Play },
     { name: "Анонсы", href: "/dashboard/announcements", icon: Mic },
+    { name: "Brand Voice", href: "/dashboard/brand-voice", icon: Mic },
     { name: "Филиалы", href: "/dashboard/branches", icon: Building2 },
     { name: "Подписка", href: "/dashboard/subscription", icon: CreditCard },
     { name: "Договор", href: "/dashboard/contract", icon: FileText },

@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getTracksAction } from "@/lib/actions/tracks";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Search,
@@ -24,6 +23,19 @@ import { toast } from "sonner";
 const MOOD_FILTERS = ["Энергичный", "Спокойный", "Фоновый", "Романтичный", "Весёлый", "Грустный"];
 const GENRE_FILTERS = ["Джаз", "Поп", "Рок", "Электроника", "Классика", "Лаунж", "R&B"];
 
+interface CatalogTrack {
+  id: string;
+  title: string;
+  artist: string;
+  fileUrl: string;
+  streamUrl?: string;
+  duration: number;
+  cover_url?: string;
+  genre?: string;
+  bpm?: number;
+  moodTags?: string[];
+}
+
 export function TrackBrowser() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [search, setSearch] = useState("");
@@ -31,19 +43,19 @@ export function TrackBrowser() {
   const [activeGenre, setActiveGenre] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { currentTrack, isPlaying, setTrack, togglePlay, addToQueue } = usePlayerStore();
+  const { currentTrack, isPlaying, loadPlaylist, togglePlay, addToQueue } = usePlayerStore();
 
-  const { data: tracks, isLoading } = useQuery({
+  const { data: tracks, isLoading } = useQuery<CatalogTrack[]>({
     queryKey: ["tracks-catalog"],
     queryFn: async () => {
       const res = await getTracksAction();
       if (!res.success) throw new Error(res.error);
-      return res.data as any[];
+      return (res.data || []) as CatalogTrack[];
     },
     enabled: isExpanded,
   });
 
-  const filtered = (tracks || []).filter((t: any) => {
+  const filtered = (tracks || []).filter((t) => {
     if (search) {
       const s = search.toLowerCase();
       const searchable = [t.title, t.artist, t.genre, ...(t.moodTags || [])].filter(Boolean).join(" ").toLowerCase();
@@ -54,29 +66,31 @@ export function TrackBrowser() {
     return true;
   });
 
-  const handlePlay = (track: any) => {
-    const playerTrack: Track = {
-      id: track.id,
-      title: track.title,
-      artist: track.artist,
-      fileUrl: track.fileUrl,
-      duration: track.duration,
-      cover_url: track.cover_url,
-    };
-
+  const handlePlay = (track: CatalogTrack) => {
     if (currentTrack?.id === track.id) {
       togglePlay();
     } else {
-      setTrack(playerTrack);
+      const playlistTracks: Track[] = filtered.map((item) => ({
+        id: item.id,
+        title: item.title,
+        artist: item.artist,
+        fileUrl: item.fileUrl,
+        streamUrl: item.streamUrl,
+        duration: item.duration,
+        cover_url: item.cover_url,
+      }));
+      const startIndex = Math.max(0, filtered.findIndex((item) => item.id === track.id));
+      loadPlaylist(playlistTracks, startIndex);
     }
   };
 
-  const handleAddToQueue = (track: any) => {
+  const handleAddToQueue = (track: CatalogTrack) => {
     addToQueue({
       id: track.id,
       title: track.title,
       artist: track.artist,
       fileUrl: track.fileUrl,
+      streamUrl: track.streamUrl,
       duration: track.duration,
       cover_url: track.cover_url,
     });
@@ -184,7 +198,7 @@ export function TrackBrowser() {
                 <p className="text-sm font-bold uppercase tracking-widest">Загрузка каталога...</p>
               </div>
             ) : filtered.length > 0 ? (
-              filtered.map((track: any) => {
+              filtered.map((track) => {
                 const isCurrentTrack = currentTrack?.id === track.id;
                 const isTrackPlaying = isCurrentTrack && isPlaying;
 

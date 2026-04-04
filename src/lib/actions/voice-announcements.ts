@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { tracks, voiceAnnouncements, businesses, announcementJingles } from "@/db/schema";
+import { tracks, voiceAnnouncements, businesses, announcementJingles, brandVoiceModels } from "@/db/schema";
 import { generateSpeech, TTSRequest, isProviderConfigured } from "@/lib/tts";
 import { uploadFileBuffer, generateUniqueFileName, deleteFile, parseStorageObjectRef } from "@/lib/supabase-storage";
 import {
@@ -13,7 +13,9 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import * as mm from "music-metadata";
 import {
+  consumeBrandVoiceGenerationChars,
   consumeTtsGenerationCredit,
+  getBrandVoiceEntitlementStatus,
   getBusinessEntitlementState,
   getTtsEntitlementStatus,
 } from "@/lib/tts-entitlements";
@@ -22,6 +24,7 @@ import { ANNOUNCEMENT_TEMPLATES } from "@/lib/announcement-templates";
 import { announcementTemplates } from "@/db/schema";
 import { asc, desc } from "drizzle-orm";
 import { MAX_JINGLE_DURATION_SEC, mixAnnouncementWithJingle } from "@/lib/audio-jingle-mixer";
+import { getBrandVoiceProvider } from "@/lib/integrations/brand-voice-provider";
 
 async function resolveAnnouncementScope() {
   const supabase = await createClient();
@@ -44,6 +47,7 @@ export interface CreateAnnouncementInput {
   ssmlText?: string;
   title: string;
   voiceName: string;
+  brandVoiceModelId?: string;
   speakingRate?: number;
   pitch?: number;
   languageCode?: string;
@@ -83,7 +87,8 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
       return { success: false, error: "Текст объявления не должен превышать 500 символов." };
     }
 
-    const hasSsml = Boolean(input.ssmlText && input.ssmlText.trim().length > 0);
+    const useBrandVoice = Boolean(input.brandVoiceModelId?.trim());
+    const hasSsml = !useBrandVoice && Boolean(input.ssmlText && input.ssmlText.trim().length > 0);
     if (hasSsml && (input.provider || "google") !== "google") {
       return { success: false, error: "SSML поддерживается только при использовании Google Cloud TTS" };
     }
@@ -92,29 +97,87 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
       return { success: false, error: "SSML не должен превышать 3000 символов" };
     }
 
-    const charsForBilling = hasSsml
-      ? estimateTextLengthFromSsml(input.ssmlText || "")
-      : input.text.length;
+    const charsForBilling = Math.max(
+      1,
+      hasSsml ? estimateTextLengthFromSsml(input.ssmlText || "") : input.text.length,
+    );
 
-    const entitlement = await getTtsEntitlementStatus(business.id);
+    const entitlement = useBrandVoice
+      ? await getBrandVoiceEntitlementStatus(business.id)
+      : await getTtsEntitlementStatus(business.id);
+
     if (!entitlement.canGenerate) {
       return { success: false, error: entitlement.denialReason || "Лимит генераций исчерпан." };
     }
 
     const entitlementBusiness = await getBusinessEntitlementState(business.id);
 
-    // 1. Generate Speech
-    const ttsRequest: TTSRequest = {
-      text: input.text,
-      ssml: hasSsml ? input.ssmlText : undefined,
-      voiceName: input.voiceName,
-      languageCode: input.languageCode || "ru-RU",
-      speakingRate: input.speakingRate,
-      pitch: input.pitch,
-      provider: input.provider || "google",
-    };
+    let audioBuffer: Buffer;
+    let persistedProvider: string;
+    let persistedVoiceName: string;
+    let languageCode = input.languageCode || "ru-RU";
+    let brandVoiceModelId: string | null = null;
 
-    const audioBuffer = await generateSpeech(ttsRequest);
+    if (useBrandVoice) {
+      const modelId = input.brandVoiceModelId!.trim();
+      const model = await db.query.brandVoiceModels.findFirst({
+        where: and(
+          eq(brandVoiceModels.id, modelId),
+          eq(brandVoiceModels.businessId, business.id),
+          eq(brandVoiceModels.status, "READY"),
+        ),
+        with: {
+          actor: {
+            columns: {
+              fullName: true,
+              consentAcceptedAt: true,
+              consentRevokedAt: true,
+            },
+          },
+        },
+      });
+
+      if (!model || !model.providerModelId) {
+        return { success: false, error: "Выбранная Brand Voice модель недоступна или не готова" };
+      }
+
+      if (!model.actor.consentAcceptedAt || model.actor.consentRevokedAt) {
+        return { success: false, error: "У модели нет действующего согласия диктора" };
+      }
+
+      try {
+        const provider = getBrandVoiceProvider();
+        audioBuffer = await provider.synthesize({
+          providerModelId: model.providerModelId,
+          text: input.text,
+          speakingRate: input.speakingRate,
+          pitch: input.pitch,
+        });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "Ошибка синтеза Brand Voice";
+        return { success: false, error: msg };
+      }
+
+      persistedProvider = "brand_voice";
+      persistedVoiceName = `Brand Voice: ${model.actor.fullName}`;
+      brandVoiceModelId = model.id;
+      languageCode = "ru-RU";
+    } else {
+      const ttsRequest: TTSRequest = {
+        text: input.text,
+        ssml: hasSsml ? input.ssmlText : undefined,
+        voiceName: input.voiceName,
+        languageCode,
+        speakingRate: input.speakingRate,
+        pitch: input.pitch,
+        provider: input.provider || "google",
+      };
+
+      audioBuffer = await generateSpeech(ttsRequest);
+      persistedProvider = ttsRequest.provider || "google";
+      persistedVoiceName = input.voiceName;
+      languageCode = ttsRequest.languageCode || "ru-RU";
+    }
 
     let finalAudioBuffer = audioBuffer;
 
@@ -177,20 +240,31 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
       const [newAnnouncement] = await tx.insert(voiceAnnouncements).values({
         businessId: business.id,
         trackId: newTrack.id,
+        brandVoiceModelId,
         text: input.text,
-        languageCode: ttsRequest.languageCode!,
-        provider: ttsRequest.provider!,
-        voiceName: input.voiceName,
+        languageCode,
+        provider: persistedProvider,
+        voiceName: persistedVoiceName,
         speakingRate: input.speakingRate || 1.0,
         pitch: input.pitch || 0.0,
       }).returning();
 
-      await consumeTtsGenerationCredit(tx, {
-        business: entitlementBusiness,
-        announcementId: newAnnouncement.id,
-        provider: ttsRequest.provider || "google",
-        charsCount: Math.max(1, charsForBilling),
-      });
+      if (brandVoiceModelId) {
+        await consumeBrandVoiceGenerationChars(tx, {
+          business: entitlementBusiness,
+          modelId: brandVoiceModelId,
+          announcementId: newAnnouncement.id,
+          provider: persistedProvider,
+          charsCount: charsForBilling,
+        });
+      } else {
+        await consumeTtsGenerationCredit(tx, {
+          business: entitlementBusiness,
+          announcementId: newAnnouncement.id,
+          provider: (persistedProvider === "sberbank" ? "sberbank" : "google"),
+          charsCount: charsForBilling,
+        });
+      }
 
       return { track: newTrack, announcement: newAnnouncement };
     });
@@ -198,7 +272,9 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
     revalidatePath("/dashboard/announcements");
     revalidatePath("/dashboard/player");
 
-    const nextEntitlement = await getTtsEntitlementStatus(business.id);
+    const nextEntitlement = useBrandVoice
+      ? await getBrandVoiceEntitlementStatus(business.id)
+      : await getTtsEntitlementStatus(business.id);
 
     return {
       success: true,

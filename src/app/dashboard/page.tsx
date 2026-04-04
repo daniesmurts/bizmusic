@@ -10,11 +10,10 @@ import {
   MapPin,
   Plus,
   Settings,
-  CreditCard,
   ShieldCheck,
-  BarChart3,
   Play,
-  ArrowRight
+  ArrowRight,
+  Mic,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -231,13 +230,23 @@ export default function Dashboard() {
       </section>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-12">
          <Link href="/dashboard/player" className="glass-dark border border-white/10 p-10 rounded-[2.5rem] space-y-6 relative overflow-hidden group">
            <div className="relative z-10 space-y-4">
              <h3 className="text-3xl font-black uppercase tracking-tight leading-none">Управление <br />Эфиром</h3>
              <p className="text-neutral-400 font-medium">Перейдите в плеер для управления музыкой в ваших заведениях.</p>
              <div className="text-neon flex items-center gap-2 text-xs font-black uppercase tracking-widest">
                 Открыть плеер <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+             </div>
+           </div>
+         </Link>
+
+         <Link href="/dashboard/brand-voice" className="glass-dark border border-white/10 p-10 rounded-[2.5rem] space-y-6 relative overflow-hidden group">
+           <div className="relative z-10 space-y-4">
+             <h3 className="text-3xl font-black uppercase tracking-tight leading-none">Brand Voice <br />и дикторы</h3>
+             <p className="text-neutral-400 font-medium">Управление согласием, образцами голоса и Yandex model URI для фирменного голоса.</p>
+             <div className="text-neon flex items-center gap-2 text-xs font-black uppercase tracking-widest">
+                Открыть Brand Voice <Mic className="w-4 h-4" />
              </div>
            </div>
          </Link>

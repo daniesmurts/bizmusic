@@ -15,6 +15,7 @@ test("isConfirmedPaymentStatus supports CONFIRMED and AUTHORIZED", () => {
 
 test("shouldCreateCreditLot is idempotent and payment-type aware", () => {
   assert.equal(shouldCreateCreditLot("credit_pack", "CONFIRMED", false), true);
+  assert.equal(shouldCreateCreditLot("token_pack", "CONFIRMED", false), true);
   assert.equal(shouldCreateCreditLot("credit_pack", "AUTHORIZED", false), true);
   assert.equal(shouldCreateCreditLot("credit_pack", "CONFIRMED", true), false);
   assert.equal(shouldCreateCreditLot("subscription", "CONFIRMED", false), false);

@@ -14,12 +14,31 @@ import {
   ArrowRight,
   Play,
   Heart,
+  AudioLines,
   ExternalLink,
 } from "lucide-react";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
 import { cn } from "@/lib/utils";
 
 const products = [
+  {
+    name: "Создание джинглов",
+    slug: "jingles",
+    description: "Уникальные аудиологотипы и джинглы",
+    longDescription:
+      "Создайте узнаваемый аудио-бренд. Мы разрабатываем уникальные джинглы, звуковые логотипы и музыкальное оформление, которое выделит вас среди конкурентов.",
+    icon: AudioLines,
+    image: "/images/mood-1.png",
+    features: [
+      "Индивидуальный композитор",
+      "Аудио-логотип (3-5 сек)",
+      "Полный джингл (15-30 сек)",
+      "Передача авторских прав",
+      "Срок создания: от 3 дней",
+    ],
+    color: "neon",
+    link: "/products/jingles",
+  },
   {
     name: "Голосовые анонсы",
     slug: "voice-announcements",

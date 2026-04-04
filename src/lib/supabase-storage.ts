@@ -27,7 +27,7 @@ export async function getUploadSignedUrl(
   fileName: string,
   folder: string = 'tracks',
   fileType?: string
-): Promise<{ uploadUrl: string; publicUrl: string }> {
+): Promise<{ uploadUrl: string; publicUrl: string; objectPath: string }> {
   // `fileType` is currently unused in the upload flow but kept for future validation/logic.
   void fileType;
   const path = `${folder}/${fileName}`;
@@ -47,6 +47,7 @@ export async function getUploadSignedUrl(
   return {
     uploadUrl: data.signedUrl,
     publicUrl: publicUrl,
+    objectPath: path,
   };
 }
 
