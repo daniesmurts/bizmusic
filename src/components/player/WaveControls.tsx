@@ -18,23 +18,31 @@ export const WaveControls = ({
   subscriptionStatus?: string;
 }) => {
   const isSubscribed = subscriptionStatus === "ACTIVE";
-  const { isWaveMode, setWaveMode, isFetchingWave } = usePlayerStore();
+  const { isWaveMode, setWaveMode, isFetchingWave, waveError } = usePlayerStore();
   const [settings, setSettings] = useState({
     energyPreference: 5,
     vocalPreference: "both",
     focusProfile: "none",
   });
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!businessId) return;
     getWaveSettingsAction(businessId).then(res => {
       if (res.success && res.settings) {
-        setSettings(res.settings as any);
+        setSettings({
+          energyPreference: res.settings.energyPreference,
+          vocalPreference: res.settings.vocalPreference,
+          focusProfile: res.settings.focusProfile,
+        });
       }
-      setLoading(false);
     });
   }, [businessId]);
+
+  useEffect(() => {
+    if (waveError) {
+      toast.error(waveError);
+    }
+  }, [waveError]);
 
   const handleUpdate = async (updates: Partial<typeof settings>) => {
     const newSettings = { ...settings, ...updates };
@@ -109,6 +117,14 @@ export const WaveControls = ({
             </Button>
           </div>
         </div>
+
+        {waveError && (
+          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+            <p className="text-[11px] font-black uppercase tracking-wider text-red-300">
+              Ошибка Бизнес-Волны: {waveError}
+            </p>
+          </div>
+        )}
   
         <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 transition-all duration-700", !isWaveMode && "opacity-60 grayscale-[0.2]")}>
           

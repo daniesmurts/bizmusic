@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
-  BarChart3,
   Building2,
   Play,
   CreditCard,
@@ -12,13 +11,9 @@ import {
   LayoutDashboard,
   Music,
   ChevronRight,
-  Menu,
-  X,
-  User,
-  LogOut,
   Settings,
   Mic,
-  BookOpen
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
@@ -27,7 +22,6 @@ import { MiniPlayer } from "@/components/dashboard/MiniPlayer";
 import { getBusinessDetailsAction } from "@/lib/actions/dashboard";
 import { useAuth } from "@/components/AuthProvider";
 import { getMyUnreadSupportReplyAction } from "@/lib/actions/support";
-import { Button } from "@/components/ui/button";
 import { isBusinessProfileComplete } from "@/lib/validation/business";
 
 export default function DashboardLayout({
@@ -37,7 +31,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { signOut, user, role } = useAuth();
+  const { role } = useAuth();
   const [isSigned, setIsSigned] = useState(false);
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
   const isBranchManager = role === "STAFF";
@@ -112,6 +106,11 @@ export default function DashboardLayout({
         {
           name: "Анонсы",
           href: "/dashboard/announcements",
+          icon: Mic,
+        },
+        {
+          name: "Brand Voice",
+          href: "/dashboard/brand-voice",
           icon: Mic,
         },
         {

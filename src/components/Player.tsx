@@ -54,16 +54,12 @@ export const Player = () => {
   // Load from local IDB cache if available
   useEffect(() => {
     if (!currentTrack) {
-      setAudioSource(undefined);
       return;
     }
     
     let isActive = true;
     let objectUrl: string | null = null;
     const fallbackSrc = currentTrack.streamUrl || currentTrack.fileUrl;
-    
-    // Clear instantly to prevent React from playing the old source
-    setAudioSource(undefined);
     
     async function loadAudioSource() {
       try {
@@ -76,7 +72,7 @@ export const Player = () => {
         } else {
           setAudioSource(fallbackSrc);
         }
-      } catch (err) {
+      } catch {
         if (isActive) setAudioSource(fallbackSrc);
       }
     }
@@ -174,6 +170,16 @@ export const Player = () => {
     setDuration(audioRef.current.duration);
   };
 
+  const handleAudioError = () => {
+    if (!currentTrack) return;
+    console.error("Audio playback error for track:", currentTrack.id, currentTrack.title);
+    toast.error(`Не удалось воспроизвести: ${currentTrack.title}`);
+    if (currentTrack.isAnnouncement) {
+      logAnnouncementPlay(true);
+    }
+    nextTrack();
+  };
+
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -230,6 +236,8 @@ export const Player = () => {
 
   if (!currentTrack) return null;
 
+  const currentTimeFromProgress = duration > 0 ? (progress / 100) * duration : 0;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 animate-slide-up">
       <OfflineManager />
@@ -239,6 +247,7 @@ export const Player = () => {
           src={audioSource || undefined}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
+          onError={handleAudioError}
           onEnded={() => {
             logAnnouncementPlay(false);
             nextTrack();
@@ -327,7 +336,7 @@ export const Player = () => {
           
           <div className="flex items-center gap-3 w-full">
             <span className="text-[10px] font-black text-neutral-500 w-10 text-right">
-              {formatTime(audioRef.current?.currentTime || 0)}
+              {formatTime(currentTimeFromProgress)}
             </span>
             <Slider 
               value={[progress]} 

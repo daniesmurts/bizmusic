@@ -84,86 +84,44 @@ export default function BrandVoiceOfferPage() {
 
       <section>
         <h2>4. Цена и порядок расчётов</h2>
-        <p>4.1. Стоимость услуг по настоящему Договору состоит из:</p>
-        <h3>4.1.1. Единовременного платежа за создание Цифрового голоса</h3>
-        <p>НДС не облагается. Платёж вносится <strong>предварительно</strong> (100% предоплата) в течение [5] рабочих дней с момента подписания Договора.</p>
-        <div className="overflow-x-auto my-8">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left py-4 px-6 text-neon font-black uppercase tracking-widest text-[10px]">План</th>
-                <th className="text-right py-4 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Разовый платёж</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Старт</td>
-                <td className="py-4 px-6 text-right font-black">14 900 ₽</td>
-              </tr>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Бизнес</td>
-                <td className="py-4 px-6 text-right font-black">29 900 ₽</td>
-              </tr>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Корпоративный</td>
-                <td className="py-4 px-6 text-right font-black">59 900 ₽</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <p>4.1. Стоимость услуг по настоящему Договору определяется согласно выбранному тарифному плану, указанному в таблице ниже:</p>
         
-        <h3>4.1.2. Ежемесячной абонентской платы</h3>
-        <p>За право использования Цифрового голоса и доступ к API / веб-интерфейсу. Размер платы зависит от выбранного тарифа:</p>
-        <div className="overflow-x-auto my-8">
+        <div className="overflow-x-auto my-12">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left py-4 px-6 text-neon font-black uppercase tracking-widest text-[10px]">План</th>
-                <th className="text-left py-4 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Ежемесячная плата</th>
-                <th className="text-right py-4 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Символов в месяц</th>
+              <tr className="border-b border-white/10 bg-white/[0.02]">
+                <th className="text-left py-6 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Тарифный план</th>
+                <th className="text-right py-6 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Разовый платёж (Setup)</th>
+                <th className="text-right py-6 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Ежемесячная плата</th>
+                <th className="text-right py-6 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Символов в месяц</th>
+                <th className="text-right py-6 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Сверхлимит (за 1000 зн.)</th>
+                <th className="text-left py-6 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Особенности</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Старт</td>
-                <td className="py-4 px-6 font-black text-white">4 900 ₽</td>
-                <td className="py-4 px-6 text-right font-medium opacity-60">10 000</td>
+              <tr className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                <td className="py-6 px-6 font-bold text-white">Старт</td>
+                <td className="py-6 px-6 text-right font-black">25 000 ₽</td>
+                <td className="py-6 px-6 text-right font-black text-white">3 900 ₽</td>
+                <td className="py-6 px-6 text-right font-medium opacity-60">10 000</td>
+                <td className="py-6 px-6 text-right font-black">90 ₽</td>
+                <td className="py-6 px-6 text-xs opacity-70 font-medium">1 Brand Voice, 1 Location</td>
               </tr>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Бизнес</td>
-                <td className="py-4 px-6 font-black text-white">9 900 ₽</td>
-                <td className="py-4 px-6 text-right font-medium opacity-60">50 000</td>
+              <tr className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                <td className="py-6 px-6 font-bold text-white">Бизнес</td>
+                <td className="py-6 px-6 text-right font-black">35 000 ₽</td>
+                <td className="py-6 px-6 text-right font-black text-white">7 900 ₽</td>
+                <td className="py-6 px-6 text-right font-medium opacity-60">50 000</td>
+                <td className="py-6 px-6 text-right font-black">70 ₽</td>
+                <td className="py-6 px-6 text-xs opacity-70 font-medium">1 Brand Voice, 5 Locations, Basic Support</td>
               </tr>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Корпоративный</td>
-                <td className="py-4 px-6 font-black text-white">19 900 ₽</td>
-                <td className="py-4 px-6 text-right font-medium opacity-60">200 000</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h3>4.1.3. Плата за сверхлимитное использование</h3>
-        <div className="overflow-x-auto my-8">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left py-4 px-6 text-neon font-black uppercase tracking-widest text-[10px]">План</th>
-                <th className="text-right py-4 px-6 text-neon font-black uppercase tracking-widest text-[10px]">Переплата за 1000 символов</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Старт</td>
-                <td className="py-4 px-6 text-right font-black">100 ₽</td>
-              </tr>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Бизнес</td>
-                <td className="py-4 px-6 text-right font-black">80 ₽</td>
-              </tr>
-              <tr className="border-b border-white/5">
-                <td className="py-4 px-6 font-bold">Корпоративный</td>
-                <td className="py-4 px-6 text-right font-black">60 ₽</td>
+              <tr className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                <td className="py-6 px-6 font-bold text-white">Корпоративный</td>
+                <td className="py-6 px-6 text-right font-black">60 000 ₽</td>
+                <td className="py-6 px-6 text-right font-black text-white">14 900 ₽</td>
+                <td className="py-6 px-6 text-right font-medium opacity-60">250 000</td>
+                <td className="py-6 px-6 text-right font-black">50 ₽</td>
+                <td className="py-6 px-6 text-xs opacity-70 font-medium">1 Brand Voice, Unlimited Locations, Priority Support</td>
               </tr>
             </tbody>
           </table>

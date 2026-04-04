@@ -75,12 +75,24 @@ export async function generateWaveBatchAction(businessId: string, excludeTrackId
       return { success: false, error: "Недостаточно прав" };
     }
 
-    // 1. Get settings
-    const settingsRes = await getWaveSettingsAction(businessId);
-    if (!settingsRes.success || !settingsRes.settings) {
-      return { success: false, error: "Settings not found" };
+    // 1. Get settings (query directly — auth already verified above)
+    let settings = await db.query.waveSettings.findFirst({
+      where: eq(waveSettings.businessId, businessId),
+    });
+    if (!settings) {
+      const [newSettings] = await db.insert(waveSettings)
+        .values({
+          businessId,
+          energyPreference: 5,
+          vocalPreference: "both",
+          focusProfile: "none",
+        })
+        .returning();
+      settings = newSettings;
     }
-    const settings = settingsRes.settings;
+    if (!settings) {
+      return { success: false, error: "Не удалось создать настройки волны" };
+    }
 
     // 2. Fetch tracks the business skipped recently (last 24 hours)
     const twentyFourHoursAgo = new Date();

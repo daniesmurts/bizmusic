@@ -37,6 +37,7 @@ interface PlayerState {
   waveBusinessId: string | null;
   activeLocationId: string | null;
   isFetchingWave: boolean;
+  waveError: string | null;
 
   // Announcement Scheduling
   announcementSchedule: AnnouncementScheduleState;
@@ -118,6 +119,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   waveBusinessId: null,
   activeLocationId: null,
   isFetchingWave: false,
+  waveError: null,
   announcementSchedule: { ...defaultAnnouncementSchedule },
 
   setTrack: (track) => set({ currentTrack: track, isPlaying: true, progress: 0 }),
@@ -168,9 +170,9 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   }),
 
   setWaveMode: (active, businessId) => {
-    set({ isWaveMode: active, waveBusinessId: businessId || null });
+    set({ isWaveMode: active, waveBusinessId: businessId || null, waveError: null });
     if (active) {
-       set({ queue: [], currentTrack: null, isPlaying: false, progress: 0 });
+       set({ queue: [], history: [], currentTrack: null, isPlaying: false, progress: 0 });
        usePlayerStore.getState().fetchNextWaveBatch();
     }
   },
@@ -181,19 +183,38 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     const state = usePlayerStore.getState();
     if (!state.isWaveMode || !state.waveBusinessId || state.isFetchingWave) return;
     
-    set({ isFetchingWave: true });
+    set({ isFetchingWave: true, waveError: null });
     try {
       const response = await fetch('/api/wave/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           businessId: state.waveBusinessId,
-          excludeTrackIds: state.queue.map(t => t.id)
+          excludeTrackIds: [
+            ...state.queue.map((t) => t.id),
+            ...(state.currentTrack ? [state.currentTrack.id] : []),
+          ],
         })
       });
+      if (!response.ok) {
+        throw new Error(`Wave API error: ${response.status}`);
+      }
       const data = await response.json();
-      if (data.success && data.tracks.length > 0) {
-        const mappedTracks = data.tracks.map((t: any) => ({
+
+      if (!data.success) {
+        throw new Error(data.error || "Wave generation failed");
+      }
+
+      if (data.tracks.length > 0) {
+        const mappedTracks: Track[] = (data.tracks as Array<{
+          id: string;
+          title: string;
+          artist: string;
+          fileUrl: string;
+          streamUrl?: string;
+          duration: number;
+          coverUrl?: string;
+        }>).map((t) => ({
           id: t.id,
           title: t.title,
           artist: t.artist,
@@ -202,15 +223,26 @@ export const usePlayerStore = create<PlayerState>((set) => ({
           duration: t.duration,
           cover_url: t.coverUrl,
         }));
-        set((s) => ({ queue: [...s.queue, ...mappedTracks] }));
-        
-        const updatedState = usePlayerStore.getState();
-        if (!updatedState.currentTrack && updatedState.queue.length > 0) {
-          updatedState.nextTrack();
-        }
+
+        // Start playback immediately when Wave is empty; otherwise just append.
+        set((s) => {
+          const mergedQueue = [...s.queue, ...mappedTracks];
+          if (!s.currentTrack && mergedQueue.length > 0) {
+            const [first, ...rest] = mergedQueue;
+            return {
+              currentTrack: first,
+              queue: rest,
+              isPlaying: true,
+              progress: 0,
+            };
+          }
+          return { queue: mergedQueue };
+        });
       }
     } catch(err) {
       console.error("Failed to fetch wave batch:", err);
+      const message = err instanceof Error ? err.message : "Не удалось загрузить треки Бизнес-Волны";
+      set({ waveError: message });
     } finally {
       set({ isFetchingWave: false });
     }

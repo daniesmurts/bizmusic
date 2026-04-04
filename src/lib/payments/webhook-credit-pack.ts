@@ -7,7 +7,8 @@ export function shouldCreateCreditLot(
   status: string,
   hasExistingLot: boolean
 ): boolean {
-  return paymentType === "credit_pack" && isConfirmedPaymentStatus(status) && !hasExistingLot;
+  const isTokenPack = paymentType === "credit_pack" || paymentType === "token_pack";
+  return isTokenPack && isConfirmedPaymentStatus(status) && !hasExistingLot;
 }
 
 export function extractCreditsFromPaymentMetadata(metadata: Record<string, unknown> | null | undefined): number {
