@@ -32,7 +32,7 @@ export interface AnnouncementScheduleConfig {
 }
 
 // Enums - keep them as lowercase for DB if they were created that way, but Prisma usually keeps them as defined
-export const roleEnum = pgEnum("role", ["ADMIN", "BUSINESS_OWNER", "STAFF"]);
+export const roleEnum = pgEnum("role", ["ADMIN", "BUSINESS_OWNER", "STAFF", "PARTNER"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["INACTIVE", "ACTIVE", "EXPIRED"]);
 export const billingIntervalEnum = pgEnum("billing_interval", ["monthly", "yearly"]);
 export const userTypeEnum = pgEnum("user_type", ["BUSINESS", "CREATOR"]);
@@ -51,7 +51,7 @@ export const supportDeliveryStatusEnum = pgEnum("support_delivery_status", ["PEN
 
 // Users Table
 export const users = pgTable("users", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()), 
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   email: text("email").notNull().unique(),
   passwordHash: text("passwordHash").default("SUPABASE_AUTH"),
   role: roleEnum("role").default("BUSINESS_OWNER").notNull(),
@@ -60,6 +60,8 @@ export const users = pgTable("users", {
   assignedLocationId: text("assignedLocationId"),
   termsAccepted: boolean("termsAccepted").default(false).notNull(),
   termsAcceptedAt: timestamp("termsAcceptedAt"),
+  referredByAgentId: text("referredByAgentId"),
+  referralCodeUsed: text("referralCodeUsed"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 });
@@ -681,6 +683,68 @@ export const supportMessageDeliveries = pgTable("support_message_deliveries", {
   statusUpdatedIdx: index("idx_support_message_deliveries_status_updated").on(t.status, t.updatedAt),
 }));
 
+// ─── Referral & Affiliate System ──────────────────────────────────────────────
+
+export const referralAgents = pgTable("referral_agents", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("userId").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  referralCode: text("referralCode").notNull().unique(),
+  status: text("status").default("active").notNull(),
+  commissionRate: doublePrecision("commissionRate").default(0.30).notNull(),
+  fullName: text("fullName"),
+  phone: text("phone"),
+  city: text("city"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  referralCodeIdx: index("referral_agents_code_idx").on(t.referralCode),
+  userIdIdx: index("referral_agents_user_id_idx").on(t.userId),
+}));
+
+export const referralClicks = pgTable("referral_clicks", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  agentId: text("agentId").references(() => referralAgents.id, { onDelete: "cascade" }).notNull(),
+  referralCode: text("referralCode").notNull(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  convertedUserId: text("convertedUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  agentIdIdx: index("referral_clicks_agent_id_idx").on(t.agentId),
+  convertedUserIdIdx: index("referral_clicks_converted_user_id_idx").on(t.convertedUserId),
+}));
+
+export const referralConversions = pgTable("referral_conversions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  agentId: text("agentId").references(() => referralAgents.id, { onDelete: "cascade" }).notNull(),
+  referredUserId: text("referredUserId").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
+  businessId: text("businessId").references(() => businesses.id, { onDelete: "cascade" }).notNull(),
+  status: text("status").default("trial").notNull(),
+  firstPaymentAt: timestamp("firstPaymentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  agentIdIdx: index("referral_conversions_agent_id_idx").on(t.agentId),
+  referredUserIdIdx: index("referral_conversions_referred_user_id_idx").on(t.referredUserId),
+}));
+
+export const commissionLedger = pgTable("commission_ledger", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  agentId: text("agentId").references(() => referralAgents.id, { onDelete: "cascade" }).notNull(),
+  conversionId: text("conversionId").references(() => referralConversions.id, { onDelete: "cascade" }).notNull(),
+  periodMonth: text("periodMonth").notNull(),
+  subscriptionAmountKopecks: integer("subscriptionAmountKopecks").notNull(),
+  commissionAmountKopecks: integer("commissionAmountKopecks").notNull(),
+  status: text("status").default("pending").notNull(),
+  paidAt: timestamp("paidAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  agentPeriodIdx: index("commission_ledger_agent_period_idx").on(t.agentId, t.periodMonth),
+  statusIdx: index("commission_ledger_status_idx").on(t.status),
+  conversionPeriodUnique: uniqueIndex("commission_ledger_conversion_period_unique").on(t.conversionId, t.periodMonth),
+}));
+
+// ─── End Referral System ───────────────────────────────────────────────────────
+
 // RELATIONS
 export const usersRelations = relations(users, ({ one, many }) => ({
   businesses: many(businesses),
@@ -987,4 +1051,28 @@ export const brandVoiceUsageEventsRelations = relations(brandVoiceUsageEvents, (
   business: one(businesses, { fields: [brandVoiceUsageEvents.businessId], references: [businesses.id] }),
   model: one(brandVoiceModels, { fields: [brandVoiceUsageEvents.modelId], references: [brandVoiceModels.id] }),
   announcement: one(voiceAnnouncements, { fields: [brandVoiceUsageEvents.announcementId], references: [voiceAnnouncements.id] }),
+}));
+
+export const referralAgentsRelations = relations(referralAgents, ({ one, many }) => ({
+  user: one(users, { fields: [referralAgents.userId], references: [users.id] }),
+  clicks: many(referralClicks),
+  conversions: many(referralConversions),
+  commissions: many(commissionLedger),
+}));
+
+export const referralClicksRelations = relations(referralClicks, ({ one }) => ({
+  agent: one(referralAgents, { fields: [referralClicks.agentId], references: [referralAgents.id] }),
+  convertedUser: one(users, { fields: [referralClicks.convertedUserId], references: [users.id] }),
+}));
+
+export const referralConversionsRelations = relations(referralConversions, ({ one, many }) => ({
+  agent: one(referralAgents, { fields: [referralConversions.agentId], references: [referralAgents.id] }),
+  referredUser: one(users, { fields: [referralConversions.referredUserId], references: [users.id] }),
+  business: one(businesses, { fields: [referralConversions.businessId], references: [businesses.id] }),
+  commissions: many(commissionLedger),
+}));
+
+export const commissionLedgerRelations = relations(commissionLedger, ({ one }) => ({
+  agent: one(referralAgents, { fields: [commissionLedger.agentId], references: [referralAgents.id] }),
+  conversion: one(referralConversions, { fields: [commissionLedger.conversionId], references: [referralConversions.id] }),
 }));

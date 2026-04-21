@@ -14,6 +14,7 @@ import {
   Settings,
   Mic,
   BookOpen,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
@@ -35,9 +36,18 @@ export default function DashboardLayout({
   const [isSigned, setIsSigned] = useState(false);
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
   const isBranchManager = role === "STAFF";
+  const isPartner = role === "PARTNER";
 
   useEffect(() => {
     async function checkStatus() {
+      // Partners only have access to the affiliate dashboard
+      if (isPartner) {
+        if (!pathname.startsWith("/dashboard/affiliate")) {
+          router.push("/dashboard/affiliate");
+        }
+        return;
+      }
+
       if (isBranchManager) {
         const staffAllowedRoutes = ["/dashboard/player", "/dashboard/announcements"];
         const isAllowed = staffAllowedRoutes.some((route) => pathname.startsWith(route));
@@ -79,7 +89,15 @@ export default function DashboardLayout({
     }
   }, [isBranchManager, pathname, role, router]);
 
-  const navItems = isBranchManager
+  const navItems = isPartner
+    ? [
+        {
+          name: "Кабинет партнёра",
+          href: "/dashboard/affiliate",
+          icon: Users,
+        },
+      ]
+    : isBranchManager
     ? [
         {
           name: "Плеер",
@@ -136,6 +154,11 @@ export default function DashboardLayout({
           icon: BookOpen,
         },
         {
+          name: "Партнёрам",
+          href: "/dashboard/affiliate",
+          icon: Users,
+        },
+        {
           name: "Настройки",
           href: "/dashboard/settings",
           icon: Settings,
@@ -144,7 +167,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex flex-col min-h-screen bg-black">
-      <div className="flex flex-1 gap-6 lg:gap-8 p-6 lg:p-12">
+      <div className="flex flex-1 gap-6 lg:gap-8 p-6 lg:p-12 pb-40 lg:pb-12">
         {/* Sidebar Desktop */}
         <aside className="hidden lg:flex w-72 flex-col gap-6">
           <div className="glass-dark border border-white/10 rounded-[2.5rem] p-6 space-y-2">
@@ -215,11 +238,12 @@ export default function DashboardLayout({
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 flex flex-col pb-20 lg:pb-0">
+        <main className="flex-1 min-w-0 flex flex-col pb-48 lg:pb-0">
           <div className="flex-1 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {children}
           </div>
           <Footer variant="dashboard" />
+          <div className="h-32 lg:hidden" />
         </main>
       </div>
 

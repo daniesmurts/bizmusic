@@ -197,7 +197,7 @@ export function DashboardPlayer({
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mb-24 md:mb-0">
       <div className="glass-dark border border-white/10 rounded-[3rem] p-10 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent z-0" />
         <div className="absolute inset-0 bg-neon/5 mix-blend-overlay z-[-1]" />

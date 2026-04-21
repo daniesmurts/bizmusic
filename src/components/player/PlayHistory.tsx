@@ -21,13 +21,13 @@ export function PlayHistory() {
 
   return (
     <div className="glass-dark border border-white/10 rounded-[2.5rem] p-8 space-y-6 flex flex-col h-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="bg-white/5 p-2 rounded-xl text-neutral-300">
+          <div className="bg-white/5 p-2 rounded-xl text-neutral-300 shrink-0">
             <Clock className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="text-lg font-black uppercase tracking-tighter text-white">Последние треки</h3>
+          <div className="min-w-0">
+            <h3 className="text-lg font-black uppercase tracking-tighter text-white truncate sm:whitespace-normal">Последние треки</h3>
             <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Журнал эфира</p>
           </div>
         </div>
@@ -36,7 +36,7 @@ export function PlayHistory() {
           onClick={() => toast.info("Скачивание отчетов скоро будет доступно")}
           variant="outline" 
           size="sm" 
-          className="border-white/10 text-white hover:bg-white/5 rounded-xl uppercase text-[10px] font-black tracking-widest h-8 px-3"
+          className="border-white/10 text-white hover:bg-white/5 rounded-xl uppercase text-[10px] font-black tracking-widest h-8 px-3 w-full sm:w-auto shrink-0 justify-center sm:justify-start"
         >
           <Download className="w-3 h-3 mr-2" />
           Скачать отчет (PDF)

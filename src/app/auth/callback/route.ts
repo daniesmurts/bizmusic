@@ -2,6 +2,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { syncUserAndLegalAcceptance } from '@/lib/legal-acceptance'
+import { db } from '@/db'
+import { referralAgents, referralClicks, users } from '@/db/schema'
+import { and, eq, isNull } from 'drizzle-orm'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -47,6 +50,42 @@ export async function GET(request: Request) {
           ipAddress,
           userAgent,
         })
+      }
+
+      // Attribute referral if cookie is set
+      const refCode = cookieStore.get('bizmuzik_ref')?.value
+      if (refCode && authUser?.id) {
+        try {
+          const agent = await db.query.referralAgents.findFirst({
+            where: and(
+              eq(referralAgents.referralCode, refCode),
+              eq(referralAgents.status, 'active')
+            ),
+            columns: { id: true },
+          })
+          if (agent) {
+            await db.update(users)
+              .set({ referredByAgentId: agent.id, referralCodeUsed: refCode })
+              .where(and(eq(users.id, authUser.id), isNull(users.referredByAgentId)))
+
+            const latestClick = await db.query.referralClicks.findFirst({
+              where: and(
+                eq(referralClicks.referralCode, refCode),
+                isNull(referralClicks.convertedUserId)
+              ),
+              orderBy: (t, { desc }) => [desc(t.createdAt)],
+              columns: { id: true },
+            })
+            if (latestClick) {
+              await db.update(referralClicks)
+                .set({ convertedUserId: authUser.id })
+                .where(eq(referralClicks.id, latestClick.id))
+            }
+          }
+        } catch (err) {
+          console.error('[referral] cookie attribution error:', err)
+        }
+        cookieStore.set('bizmuzik_ref', '', { maxAge: 0, path: '/' })
       }
 
       const isBranchInvite = authUser?.user_metadata?.is_branch_staff === true

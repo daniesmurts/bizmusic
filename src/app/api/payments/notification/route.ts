@@ -1,7 +1,10 @@
 import { tbank } from "@/lib/payments/tbank";
 import { db } from "@/db";
-import { payments, businesses, users, ttsCreditLots, licenses, brandVoiceModels } from "@/db/schema";
-import { and, eq, notInArray, sql } from "drizzle-orm";
+import {
+  payments, businesses, users, ttsCreditLots, licenses, brandVoiceModels,
+  referralAgents, referralConversions, commissionLedger,
+} from "@/db/schema";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
 import { generateLicenseAction } from "@/lib/actions/licenses";
@@ -380,6 +383,103 @@ export async function POST(req: Request) {
       } catch (emailError) {
         // Don't fail the webhook if email sending fails
         console.error("[Webhook] Failed to send activation email:", emailError);
+      }
+
+      // --- REFERRAL COMMISSION BLOCK ---
+      try {
+        const userId = payment.business.userId;
+
+        const userRow = await db.query.users.findFirst({
+          where: eq(users.id, userId),
+          columns: { referredByAgentId: true },
+        });
+
+        if (userRow?.referredByAgentId) {
+          const agentId = userRow.referredByAgentId;
+
+          const agent = await db.query.referralAgents.findFirst({
+            where: eq(referralAgents.id, agentId),
+            columns: { commissionRate: true },
+          });
+
+          if (agent) {
+            const amountKopecks = payment.amount;
+            const commissionKopecks = Math.floor(amountKopecks * agent.commissionRate);
+
+            const existingConversion = await db.query.referralConversions.findFirst({
+              where: eq(referralConversions.referredUserId, userId),
+              columns: { id: true },
+            });
+
+            let conversionId: string;
+            if (!existingConversion) {
+              const [newConversion] = await db.insert(referralConversions).values({
+                agentId,
+                referredUserId: userId,
+                businessId: payment.businessId,
+                status: "trial",
+                firstPaymentAt: new Date(),
+              }).returning({ id: referralConversions.id });
+              conversionId = newConversion.id;
+            } else {
+              conversionId = existingConversion.id;
+            }
+
+            const periodDate = new Date();
+            periodDate.setDate(1);
+            periodDate.setHours(0, 0, 0, 0);
+            const periodMonth = periodDate.toISOString().split("T")[0];
+
+            await db.insert(commissionLedger).values({
+              agentId,
+              conversionId,
+              periodMonth,
+              subscriptionAmountKopecks: amountKopecks,
+              commissionAmountKopecks: commissionKopecks,
+              status: "pending",
+            }).onConflictDoNothing();
+          }
+        }
+      } catch (err) {
+        console.error("[referral] commission error:", err);
+      }
+      // --- END REFERRAL COMMISSION BLOCK ---
+    }
+
+    // Handle refund/reversal — clawback commissions within 30 days
+    if (Status === "REFUNDED" || Status === "REVERSED") {
+      try {
+        const userId = payment.business.userId;
+
+        const conversion = await db.query.referralConversions.findFirst({
+          where: and(
+            eq(referralConversions.referredUserId, userId),
+            inArray(referralConversions.status, ["trial", "active"])
+          ),
+          columns: { id: true, firstPaymentAt: true },
+        });
+
+        if (conversion) {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          const isWithinClawback =
+            conversion.firstPaymentAt && conversion.firstPaymentAt > thirtyDaysAgo;
+
+          if (isWithinClawback) {
+            await db.update(commissionLedger)
+              .set({ status: "clawed_back" })
+              .where(and(
+                eq(commissionLedger.conversionId, conversion.id),
+                inArray(commissionLedger.status, ["pending", "approved"])
+              ));
+          }
+
+          await db.update(referralConversions)
+            .set({ status: "churned" })
+            .where(eq(referralConversions.id, conversion.id));
+        }
+      } catch (err) {
+        console.error("[referral] clawback error:", err);
       }
     }
 
