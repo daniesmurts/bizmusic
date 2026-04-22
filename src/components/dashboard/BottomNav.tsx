@@ -8,6 +8,7 @@ import {
   Mic,
   CreditCard,
   Menu,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
@@ -16,8 +17,11 @@ export function BottomNav({ onMoreClick }: { onMoreClick?: () => void }) {
   const pathname = usePathname();
   const { role } = useAuth();
   const isBranchManager = role === "STAFF";
+  const isPartner = role === "PARTNER";
 
-  const items = isBranchManager
+  const items = isPartner
+    ? [{ name: "Кабинет", href: "/dashboard/affiliate", icon: Users }]
+    : isBranchManager
     ? [
         { name: "Плеер", href: "/dashboard/player", icon: Play },
         { name: "Анонсы", href: "/dashboard/announcements", icon: Mic },
@@ -57,7 +61,7 @@ export function BottomNav({ onMoreClick }: { onMoreClick?: () => void }) {
               </Link>
             );
           })}
-          {!isBranchManager && (
+          {!isBranchManager && !isPartner && (
             <button
               onClick={onMoreClick}
               className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl text-neutral-500 active:text-white transition-colors min-w-[60px] touch-manipulation"

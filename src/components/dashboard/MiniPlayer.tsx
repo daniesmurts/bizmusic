@@ -15,7 +15,7 @@ export function MiniPlayer() {
   if (!currentTrack || isPlayerPage) return null;
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-[85] lg:bottom-0 px-2 pb-1 lg:px-4 lg:pb-2">
+    <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-[85] lg:bottom-0 px-2 pb-1 lg:px-4 lg:pb-2">
       <div className="max-w-2xl mx-auto bg-black/95 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-[0_-4px_30px_rgba(0,0,0,0.5)]">
         {/* Track Icon */}
         <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center shrink-0 overflow-hidden">

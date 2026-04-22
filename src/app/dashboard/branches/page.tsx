@@ -18,7 +18,7 @@ import {
 type Manager = {
   id: string;
   email: string;
-  role: "ADMIN" | "BUSINESS_OWNER" | "STAFF";
+  role: "ADMIN" | "BUSINESS_OWNER" | "STAFF" | "PARTNER";
   createdAt: string | Date;
 };
 

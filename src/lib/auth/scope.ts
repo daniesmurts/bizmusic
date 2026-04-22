@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 
 export interface AccessScope {
   userId: string;
-  role: "ADMIN" | "BUSINESS_OWNER" | "STAFF";
+  role: "ADMIN" | "BUSINESS_OWNER" | "STAFF" | "PARTNER";
   businessId: string | null;
   assignedLocationId: string | null;
   isOwnerLike: boolean;

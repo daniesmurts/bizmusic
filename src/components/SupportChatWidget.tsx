@@ -431,10 +431,10 @@ export function SupportChatWidget() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[75] flex h-14 items-center gap-2 rounded-full border border-neon/30 bg-neon px-5 text-xs font-black uppercase tracking-[0.18em] text-black shadow-[0_14px_36px_rgba(92,243,135,0.38)] transition hover:scale-[1.02]"
+          className="fixed bottom-36 right-6 lg:bottom-6 lg:right-6 z-[75] flex h-14 w-14 lg:w-auto items-center justify-center lg:justify-start gap-2 rounded-full border border-neon/30 bg-neon lg:px-5 text-xs font-black uppercase tracking-[0.18em] text-black shadow-[0_14px_36px_rgba(92,243,135,0.4)] transition hover:scale-[1.02]"
         >
-          <MessageCircle className="w-4 h-4" />
-          Поддержка
+          <MessageCircle className="w-6 h-6 lg:w-4 lg:h-4" />
+          <span className="hidden lg:inline">Поддержка</span>
         </button>
       )}
     </>
