@@ -47,35 +47,45 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse
   }
 
-  // RBAC for /admin: strict check
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!user) {
-      return redirectWithCookies('/login')
-    }
-
-    // Fetch user role from database
-    const { data: userData, error: roleError } = await supabase
+  // Fetch role once for all RBAC decisions (only when user is authenticated)
+  let userRole: string | null = null
+  if (user) {
+    const { data: userData } = await supabase
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single()
-
-    if (roleError || userData?.role !== 'ADMIN') {
-      return redirectWithCookies('/dashboard')
-    }
+    userRole = userData?.role ?? null
   }
 
-  // Protected routes: redirect to login if not authenticated
+  // RBAC for /admin: only ADMINs allowed
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) return redirectWithCookies('/login')
+    if (userRole !== 'ADMIN') return redirectWithCookies('/dashboard')
+  }
+
+  // RBAC for /dashboard: must be authenticated
   if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
     return redirectWithCookies('/login')
   }
 
-  // Auth routes: redirect to dashboard if already authenticated
-  // Note: /reset-password is excluded because the Supabase recovery flow
-  // requires an active session to call updateUser({ password })
+  // PARTNER isolation: partners must stay inside /dashboard/affiliate.
+  // Any attempt to access other /dashboard/* routes sends them home.
+  if (
+    user &&
+    userRole === 'PARTNER' &&
+    request.nextUrl.pathname.startsWith('/dashboard') &&
+    !request.nextUrl.pathname.startsWith('/dashboard/affiliate')
+  ) {
+    return redirectWithCookies('/dashboard/affiliate')
+  }
+
+  // Auth routes: redirect already-authenticated users to their home
+  // Note: /reset-password is excluded (Supabase recovery requires an active session)
   const authRoutes = ['/login', '/register', '/forgot-password']
   if (authRoutes.some(route => request.nextUrl.pathname.startsWith(route)) && user) {
-    return redirectWithCookies('/dashboard')
+    const home = userRole === 'PARTNER' ? '/dashboard/affiliate' : '/dashboard'
+    return redirectWithCookies(home)
   }
 
   return response

@@ -31,13 +31,15 @@ export default async function PartnerRegisterPage({
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="mb-10 text-center">
-          <Link href="/" className="inline-block mb-6">
-            <span className="text-2xl font-black text-white tracking-tight">
-              Биз<span className="text-[#5cf387]">мюзик</span>
-            </span>
-          </Link>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#5cf387]/30 bg-[#5cf387]/5 text-[#5cf387] text-xs font-black uppercase tracking-widest mb-5">
-            Партнёрская программа
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <Link href="/">
+              <span className="text-2xl font-black text-white tracking-tight">
+                Биз<span className="text-[#5cf387]">мюзик</span>
+              </span>
+            </Link>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#5cf387]/30 bg-[#5cf387]/5 text-[#5cf387] text-[10px] font-black uppercase tracking-widest">
+              Партнёрская программа
+            </div>
           </div>
           <h1 className="text-3xl font-black text-white mb-3">Регистрация партнёра</h1>
           <p className="text-neutral-400 text-sm leading-relaxed">

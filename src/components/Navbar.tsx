@@ -8,6 +8,7 @@ import {
   Music,
   Menu,
   User,
+  Users,
   X,
   LayoutDashboard,
   Play,
@@ -37,11 +38,12 @@ const NicheIconMap: Record<string, LucideIcon> = {
 };
 
 export const Navbar = () => {
-  const { user, role, signOut } = useAuth();
+  const { user, role, loading, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNicheOpen, setIsNicheOpen] = useState(false);
   const pathname = usePathname();
   const isDashboard = pathname.startsWith('/dashboard');
+  const isPartner = role === 'PARTNER';
 
   // Lock body scroll when menu is open
   useEffect(() => {
@@ -80,12 +82,12 @@ export const Navbar = () => {
           </span>
         </Link>
 
-        {/* Links - Desktop */}
+        {/* Links - Desktop — hidden for partners (their sidebar is the only nav they need) */}
         <div className="hidden xl:flex items-center gap-8 text-sm font-black uppercase tracking-widest leading-none">
           {role === 'ADMIN' && (
             <Link href="/admin/content" className="text-neon hover:text-white transition-colors">Админ</Link>
           )}
-          {isDashboard ? (
+          {isDashboard && isPartner ? null : isDashboard ? (
             <>
                <Link href="/dashboard" className={cn("transition-colors", pathname === "/dashboard" ? "text-neon" : "text-neutral-400 hover:text-white")}>Дашборд</Link>
                <Link href="/products" className="text-neutral-400 hover:text-neon transition-colors">Каталог</Link>
@@ -129,17 +131,23 @@ export const Navbar = () => {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          {user ? (
+          {loading ? (
+            /* Auth resolving — show a neutral placeholder so we never flash Login/Register */
+            <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse" />
+          ) : user ? (
              <div className="flex items-center gap-4">
-               <Link href="/dashboard" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors overflow-hidden">
+               <Link
+                 href={isPartner ? "/dashboard/affiliate" : "/dashboard"}
+                 className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors overflow-hidden"
+               >
                  {user.user_metadata?.avatar_url ? (
                    <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                  ) : (
                    <User className="w-5 h-5 text-neutral-400" />
                  )}
                </Link>
-               <Button 
-                 variant="ghost" 
+               <Button
+                 variant="ghost"
                  className="text-neutral-400 hover:text-neon font-black uppercase tracking-widest text-xs md:flex hidden"
                  onClick={() => signOut()}
                >
@@ -194,10 +202,12 @@ export const Navbar = () => {
               {/* Dashboard Section */}
               {isDashboard && (
                 <div className="space-y-4">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 pl-4">Управление бизнесом</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 pl-4">
+                    {isPartner ? "Партнёрский кабинет" : "Управление бизнесом"}
+                  </h3>
                   <div className="grid gap-2">
-                    {dashboardNavItems.map((item) => {
-                      const isActive = pathname === item.href;
+                    {(isPartner ? [{ name: "Кабинет партнёра", href: "/dashboard/affiliate", icon: Users }] : dashboardNavItems).map((item) => {
+                      const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                       const Icon = item.icon;
                       return (
                         <Link
@@ -206,8 +216,8 @@ export const Navbar = () => {
                           onClick={() => setIsMenuOpen(false)}
                           className={cn(
                             "flex items-center gap-4 p-4 rounded-2xl border transition-all",
-                            isActive 
-                              ? "bg-neon/10 border-neon/20 text-neon" 
+                            isActive
+                              ? "bg-neon/10 border-neon/20 text-neon"
                               : "bg-white/[0.02] border-white/5 text-white/70"
                           )}
                         >
@@ -222,72 +232,76 @@ export const Navbar = () => {
                 </div>
               )}
 
-              {/* Main Links */}
-              <div className="space-y-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 pl-4">Навигация</h3>
-                <div className="grid gap-2">
-                  <Link 
-                    href="/products" 
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
-                  >
-                    <span className="font-black uppercase tracking-widest text-xs">Решения</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                  
-                  {/* Mobile Niche Accordion */}
-                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
-                    <button 
-                      onClick={() => setIsNicheOpen(!isNicheOpen)}
-                      className="w-full flex items-center justify-between p-4 text-white/70 hover:text-white transition-all"
+              {/* Main Links — hidden for partners, they have no need for marketing pages from their dashboard */}
+              {!isPartner && (
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 pl-4">Навигация</h3>
+                  <div className="grid gap-2">
+                    <Link
+                      href="/products"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
                     >
-                      <span className="font-black uppercase tracking-widest text-xs">Ниши для бизнеса</span>
-                      <ChevronRight className={cn("w-4 h-4 transition-transform", isNicheOpen && "rotate-90")} />
-                    </button>
-                    {isNicheOpen && (
-                      <div className="px-4 pb-4 grid gap-1 border-t border-white/5 pt-2">
-                        {Object.values(niches).map((niche) => (
-                          <Link 
-                            key={niche.slug} 
-                            href={`/solutions/${niche.slug}`}
-                            onClick={() => {
-                              setIsMenuOpen(false);
-                              setIsNicheOpen(false);
-                            }}
-                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-neutral-400 hover:text-white transition-colors"
-                          >
-                            {(() => { const Icon = NicheIconMap[niche.icon] || Music; return <Icon className="w-3.5 h-3.5" />; })()}
-                            <span className="text-[10px] font-black uppercase tracking-widest">{niche.name}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                      <span className="font-black uppercase tracking-widest text-xs">Решения</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
 
-                  <Link 
-                    href="/pricing" 
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
-                  >
-                    <span className="font-black uppercase tracking-widest text-xs">Тарифы</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                  <Link 
-                    href="/about" 
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
-                  >
-                    <span className="font-black uppercase tracking-widest text-xs">О компании</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
+                    {/* Mobile Niche Accordion */}
+                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
+                      <button
+                        onClick={() => setIsNicheOpen(!isNicheOpen)}
+                        className="w-full flex items-center justify-between p-4 text-white/70 hover:text-white transition-all"
+                      >
+                        <span className="font-black uppercase tracking-widest text-xs">Ниши для бизнеса</span>
+                        <ChevronRight className={cn("w-4 h-4 transition-transform", isNicheOpen && "rotate-90")} />
+                      </button>
+                      {isNicheOpen && (
+                        <div className="px-4 pb-4 grid gap-1 border-t border-white/5 pt-2">
+                          {Object.values(niches).map((niche) => (
+                            <Link
+                              key={niche.slug}
+                              href={`/solutions/${niche.slug}`}
+                              onClick={() => {
+                                setIsMenuOpen(false);
+                                setIsNicheOpen(false);
+                              }}
+                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-neutral-400 hover:text-white transition-colors"
+                            >
+                              {(() => { const Icon = NicheIconMap[niche.icon] || Music; return <Icon className="w-3.5 h-3.5" />; })()}
+                              <span className="text-[10px] font-black uppercase tracking-widest">{niche.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <Link
+                      href="/pricing"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
+                    >
+                      <span className="font-black uppercase tracking-widest text-xs">Тарифы</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                    <Link
+                      href="/about"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 hover:text-white transition-all"
+                    >
+                      <span className="font-black uppercase tracking-widest text-xs">О компании</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Account Section */}
               <div className="pt-8 border-t border-white/5 flex flex-col gap-4">
-                {user ? (
-                  <Button 
-                    variant="destructive" 
+                {loading ? (
+                  <div className="h-14 rounded-2xl bg-white/5 animate-pulse" />
+                ) : user ? (
+                  <Button
+                    variant="destructive"
                     className="h-14 rounded-2xl font-black uppercase tracking-widest text-xs gap-3"
                     onClick={() => {
                       signOut();

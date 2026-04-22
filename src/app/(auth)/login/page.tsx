@@ -25,7 +25,7 @@ export default function Login() {
     setLoading(true);
     setError(null);
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -42,7 +42,21 @@ export default function Login() {
       return;
     }
 
-    router.push("/dashboard");
+    // Route based on role: partners have a completely separate dashboard
+    let destination = "/dashboard";
+    if (authData.user) {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (profile?.role === "PARTNER") {
+        destination = "/dashboard/affiliate";
+      }
+    }
+
+    router.push(destination);
     router.refresh();
   };
 

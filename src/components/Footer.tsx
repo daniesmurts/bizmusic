@@ -20,6 +20,7 @@ export function Footer({ variant = "default" }: FooterProps) {
             <Link href="/legal/privacy" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Политика</Link>
             <Link href="/knowledge" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Справка</Link>
             <Link href="/about" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Контакты</Link>
+            <Link href="/become-affiliate" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Партнёрам</Link>
           </div>
         </div>
       </footer>
@@ -108,7 +109,8 @@ export function Footer({ variant = "default" }: FooterProps) {
                 { name: "Песня недели", href: "/song-of-the-week" },
                 { name: "Тарифы", href: "/pricing" },
                 { name: "База знаний", href: "/knowledge" },
-                { name: "Записаться на демо", href: "/demo" }
+                { name: "Записаться на демо", href: "/demo" },
+                { name: "Стать партнёром", href: "/partner/register" },
               ].map((link) => (
                 <Link key={link.name} href={link.href} className="text-sm font-bold text-neutral-500 hover:text-neon transition-colors uppercase tracking-widest text-[11px]">
                   {link.name}

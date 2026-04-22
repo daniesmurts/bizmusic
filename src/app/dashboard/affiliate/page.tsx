@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { db } from "@/db";
+import { db, resilient } from "@/db";
 import {
   referralAgents, referralClicks, referralConversions,
   commissionLedger, businesses,
@@ -81,9 +81,12 @@ export default async function AffiliateDashboardPage() {
 
   if (!user) redirect("/login?next=/dashboard/affiliate");
 
-  const agent = await db.query.referralAgents.findFirst({
-    where: eq(referralAgents.userId, user.id),
-  });
+  // resilient() resets the pool and retries once on stale-connection errors
+  const agent = await resilient(() =>
+    db.query.referralAgents.findFirst({
+      where: eq(referralAgents.userId, user.id),
+    })
+  );
 
   if (!agent) redirect("/become-affiliate");
 
@@ -96,73 +99,64 @@ export default async function AffiliateDashboardPage() {
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-  // Stats
-  const [totalClicksResult] = await db
-    .select({ value: count() })
-    .from(referralClicks)
-    .where(eq(referralClicks.agentId, agent.id));
+  // Run all stats in parallel.
+  // Wrapped in resilient() so a stale pool connection in any one query resets
+  // the pool and retries the whole batch rather than blowing up the page.
+  const [
+    [totalClicksResult],
+    [convertedClicksResult],
+    [activeClientsResult],
+    [monthlyCommissionResult],
+    [pendingResult],
+    [approvedResult],
+    [paidResult],
+    conversions,
+    allLedger,
+  ] = await resilient(() => Promise.all([
+    db.select({ value: count() }).from(referralClicks)
+      .where(eq(referralClicks.agentId, agent.id)),
 
-  const [convertedClicksResult] = await db
-    .select({ value: count() })
-    .from(referralClicks)
-    .where(and(
-      eq(referralClicks.agentId, agent.id),
-      isNotNull(referralClicks.convertedUserId)
-    ));
+    db.select({ value: count() }).from(referralClicks)
+      .where(and(eq(referralClicks.agentId, agent.id), isNotNull(referralClicks.convertedUserId))),
 
-  const [activeClientsResult] = await db
-    .select({ value: count() })
-    .from(referralConversions)
-    .where(and(
-      eq(referralConversions.agentId, agent.id),
-      eq(referralConversions.status, "active")
-    ));
+    db.select({ value: count() }).from(referralConversions)
+      .where(and(eq(referralConversions.agentId, agent.id), eq(referralConversions.status, "active"))),
 
-  const [monthlyCommissionResult] = await db
-    .select({ value: sum(commissionLedger.commissionAmountKopecks) })
-    .from(commissionLedger)
-    .where(and(
-      eq(commissionLedger.agentId, agent.id),
-      eq(commissionLedger.periodMonth, currentMonthStr),
-      inArray(commissionLedger.status, ["pending", "approved"])
-    ));
+    db.select({ value: sum(commissionLedger.commissionAmountKopecks) }).from(commissionLedger)
+      .where(and(
+        eq(commissionLedger.agentId, agent.id),
+        eq(commissionLedger.periodMonth, currentMonthStr),
+        inArray(commissionLedger.status, ["pending", "approved"])
+      )),
 
-  // Earnings summary
-  const [pendingResult] = await db
-    .select({ value: sum(commissionLedger.commissionAmountKopecks) })
-    .from(commissionLedger)
-    .where(and(eq(commissionLedger.agentId, agent.id), eq(commissionLedger.status, "pending")));
+    db.select({ value: sum(commissionLedger.commissionAmountKopecks) }).from(commissionLedger)
+      .where(and(eq(commissionLedger.agentId, agent.id), eq(commissionLedger.status, "pending"))),
 
-  const [approvedResult] = await db
-    .select({ value: sum(commissionLedger.commissionAmountKopecks) })
-    .from(commissionLedger)
-    .where(and(eq(commissionLedger.agentId, agent.id), eq(commissionLedger.status, "approved")));
+    db.select({ value: sum(commissionLedger.commissionAmountKopecks) }).from(commissionLedger)
+      .where(and(eq(commissionLedger.agentId, agent.id), eq(commissionLedger.status, "approved"))),
 
-  const [paidResult] = await db
-    .select({ value: sum(commissionLedger.commissionAmountKopecks) })
-    .from(commissionLedger)
-    .where(and(eq(commissionLedger.agentId, agent.id), eq(commissionLedger.status, "paid")));
+    db.select({ value: sum(commissionLedger.commissionAmountKopecks) }).from(commissionLedger)
+      .where(and(eq(commissionLedger.agentId, agent.id), eq(commissionLedger.status, "paid"))),
 
-  // Clients with latest commission
-  const conversions = await db.query.referralConversions.findMany({
-    where: eq(referralConversions.agentId, agent.id),
-    with: {
-      business: { columns: { legalName: true, contactPerson: true, currentPlanSlug: true } },
-      commissions: {
-        orderBy: (t, { desc }) => [desc(t.createdAt)],
-        limit: 1,
-        columns: { commissionAmountKopecks: true },
+    db.query.referralConversions.findMany({
+      where: eq(referralConversions.agentId, agent.id),
+      with: {
+        business: { columns: { legalName: true, contactPerson: true, currentPlanSlug: true } },
+        commissions: {
+          orderBy: (t, { desc }) => [desc(t.createdAt)],
+          limit: 1,
+          columns: { commissionAmountKopecks: true },
+        },
       },
-    },
-    orderBy: (t, { desc }) => [desc(t.createdAt)],
-  });
+      orderBy: (t, { desc }) => [desc(t.createdAt)],
+    }),
 
-  // Monthly history
-  const allLedger = await db.query.commissionLedger.findMany({
-    where: eq(commissionLedger.agentId, agent.id),
-    columns: { periodMonth: true, commissionAmountKopecks: true, status: true },
-    orderBy: (t, { desc }) => [desc(t.periodMonth)],
-  });
+    db.query.commissionLedger.findMany({
+      where: eq(commissionLedger.agentId, agent.id),
+      columns: { periodMonth: true, commissionAmountKopecks: true, status: true },
+      orderBy: (t, { desc }) => [desc(t.periodMonth)],
+    }),
+  ]));
 
   // Group by month
   const monthlyMap = new Map<string, { total: number; count: number; statuses: string[] }>();
