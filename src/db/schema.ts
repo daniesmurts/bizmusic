@@ -115,7 +115,11 @@ export const businesses = pgTable("businesses", {
   brandVoiceOverageCharsPurchased: integer("brandVoiceOverageCharsPurchased").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
-});
+}, (t) => ({
+  userIdIdx: index("businesses_user_id_idx").on(t.userId),
+  subscriptionStatusIdx: index("businesses_subscription_status_idx").on(t.subscriptionStatus),
+  subscriptionExpiresAtIdx: index("businesses_subscription_expires_at_idx").on(t.subscriptionExpiresAt),
+}));
 
 // Locations Table
 export const locations = pgTable("locations", {
@@ -126,7 +130,9 @@ export const locations = pgTable("locations", {
   deviceId: text("deviceId").unique(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
-});
+}, (t) => ({
+  businessIdIdx: index("locations_business_id_idx").on(t.businessId),
+}));
 
 // Wave Settings Table
 export const waveSettings = pgTable("wave_settings", {
@@ -609,7 +615,9 @@ export const payments = pgTable("payments", {
   errorCode: text("errorCode"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
-});
+}, (t) => ({
+  businessIdCreatedAtIdx: index("payments_business_id_created_at_idx").on(t.businessId, t.createdAt),
+}));
 
 export const businessAnnouncementAcquisitions = pgTable("business_announcement_acquisitions", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

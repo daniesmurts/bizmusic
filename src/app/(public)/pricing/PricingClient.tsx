@@ -524,7 +524,7 @@ export default function PricingClient() {
               Готовы <span className="text-neon">начать?</span>
             </h2>
             <p className="text-xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">
-              Зарегистрируйтесь сейчас и получите 14 дней бесплатного доступа к
+              Зарегистрируйтесь сейчас и получите 7 дней бесплатного доступа к
               любому тарифу.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">

@@ -11,14 +11,17 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
   const [verified, setVerified] = useState<boolean | null>(null);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orderId) {
       setVerified(false);
       return;
     }
-    getPaymentStatus(orderId).then((status) => {
-      setVerified(status === "CONFIRMED" || status === "AUTHORIZED");
+    getPaymentStatus(orderId).then((result) => {
+      if (!result) { setVerified(false); return; }
+      setVerified(result.status === "CONFIRMED" || result.status === "AUTHORIZED");
+      setTrialEndsAt(result.trialEndsAt);
     }).catch(() => setVerified(false));
   }, [orderId]);
 
@@ -44,9 +47,7 @@ function SuccessContent() {
     );
   }
 
-  // Calculate trial end date (today + 7 days)
-  const trialEndDate = new Date();
-  trialEndDate.setDate(trialEndDate.getDate() + 7);
+  const trialEndDate = trialEndsAt ? new Date(trialEndsAt) : (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d; })();
   const formattedDate = trialEndDate.toLocaleDateString("ru-RU", {
     day: "numeric",
     month: "long",

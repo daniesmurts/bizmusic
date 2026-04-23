@@ -67,6 +67,10 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
       return { success: false, error: "Отказано в доступе: вы не являетесь владельцем" };
     }
 
+    if (business.subscriptionStatus === "ACTIVE") {
+      return { success: false, error: "У вас уже есть активная подписка. Для смены тарифа обратитесь в поддержку." };
+    }
+
     const legalValidation = validateBusinessLegalData(
       {
         inn: business.inn,
@@ -164,13 +168,16 @@ export async function getPaymentStatus(orderId: string) {
 
   const payment = await db.query.payments.findFirst({
     where: eq(payments.orderId, orderId),
-    with: { business: { columns: { userId: true } } },
+    with: { business: { columns: { userId: true, trialEndsAt: true } } },
   });
 
   // Ensure the user owns the business associated with this payment
   if (!payment || payment.business.userId !== user.id) return undefined;
 
-  return payment.status;
+  return {
+    status: payment.status,
+    trialEndsAt: payment.business.trialEndsAt?.toISOString() ?? null,
+  };
 }
 
 export async function cancelSubscription(businessId: string) {
