@@ -31,13 +31,13 @@ const nextConfig: NextConfig = {
           value: [
             "default-src 'self'",
             // Next.js requires unsafe-inline for styles and inline scripts in dev/prod
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru",
             "style-src 'self' 'unsafe-inline'",
             // Allow images from Supabase storage and data URIs (for generated PDFs/QR codes)
-            "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob:",
+            "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob: https://mc.yandex.ru",
             "font-src 'self' data:",
             // API calls to Supabase, T-Bank, Yandex
-            "connect-src 'self' https://waootzqqtjyungakvoua.supabase.co https://securepay.tinkoff.ru https://suggestions.dadata.ru https://api.opencagedata.com wss://waootzqqtjyungakvoua.supabase.co",
+            "connect-src 'self' https://waootzqqtjyungakvoua.supabase.co https://securepay.tinkoff.ru https://suggestions.dadata.ru https://api.opencagedata.com wss://waootzqqtjyungakvoua.supabase.co blob: https://mc.yandex.ru",
             // Audio streaming from Supabase storage
             "media-src 'self' https://waootzqqtjyungakvoua.supabase.co blob:",
             "frame-ancestors 'none'",
