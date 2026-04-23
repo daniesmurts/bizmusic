@@ -16,3 +16,4 @@ yarn-error.log
 # Docker files are needed in context for some build strategies
 # Removing from ignore as requested by audit
 tmp
+scratch

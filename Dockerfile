@@ -25,7 +25,7 @@ ENV DATABASE_URL=$DATABASE_URL
 
 
 # Build the app
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN node scripts/validate-env.mjs
 RUN npm run build
 
@@ -33,8 +33,8 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN apk add --no-cache ffmpeg
 
@@ -53,6 +53,6 @@ USER nextjs
 EXPOSE 8080
 
 # set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
