@@ -257,11 +257,13 @@ export default function SubscriptionPage() {
 
           {/* Description */}
           <p className="text-neutral-400 font-medium text-xs sm:text-sm leading-relaxed max-w-lg">
-            {businessData?.subscriptionStatus === 'ACTIVE' 
-              ? (businessData.cancelAtPeriodEnd 
+            {businessData?.subscriptionStatus === 'ACTIVE'
+              ? (businessData.cancelAtPeriodEnd
                   ? `Ваша подписка активна до ${new Date(businessData.subscriptionExpiresAt!).toLocaleDateString('ru-RU')}. После этого она не будет продлена.`
-                  : 'Полный доступ к музыкальным каталогам и юридической гарантии.')
-              : 'Выберите тариф для активации 14-дневного пробного периода.'}
+                  : businessData.trialEndsAt && new Date(businessData.trialEndsAt) > new Date()
+                    ? `Пробный период активен. Первое списание — ${new Date(businessData.trialEndsAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}.`
+                    : 'Полный доступ к музыкальным каталогам и юридической гарантии.')
+              : 'Выберите тариф для активации 7-дневного пробного периода.'}
           </p>
 
           {/* Actions */}
@@ -289,7 +291,7 @@ export default function SubscriptionPage() {
             {businessData?.subscriptionStatus !== 'ACTIVE' && (
               <div className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-neutral-300">
                 <Sparkles className="w-3.5 h-3.5 text-neon" />
-                14 дней бесплатно
+                7 дней бесплатно
               </div>
             )}
           </div>
@@ -349,7 +351,7 @@ export default function SubscriptionPage() {
                   <span className="text-xl sm:text-3xl md:text-4xl font-black">{tier.price}</span>
                   <span className="text-[10px] text-neutral-500 font-bold">/ {isYearly ? "год" : "мес"}</span>
                 </div>
-                <p className="text-neon text-[9px] sm:text-[10px] font-black uppercase tracking-widest">14 дней бесплатно</p>
+                <p className="text-neon text-[9px] sm:text-[10px] font-black uppercase tracking-widest">7 дней бесплатно</p>
                 <p className="text-neutral-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest hidden sm:block">TTS: {tier.ttsMonthlyLimit} генераций / мес</p>
               </div>
 
@@ -382,7 +384,7 @@ export default function SubscriptionPage() {
            </div>
            <div className="space-y-2 sm:space-y-4">
               <h4 className="text-lg sm:text-3xl font-black uppercase tracking-tight leading-tight">Безопасная верификация</h4>
-              <p className="text-neutral-400 font-medium text-xs sm:text-base leading-relaxed">Мы спишем и вернем 1 ₽ для проверки карты. Плата начнется через 14 дней.</p>
+              <p className="text-neutral-400 font-medium text-xs sm:text-base leading-relaxed">Мы спишем и вернем 1 ₽ для проверки карты. Плата начнется через 7 дней.</p>
            </div>
         </div>
         <div className="glass-dark border border-white/10 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] flex items-start gap-4 sm:flex-col sm:gap-0 sm:space-y-6">

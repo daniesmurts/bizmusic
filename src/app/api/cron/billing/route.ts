@@ -145,14 +145,15 @@ export async function GET(req: Request) {
           status: chargeResult.Success ? "CONFIRMED" : "REJECTED",
           tbankPaymentId: initResult.PaymentId,
           orderId: orderId,
+          paymentType: "subscription",
           recurrent: true,
           rebillId: business.rebillId,
           errorCode: chargeResult.ErrorCode !== "0" ? chargeResult.ErrorCode : null,
         });
 
         if (chargeResult.Success) {
-          // Success: Extend subscription by interval using proper month arithmetic
-          const nextExpiration = new Date();
+          // Extend from the current period end (not now) to avoid losing time when cron runs late
+          const nextExpiration = new Date(business.subscriptionExpiresAt!);
           if (business.billingInterval === "yearly") {
             nextExpiration.setFullYear(nextExpiration.getFullYear() + 1);
           } else {
