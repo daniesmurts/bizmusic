@@ -30,8 +30,8 @@ const nextConfig: NextConfig = {
           key: "Content-Security-Policy",
           value: [
             "default-src 'self'",
-            // Next.js requires unsafe-inline for styles and inline scripts in dev/prod
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru",
+            // unsafe-eval is only needed by Next.js dev tooling (HMR), not in production
+            `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://mc.yandex.ru`,
             "style-src 'self' 'unsafe-inline'",
             // Allow images from Supabase storage and data URIs (for generated PDFs/QR codes)
             "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob: https://mc.yandex.ru",

@@ -53,12 +53,28 @@ export function useServiceWorker() {
         console.error("SW registration failed:", err);
       });
 
-    // Перезагрузка при активации нового воркера
+    // Reload on new SW activation — but only when safe (no active uploads/fetches)
     let refreshing = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!refreshing) {
-        refreshing = true;
+      if (refreshing) return;
+      refreshing = true;
+
+      // Defer reload if the page has pending XHR uploads or fetch requests
+      const hasPendingXhr =
+        typeof (performance as { getEntriesByType?: unknown }).getEntriesByType === "function" &&
+        (performance.getEntriesByType("resource") as PerformanceResourceTiming[]).some(
+          (e) => e.initiatorType === "xmlhttprequest" && e.responseEnd === 0
+        );
+
+      if (!hasPendingXhr && document.visibilityState !== "hidden") {
         window.location.reload();
+      } else {
+        // Retry when user returns to the tab and there's no active upload
+        const onVisible = () => {
+          document.removeEventListener("visibilitychange", onVisible);
+          window.location.reload();
+        };
+        document.addEventListener("visibilitychange", onVisible);
       }
     });
   }, []);

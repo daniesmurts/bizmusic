@@ -32,7 +32,7 @@ export async function cacheAudioTrack(trackId: string, url: string): Promise<voi
   if (isCached) return; 
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(120_000) }); // 2 min max
     if (!response.ok) throw new Error(`Network response was not ok (${response.status})`);
     
     const blob = await response.blob();
