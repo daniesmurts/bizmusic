@@ -50,6 +50,12 @@ export async function generateUploadUrlAction(
   contentType: string
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id), columns: { role: true } });
+    if (!dbUser || dbUser.role !== "ADMIN") return { success: false, error: "Forbidden" };
+
     // `contentType` is reserved for future server-side validation.
     void contentType;
     const uniqueFileName = generateUniqueFileName(fileName);
@@ -76,6 +82,12 @@ export async function generateUploadUrlAction(
  */
 export async function createTrackAction(data: TrackInput) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id), columns: { role: true } });
+    if (!dbUser || dbUser.role !== "ADMIN") return { success: false, error: "Forbidden" };
+
     const [track] = await db.insert(tracks).values({
       title: data.title,
       artist: data.artist,
@@ -120,6 +132,12 @@ export async function updateTrackAction(
   data: Partial<TrackInput>
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id), columns: { role: true } });
+    if (!dbUser || dbUser.role !== "ADMIN") return { success: false, error: "Forbidden" };
+
     const updateData: Partial<typeof tracks.$inferInsert> = {};
 
     if (data.title !== undefined) updateData.title = data.title;
@@ -166,6 +184,12 @@ export async function updateTrackAction(
  */
 export async function deleteTrackAction(trackId: string) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id), columns: { role: true } });
+    if (!dbUser || dbUser.role !== "ADMIN") return { success: false, error: "Forbidden" };
+
     // First, get the track to find the file URL
     const track = await db.query.tracks.findFirst({
       where: eq(tracks.id, trackId),

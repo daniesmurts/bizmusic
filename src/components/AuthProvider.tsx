@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { type User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
+import { del, keys } from "idb-keyval";
 
 type AuthContextType = {
   user: User | null;
@@ -14,12 +15,23 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function clearAudioCache() {
+  try {
+    const allKeys = await keys();
+    const trackKeys = allKeys.filter((k) => typeof k === "string" && (k as string).startsWith("track-"));
+    await Promise.all(trackKeys.map((k) => del(k)));
+  } catch {
+    // IDB unavailable — ignore
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const fetchRole = async (userId: string) => {
@@ -34,26 +46,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchRole(session.user.id);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        // Only refetch role when user identity changes (not on every token refresh)
+        if (currentUser.id !== lastUserIdRef.current) {
+          lastUserIdRef.current = currentUser.id;
+          fetchRole(currentUser.id);
+        }
       } else {
+        lastUserIdRef.current = null;
         setRole(null);
       }
-      
+
       setLoading(false);
-      
+
       if (event === "SIGNED_IN") {
-        // Clear featured track play history when user signs in
         try {
           localStorage.removeItem("featured-tracks-played");
-        } catch (error) {
-          console.error("Failed to clear featured tracks play history:", error);
+        } catch {
+          // localStorage unavailable
         }
         router.refresh();
       }
       if (event === "SIGNED_OUT") {
+        clearAudioCache();
         router.refresh();
         router.push("/");
       }
@@ -65,6 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, router]);
 
   const signOut = async () => {
+    try {
+      // Invalidate the session server-side first (revokes refresh token globally)
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Network failure — fall through to client-side sign-out
+    }
     await supabase.auth.signOut();
   };
 

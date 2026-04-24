@@ -70,15 +70,21 @@ export const TrackUploader = ({ onUploadComplete, uploadType = "audio" }: TrackU
       if (!metaRes.ok) return undefined;
       const { uploadUrl, publicUrl } = await metaRes.json();
 
-      // Upload the image
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", uploadUrl, false); // sync is OK for small images
-      xhr.setRequestHeader("Content-Type", picture.format);
-      xhr.send(coverBlob);
-
-      if (xhr.status >= 200 && xhr.status < 300) {
-        return publicUrl;
-      }
+      // Upload the image (async, 30s timeout)
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadUrl);
+        xhr.timeout = 30_000;
+        xhr.setRequestHeader("Content-Type", picture.format);
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`Cover upload failed: ${xhr.status}`));
+        };
+        xhr.onerror = () => reject(new Error("Network error uploading cover"));
+        xhr.ontimeout = () => reject(new Error("Cover upload timed out"));
+        xhr.send(coverBlob);
+      });
+      return publicUrl;
     } catch (err) {
       console.warn("[TrackUploader] Could not extract embedded cover art:", err);
     }
@@ -183,9 +189,10 @@ export const TrackUploader = ({ onUploadComplete, uploadType = "audio" }: TrackU
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl);
-        
+        xhr.timeout = 300_000; // 5 minutes — enough for 100 MB on slow connections
+
         xhr.setRequestHeader("Content-Type", file.type);
-        
+
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
@@ -201,7 +208,8 @@ export const TrackUploader = ({ onUploadComplete, uploadType = "audio" }: TrackU
           }
         };
 
-        xhr.onerror = () => reject(new Error("Ошибка сети при загрузке файла"));
+        xhr.onerror = () => reject(new Error("Ошибка сети при загрузке файла. Проверьте соединение и попробуйте снова."));
+        xhr.ontimeout = () => reject(new Error("Превышено время ожидания загрузки. Проверьте скорость соединения и попробуйте снова."));
         xhr.send(file);
       });
 

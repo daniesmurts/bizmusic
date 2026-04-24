@@ -181,7 +181,13 @@ export const tracks = pgTable("tracks", {
   coverUrl: text("coverUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
-});
+}, (t) => ({
+  businessIdIdx: index("tracks_business_id_idx").on(t.businessId),
+  isFeaturedIdx: index("tracks_is_featured_idx").on(t.isFeatured),
+  isAnnouncementIdx: index("tracks_is_announcement_idx").on(t.isAnnouncement),
+  artistIdIdx: index("tracks_artist_id_idx").on(t.artistId),
+  createdAtIdx: index("tracks_created_at_idx").on(t.createdAt),
+}));
 
 // Albums Table
 export const albums = pgTable("albums", {
@@ -258,7 +264,12 @@ export const playLogs = pgTable("play_logs", {
   businessId: text("businessId").references(() => businesses.id),
   trackId: text("trackId").references(() => tracks.id).notNull(),
   playedAt: timestamp("playedAt").defaultNow().notNull(),
-});
+}, (t) => ({
+  trackIdIdx: index("play_logs_track_id_idx").on(t.trackId),
+  businessIdIdx: index("play_logs_business_id_idx").on(t.businessId),
+  locationIdIdx: index("play_logs_location_id_idx").on(t.locationId),
+  playedAtIdx: index("play_logs_played_at_idx").on(t.playedAt),
+}));
 
 // Song of the Week Table
 export const songOfTheWeek = pgTable("song_of_the_week", {

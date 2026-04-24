@@ -149,7 +149,7 @@ export const Navbar = () => {
                <Button
                  variant="ghost"
                  className="text-neutral-400 hover:text-neon font-black uppercase tracking-widest text-xs md:flex hidden"
-                 onClick={() => signOut()}
+                 onClick={() => { void signOut(); }}
                >
                  Выйти
                </Button>
@@ -304,7 +304,7 @@ export const Navbar = () => {
                     variant="destructive"
                     className="h-14 rounded-2xl font-black uppercase tracking-widest text-xs gap-3"
                     onClick={() => {
-                      signOut();
+                      void signOut();
                       setIsMenuOpen(false);
                     }}
                   >
