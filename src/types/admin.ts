@@ -50,7 +50,9 @@ export interface AdminPlaylist {
   id: string;
   name: string;
   businessId?: string | null;
-  tracks?: { track: AdminTrack }[];
+  /** List view: only IDs are loaded for performance. Use getPlaylistByIdAction for full track objects. */
+  tracks?: { id: string }[];
+  _count?: { tracks: number };
 }
 
 export interface AdminBusiness {
