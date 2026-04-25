@@ -30,6 +30,7 @@ const adminNavItems = [
   { name: "Аналитика", href: "/admin/analytics", icon: BarChart3 },
   { name: "Блог", href: "/admin/blog", icon: BookOpen },
   { name: "Клиенты", href: "/admin/clients", icon: Users },
+  { name: "CRM / Лиды", href: "/admin/leads", icon: Users },
   { name: "Brand Voice", href: "/admin/brand-voice", icon: Mic },
   { name: "Поддержка", href: "/admin/support", icon: MessageSquare },
   { name: "Комплаенс", href: "/admin/logs", icon: ShieldCheck },

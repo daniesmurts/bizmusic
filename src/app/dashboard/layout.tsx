@@ -15,6 +15,7 @@ import {
   Mic,
   BookOpen,
   Users,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
@@ -49,7 +50,7 @@ export default function DashboardLayout({
 
     // --- Role-based redirect: runs on every pathname change (cheap, no DB) ---
     if (isPartner) {
-      if (!pathname.startsWith("/dashboard/affiliate")) router.push("/dashboard/affiliate");
+      if (!pathname.startsWith("/dashboard/affiliate") && !pathname.startsWith("/dashboard/leads")) router.push("/dashboard/affiliate");
       return;
     }
     if (isBranchManager) {
@@ -97,6 +98,11 @@ export default function DashboardLayout({
           name: "Кабинет партнёра",
           href: "/dashboard/affiliate",
           icon: Users,
+        },
+        {
+          name: "Мои лиды",
+          href: "/dashboard/leads",
+          icon: Phone,
         },
       ]
     : isBranchManager

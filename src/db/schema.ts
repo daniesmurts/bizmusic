@@ -713,6 +713,7 @@ export const referralAgents = pgTable("referral_agents", {
   fullName: text("fullName"),
   phone: text("phone"),
   city: text("city"),
+  telegramChatId: text("telegramChatId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 }, (t) => ({
@@ -763,6 +764,84 @@ export const commissionLedger = pgTable("commission_ledger", {
 }));
 
 // ─── End Referral System ───────────────────────────────────────────────────────
+
+// ─── Sales CRM ─────────────────────────────────────────────────────────────────
+
+export const cities = pgTable("cities", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  region: text("region"),
+  isActive: boolean("isActive").default(true).notNull(),
+});
+
+export const businessNiches = pgTable("business_niches", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  icon: text("icon"), // emoji e.g. ☕ 🍽️ 💇 🛍️
+});
+
+export const crmBusinesses = pgTable("crm_businesses", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  cityId: text("cityId").references(() => cities.id),
+  nicheId: text("nicheId").references(() => businessNiches.id),
+  address: text("address"),
+  phone: text("phone"),
+  website: text("website"),
+  contactName: text("contactName"),
+  source: text("source").default("manual").notNull(), // 'manual', '2gis', 'avito', 'yandex'
+  isAssigned: boolean("isAssigned").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  cityNicheIdx: index("crm_businesses_city_niche_idx").on(t.cityId, t.nicheId),
+  isAssignedIdx: index("crm_businesses_is_assigned_idx").on(t.isAssigned),
+}));
+
+export const leads = pgTable("leads", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessId: text("businessId").references(() => crmBusinesses.id, { onDelete: "cascade" }).notNull(),
+  agentId: text("agentId").references(() => referralAgents.id, { onDelete: "cascade" }).notNull(),
+  status: text("status").default("new").notNull(), // new, no_answer, in_progress, trial_sent, converted, rejected, invalid
+  priority: integer("priority").default(2).notNull(), // 1=hot, 2=normal, 3=low
+  nextCallbackAt: timestamp("nextCallbackAt"),
+  convertedAt: timestamp("convertedAt"),
+  convertedSubscriptionId: text("convertedSubscriptionId"),
+  callAttempts: integer("callAttempts").default(0).notNull(),
+  lastContactedAt: timestamp("lastContactedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
+}, (t) => ({
+  agentStatusIdx: index("leads_agent_status_idx").on(t.agentId, t.status),
+  agentCallbackIdx: index("leads_agent_callback_idx").on(t.agentId, t.nextCallbackAt),
+  statusIdx: index("leads_status_idx").on(t.status),
+}));
+
+export const leadActivities = pgTable("lead_activities", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  leadId: text("leadId").references(() => leads.id, { onDelete: "cascade" }).notNull(),
+  agentId: text("agentId").references(() => referralAgents.id).notNull(),
+  type: text("type").notNull(), // call_attempt, call_connected, status_change, note, callback_scheduled, trial_sent, converted
+  note: text("note"),
+  previousStatus: text("previousStatus"),
+  newStatus: text("newStatus"),
+  callbackAt: timestamp("callbackAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  leadIdx: index("lead_activities_lead_idx").on(t.leadId),
+  agentCreatedIdx: index("lead_activities_agent_created_idx").on(t.agentId, t.createdAt),
+}));
+
+export const agentAssignments = pgTable("agent_assignments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  agentId: text("agentId").references(() => referralAgents.id, { onDelete: "cascade" }).notNull(),
+  cityId: text("cityId").references(() => cities.id),
+  nicheId: text("nicheId").references(() => businessNiches.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  agentCityNicheUnique: uniqueIndex("agent_assignments_unique").on(t.agentId, t.cityId, t.nicheId),
+}));
+
+// ─── End Sales CRM ─────────────────────────────────────────────────────────────
 
 // RELATIONS
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -1077,6 +1156,9 @@ export const referralAgentsRelations = relations(referralAgents, ({ one, many })
   clicks: many(referralClicks),
   conversions: many(referralConversions),
   commissions: many(commissionLedger),
+  leads: many(leads),
+  leadActivities: many(leadActivities),
+  agentAssignments: many(agentAssignments),
 }));
 
 export const referralClicksRelations = relations(referralClicks, ({ one }) => ({
@@ -1094,4 +1176,39 @@ export const referralConversionsRelations = relations(referralConversions, ({ on
 export const commissionLedgerRelations = relations(commissionLedger, ({ one }) => ({
   agent: one(referralAgents, { fields: [commissionLedger.agentId], references: [referralAgents.id] }),
   conversion: one(referralConversions, { fields: [commissionLedger.conversionId], references: [referralConversions.id] }),
+}));
+
+// ─── CRM Relations ─────────────────────────────────────────────────────────────
+
+export const citiesRelations = relations(cities, ({ many }) => ({
+  crmBusinesses: many(crmBusinesses),
+  agentAssignments: many(agentAssignments),
+}));
+
+export const businessNichesRelations = relations(businessNiches, ({ many }) => ({
+  crmBusinesses: many(crmBusinesses),
+  agentAssignments: many(agentAssignments),
+}));
+
+export const crmBusinessesRelations = relations(crmBusinesses, ({ one, many }) => ({
+  city: one(cities, { fields: [crmBusinesses.cityId], references: [cities.id] }),
+  niche: one(businessNiches, { fields: [crmBusinesses.nicheId], references: [businessNiches.id] }),
+  leads: many(leads),
+}));
+
+export const leadsRelations = relations(leads, ({ one, many }) => ({
+  business: one(crmBusinesses, { fields: [leads.businessId], references: [crmBusinesses.id] }),
+  agent: one(referralAgents, { fields: [leads.agentId], references: [referralAgents.id] }),
+  activities: many(leadActivities),
+}));
+
+export const leadActivitiesRelations = relations(leadActivities, ({ one }) => ({
+  lead: one(leads, { fields: [leadActivities.leadId], references: [leads.id] }),
+  agent: one(referralAgents, { fields: [leadActivities.agentId], references: [referralAgents.id] }),
+}));
+
+export const agentAssignmentsRelations = relations(agentAssignments, ({ one }) => ({
+  agent: one(referralAgents, { fields: [agentAssignments.agentId], references: [referralAgents.id] }),
+  city: one(cities, { fields: [agentAssignments.cityId], references: [cities.id] }),
+  niche: one(businessNiches, { fields: [agentAssignments.nicheId], references: [businessNiches.id] }),
 }));
