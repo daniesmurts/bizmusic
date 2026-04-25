@@ -3,21 +3,36 @@ import "server-only";
 import { createClient } from '@supabase/supabase-js';
 import { parseStorageObjectRef, type StorageObjectRef } from "@/lib/storage-object-ref";
 
-// Supabase Storage configuration
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Lazy admin client — delay initialization until first use so that importing this
+// module at build time (Next.js page-data collection) doesn't throw when
+// SUPABASE_SERVICE_ROLE_KEY is absent as a build-time env var.
+// The actual client is created on first property access, at request time.
+let _adminInstance: ReturnType<typeof createClient> | undefined;
 
-// Initialize Supabase client with service role key for server-side operations
-export const supabaseAdmin = createClient(
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+function getAdmin(): ReturnType<typeof createClient> {
+  if (!_adminInstance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error(
+        "[Storage] NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set at runtime"
+      );
+    }
+    _adminInstance = createClient(url, key, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
   }
-);
+  return _adminInstance;
+}
+
+// Proxy preserves the existing `supabaseAdmin.storage.xxx` call-site API unchanged.
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, prop) {
+    const client = getAdmin();
+    const value = (client as Record<string | symbol, unknown>)[prop as string];
+    return typeof value === "function" ? (value as Function).bind(client) : value;
+  },
+});
 
 const BUCKET_NAME = 'bizmusic-assets';
 export { parseStorageObjectRef };
