@@ -29,8 +29,8 @@ function getAdmin(): ReturnType<typeof createClient> {
 export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
   get(_target, prop) {
     const client = getAdmin();
-    const value = (client as Record<string | symbol, unknown>)[prop as string];
-    return typeof value === "function" ? (value as Function).bind(client) : value;
+    const value = (client as unknown as Record<string, unknown>)[prop as string];
+    return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(client) : value;
   },
 });
 
