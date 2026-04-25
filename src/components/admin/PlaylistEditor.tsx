@@ -40,7 +40,9 @@ interface Playlist {
   id: string;
   name: string;
   businessId?: string | null;
-  tracks?: { track: Track }[];
+  /** List view returns only IDs; full track objects are resolved from the tracks prop. */
+  tracks?: { id: string }[];
+  _count?: { tracks: number };
 }
 
 interface PlaylistEditorProps {
@@ -166,11 +168,16 @@ export const PlaylistEditor = ({
     return tracks.filter((t) => !playlistTrackIds.has(t.id));
   }, [tracks, playlistTracks]);
 
-  // Load playlist tracks when selected playlist changes
+  // Load playlist tracks when selected playlist changes.
+  // The list view only returns track IDs; resolve full Track objects from the tracks prop.
   const loadPlaylist = (playlistId: string) => {
     const playlist = playlists.find((p) => p.id === playlistId);
-    if (playlist?.tracks) {
-      setPlaylistTracks(playlist.tracks.map((pt) => pt.track));
+    if (playlist?.tracks && playlist.tracks.length > 0) {
+      const trackMap = new Map(tracks.map((t) => [t.id, t]));
+      const resolved = playlist.tracks
+        .map((pt) => trackMap.get(pt.id))
+        .filter((t): t is Track => t !== undefined);
+      setPlaylistTracks(resolved);
     } else {
       setPlaylistTracks([]);
     }
