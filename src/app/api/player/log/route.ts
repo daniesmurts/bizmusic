@@ -20,14 +20,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Missing trackId" }, { status: 400 });
     }
 
-    const dbUser = await db.query.users.findFirst({
-      where: eq(users.id, user.id),
-      columns: {
-        id: true,
-        role: true,
-        assignedLocationId: true,
-      },
-    });
+    // Run user profile lookup + optional business/location ownership checks in parallel
+    const [dbUser, userBusiness] = await Promise.all([
+      db.query.users.findFirst({
+        where: eq(users.id, user.id),
+        columns: { id: true, role: true, assignedLocationId: true },
+      }),
+      // Pre-fetch the caller's own business so we don't need a second round-trip later
+      !businessId
+        ? db.query.businesses.findFirst({
+            where: eq(businesses.userId, user.id),
+            columns: { id: true },
+          })
+        : Promise.resolve(null),
+    ]);
 
     if (!dbUser) {
       return NextResponse.json({ success: false, error: "User profile not found" }, { status: 404 });
@@ -63,40 +69,51 @@ export async function POST(request: Request) {
       finalBusinessId = assignedLocation.businessId;
     }
 
-    if (!finalBusinessId) {
-      const userBusiness = await db.query.businesses.findFirst({
-        where: eq(businesses.userId, user.id),
-        columns: { id: true }
-      });
-      if (userBusiness) {
-        finalBusinessId = userBusiness.id;
-      }
+    // Use pre-fetched business if businessId was not supplied by the caller
+    if (!finalBusinessId && userBusiness) {
+      finalBusinessId = userBusiness.id;
     }
 
-    // 2. Verify ownership if businessId was explicitly provided by caller
-    if (finalBusinessId && businessId) {
-      const business = await db.query.businesses.findFirst({
-        where: eq(businesses.id, finalBusinessId),
-        columns: { userId: true }
-      });
-      if (!business || business.userId !== user.id) {
-        return NextResponse.json({ success: false, error: "Forbidden: Unauthorized business association" }, { status: 403 });
-      }
-    }
+    // 2. Ownership + location checks — run in parallel when both are needed
+    if (finalBusinessId || finalLocationId) {
+      const checks: Promise<unknown>[] = [];
 
-    // 3. Validate location ownership to avoid cross-business attribution spoofing.
-    if (finalLocationId) {
-      if (!finalBusinessId) {
-        return NextResponse.json({ success: false, error: "Missing business context for location" }, { status: 400 });
+      // Verify explicit businessId ownership
+      let businessCheck: Promise<{ userId: string } | undefined> | null = null;
+      if (finalBusinessId && businessId) {
+        businessCheck = db.query.businesses.findFirst({
+          where: eq(businesses.id, finalBusinessId),
+          columns: { userId: true },
+        });
+        checks.push(businessCheck);
       }
 
-      const location = await db.query.locations.findFirst({
-        where: and(eq(locations.id, finalLocationId), eq(locations.businessId, finalBusinessId)),
-        columns: { id: true },
-      });
+      // Validate location belongs to this business
+      let locationCheck: Promise<{ id: string } | undefined> | null = null;
+      if (finalLocationId) {
+        if (!finalBusinessId) {
+          return NextResponse.json({ success: false, error: "Missing business context for location" }, { status: 400 });
+        }
+        locationCheck = db.query.locations.findFirst({
+          where: and(eq(locations.id, finalLocationId), eq(locations.businessId, finalBusinessId)),
+          columns: { id: true },
+        });
+        checks.push(locationCheck);
+      }
 
-      if (!location) {
-        return NextResponse.json({ success: false, error: "Forbidden: Invalid location for this business" }, { status: 403 });
+      await Promise.all(checks);
+
+      if (businessCheck) {
+        const biz = await businessCheck;
+        if (!biz || biz.userId !== user.id) {
+          return NextResponse.json({ success: false, error: "Forbidden: Unauthorized business association" }, { status: 403 });
+        }
+      }
+      if (locationCheck) {
+        const loc = await locationCheck;
+        if (!loc) {
+          return NextResponse.json({ success: false, error: "Forbidden: Invalid location for this business" }, { status: 403 });
+        }
       }
     }
 

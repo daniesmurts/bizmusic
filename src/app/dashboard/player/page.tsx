@@ -90,7 +90,7 @@ export default function PlayerPage() {
   };
 
   return (
-    <div className="space-y-12 animate-fade-in relative z-0 min-h-screen">
+    <div className="space-y-12 md:space-y-20 animate-fade-in relative z-0 min-h-screen">
       {/* Background gradients for depth - enhanced for brighter accents */}
       <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-neon/15 rounded-full blur-[150px] pointer-events-none -z-10" />
       <div className="fixed top-[20%] right-[-5%] w-[600px] h-[600px] bg-purple-500/15 rounded-full blur-[150px] pointer-events-none -z-10" />
