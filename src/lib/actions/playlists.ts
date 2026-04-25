@@ -65,6 +65,8 @@ export async function getPlaylistsAction(businessId?: string) {
       ? businessId
       : (businessId ?? scope?.businessId ?? undefined);
 
+    // List view: load only metadata + track count — skip the full track JOIN.
+    // Callers that need full track details should use getPlaylistByIdAction.
     const playlistsList = await db.query.playlists.findMany({
       where: scope?.role === "ADMIN"
         ? (effectiveBusinessId ? eq(playlists.businessId, effectiveBusinessId) : undefined)
@@ -78,11 +80,9 @@ export async function getPlaylistsAction(businessId?: string) {
             legalName: true,
           },
         },
+        // Only load minimal track data needed for the count badge
         tracks: {
-          with: {
-            track: true,
-          },
-          orderBy: (tracks, { asc }) => [asc(tracks.position)],
+          columns: { id: true },
         },
       },
       orderBy: [desc(playlists.createdAt)],

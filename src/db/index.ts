@@ -46,15 +46,19 @@ const poolConfig = {
   // Dev: keep the pool small so fewer connections go stale between requests.
   // 9 parallel queries can queue behind 3 connections rather than opening 9
   // simultaneous TLS handshakes that Supabase rate-limits / drops.
-  max: isDev ? 3 : 10,
+  max: isDev ? 3 : 20,
   // keepAlive prevents Supabase from silently closing idle connections
   keepAlive: true,
   keepAliveInitialDelayMillis: 10_000,
   // Evict idle connections before Supabase's ~30 s server-side idle timeout.
   // Dev uses a shorter window because idle time between requests is unpredictable.
   idleTimeoutMillis: isDev ? 10_000 : 20_000,
-  connectionTimeoutMillis: 30_000,
+  // 5 s is plenty; 30 s means a stalled connection hangs the user for half a minute.
+  connectionTimeoutMillis: 5_000,
   allowExitOnIdle: true,
+  // Kill runaway queries after 10 s — prevents a single slow query from blocking
+  // a pool connection and starving all concurrent dashboard users.
+  options: "-c statement_timeout=10000",
 };
 
 declare global {

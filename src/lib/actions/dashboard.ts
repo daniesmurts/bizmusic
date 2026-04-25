@@ -15,23 +15,43 @@ function formatDurationRu(totalSeconds: number) {
   return `${hours}Ч ${String(minutes).padStart(2, "0")}М`;
 }
 
-async function processPlaylist(p: { id: string; name: string }) {
-  const [{ count, totalDurationSeconds }] = await db
+/**
+ * Single-query replacement for the old processPlaylist() N+1 pattern.
+ * Fetches track counts + total durations for ALL supplied playlist IDs in one
+ * GROUP BY, then merges the results with the name list.
+ */
+async function enrichPlaylistsWithStats(
+  playlistMeta: { id: string; name: string }[]
+) {
+  if (playlistMeta.length === 0) return [];
+
+  const ids = playlistMeta.map((p) => p.id);
+
+  const rows = await db
     .select({
-      count: sql`count(${playlistTracks.id})`.mapWith(Number),
-      totalDurationSeconds: sql`coalesce(sum(${tracks.duration}), 0)`.mapWith(Number),
+      playlistId: playlistTracks.playlistId,
+      count: sql<number>`cast(count(${playlistTracks.id}) as int)`,
+      totalDurationSeconds: sql<number>`cast(coalesce(sum(${tracks.duration}), 0) as int)`,
     })
     .from(playlistTracks)
     .leftJoin(tracks, eq(playlistTracks.trackId, tracks.id))
-    .where(eq(playlistTracks.playlistId, p.id));
+    .where(inArray(playlistTracks.playlistId, ids))
+    .groupBy(playlistTracks.playlistId);
 
-  return {
-    id: p.id,
-    name: p.name,
-    trackCount: count || 0,
-    durationSeconds: totalDurationSeconds || 0,
-    duration: formatDurationRu(totalDurationSeconds || 0),
-  };
+  const statsMap = new Map(rows.map((r) => [r.playlistId, r]));
+
+  return playlistMeta.map((p) => {
+    const s = statsMap.get(p.id);
+    const trackCount = s?.count ?? 0;
+    const durationSeconds = s?.totalDurationSeconds ?? 0;
+    return {
+      id: p.id,
+      name: p.name,
+      trackCount,
+      durationSeconds,
+      duration: formatDurationRu(durationSeconds),
+    };
+  });
 }
 
 export async function getDashboardDataAction() {
@@ -78,7 +98,7 @@ export async function getDashboardDataAction() {
         return { success: false, error: "Данные филиала не найдены" };
       }
 
-      const staffPlaylists = await Promise.all(business.playlists.map(processPlaylist));
+      const staffPlaylists = await enrichPlaylistsWithStats(business.playlists);
       const totalTrackCount = staffPlaylists.reduce((acc, playlist) => acc + playlist.trackCount, 0);
 
       return {
@@ -168,9 +188,15 @@ export async function getDashboardDataAction() {
     // filter out playlists that already belong to THIS specific business (from the current logged in business context)
     const filteredGlobalPlaylists = globalPlaylistsFromDb.filter(p => p.businessId !== business.id);
 
-    // Fetch playlists with track counts separately
-    const playlistsList = await Promise.all(business.playlists.map(processPlaylist));
-    const globalPlaylistsList = await Promise.all(filteredGlobalPlaylists.map(processPlaylist));
+    // Single batched query replaces the old N+1 processPlaylist loops
+    const allPlaylistMeta = [
+      ...business.playlists,
+      ...filteredGlobalPlaylists,
+    ];
+    const allEnriched = await enrichPlaylistsWithStats(allPlaylistMeta);
+    const businessPlaylistIds = new Set(business.playlists.map((p) => p.id));
+    const playlistsList = allEnriched.filter((p) => businessPlaylistIds.has(p.id));
+    const globalPlaylistsList = allEnriched.filter((p) => !businessPlaylistIds.has(p.id));
 
     const totalTrackCount = playlistsList.reduce((acc, p) => acc + p.trackCount, 0);
 

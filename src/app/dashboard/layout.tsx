@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Building2,
   Play,
@@ -38,56 +38,56 @@ export default function DashboardLayout({
   const isBranchManager = role === "STAFF";
   const isPartner = role === "PARTNER";
 
+  // Track whether we already fetched business status — avoids a DB call on
+  // every navigation click (layout re-renders when pathname changes).
+  const businessCheckedRef = useRef(false);
+  // Track last support-check time — only re-check every 60 s, not on every nav.
+  const lastSupportCheckRef = useRef(0);
+
   useEffect(() => {
-    async function checkStatus() {
-      // Partners only have access to the affiliate dashboard
-      if (isPartner) {
-        if (!pathname.startsWith("/dashboard/affiliate")) {
-          router.push("/dashboard/affiliate");
-        }
-        return;
-      }
+    if (role === null) return;
 
-      if (isBranchManager) {
-        const staffAllowedRoutes = ["/dashboard/player", "/dashboard/announcements"];
-        const isAllowed = staffAllowedRoutes.some((route) => pathname.startsWith(route));
-        if (!isAllowed) {
-          router.push("/dashboard/player");
-        }
-        setIsSigned(true);
-        return;
-      }
-
-      try {
-        const result = await getBusinessDetailsAction();
-        const isSetupRoute = pathname.startsWith("/dashboard/setup");
-
-        if (result.success && result.data?.subscriptionStatus === "ACTIVE") {
-          setIsSigned(true);
-        } else {
-          setIsSigned(false);
-        }
-
-        const needsSetup = !result.data || !isBusinessProfileComplete({
-          inn: result.data.inn,
-          legalName: result.data.legalName,
-          address: result.data.address,
-        });
-
-        if (needsSetup && !isSetupRoute) {
-          router.push("/dashboard/setup");
-        }
-      } catch (err) {
-        console.error("Failed to check business status in layout", err);
-      }
+    // --- Role-based redirect: runs on every pathname change (cheap, no DB) ---
+    if (isPartner) {
+      if (!pathname.startsWith("/dashboard/affiliate")) router.push("/dashboard/affiliate");
+      return;
     }
-    if (role !== null) {
-      checkStatus();
+    if (isBranchManager) {
+      const staffAllowedRoutes = ["/dashboard/player", "/dashboard/announcements"];
+      if (!staffAllowedRoutes.some((r) => pathname.startsWith(r))) {
+        router.push("/dashboard/player");
+      }
+      setIsSigned(true);
+    }
+
+    // --- Business profile check: runs ONCE per session, not on every nav ---
+    if (!isBranchManager && !businessCheckedRef.current) {
+      businessCheckedRef.current = true;
+      getBusinessDetailsAction()
+        .then((result) => {
+          const isSetupRoute = pathname.startsWith("/dashboard/setup");
+          if (result.success && result.data?.subscriptionStatus === "ACTIVE") {
+            setIsSigned(true);
+          }
+          const needsSetup = !result.data || !isBusinessProfileComplete({
+            inn: result.data.inn,
+            legalName: result.data.legalName,
+            address: result.data.address,
+          });
+          if (needsSetup && !isSetupRoute) router.push("/dashboard/setup");
+        })
+        .catch((err) => console.error("Failed to check business status in layout", err));
+    }
+
+    // --- Support unread check: at most once every 60 s ---
+    const now = Date.now();
+    if (!isPartner && now - lastSupportCheckRef.current > 60_000) {
+      lastSupportCheckRef.current = now;
       getMyUnreadSupportReplyAction().then((res) => {
         if (res.success) setHasUnreadSupport(res.hasUnread);
       });
     }
-  }, [isBranchManager, pathname, role, router]);
+  }, [isBranchManager, isPartner, pathname, role, router]);
 
   const navItems = role === null
     ? [] // auth resolving — render nothing so we never flash B2B items to a partner

@@ -1,8 +1,11 @@
 import { createClient } from "@/utils/supabase/server";
-import { 
-  Users, 
-  Music, 
-  CreditCard, 
+import { db } from "@/db";
+import { businesses, tracks, playLogs, licenses } from "@/db/schema";
+import { sql } from "drizzle-orm";
+import {
+  Users,
+  Music,
+  CreditCard,
   Activity,
   TrendingUp,
   Play
@@ -10,15 +13,23 @@ import {
 import { cn } from "@/lib/utils";
 
 export default async function AdminOverviewPage() {
-  const supabase = await createClient();
+  // Run all four stat queries in parallel — previously executed sequentially
+  const [
+    [businessRow],
+    [trackRow],
+    [playLogRow],
+    [revenueRow],
+  ] = await Promise.all([
+    db.select({ count: sql<number>`cast(count(*) as int)` }).from(businesses),
+    db.select({ count: sql<number>`cast(count(*) as int)` }).from(tracks),
+    db.select({ count: sql<number>`cast(count(*) as int)` }).from(playLogs),
+    db.select({ total: sql<number>`cast(coalesce(sum("totalCost"), 0) as int)` }).from(licenses),
+  ]);
 
-  // Fetch some summary stats
-  const { count: businessesCount } = await supabase.from("businesses").select("*", { count: 'exact', head: true });
-  const { count: tracksCount } = await supabase.from("tracks").select("*", { count: 'exact', head: true });
-  const { count: playLogsCount } = await supabase.from("play_logs").select("*", { count: 'exact', head: true });
-  const { data: licenses } = await supabase.from("licenses").select("totalCost");
-  
-  const totalRevenue = licenses?.reduce((acc: number, curr: { totalCost: number }) => acc + (curr.totalCost || 0), 0) || 0;
+  const businessesCount = businessRow?.count ?? 0;
+  const tracksCount     = trackRow?.count ?? 0;
+  const playLogsCount   = playLogRow?.count ?? 0;
+  const totalRevenue    = revenueRow?.total ?? 0;
 
   const stats = [
     { 

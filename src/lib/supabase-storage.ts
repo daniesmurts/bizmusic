@@ -99,11 +99,37 @@ export function getFilePublicUrl(fileName: string, folder: string = 'tracks'): s
   return publicUrl;
 }
 
+// ---------------------------------------------------------------------------
+// In-memory signed URL cache — eliminates repeated HTTPS round-trips to Supabase
+// Storage on every catalog / playlist / featured-tracks load.
+//
+// Key   : `${folder}/${fileName}`
+// Value : { url, expiresAt } — url is evicted 120 s before its real expiry so
+//         clients always get a URL with ≥ 2 min of lifetime left.
+// ---------------------------------------------------------------------------
+interface CachedUrl {
+  url: string;
+  expiresAt: number; // ms epoch
+}
+const _signedUrlCache = new Map<string, CachedUrl>();
+
+// Purge stale entries whenever the cache grows large (defensive — not a hot path)
+function _pruneCache() {
+  if (_signedUrlCache.size < 500) return;
+  const now = Date.now();
+  for (const [key, entry] of _signedUrlCache) {
+    if (entry.expiresAt <= now) _signedUrlCache.delete(key);
+  }
+}
+
 /**
  * Generate a signed URL for downloading/streaming a file.
+ * Results are cached in-memory for (expiresIn - 120) seconds so repeated loads
+ * of the same catalog do not fan out N HTTP calls to Supabase Storage.
  * Includes retry logic for transient network failures (e.g. Cloudflare timeouts).
+ *
  * @param fileName - The name of the file
- * @param folder - The folder in the bucket
+ * @param folder   - The folder in the bucket
  * @param expiresIn - URL expiration time in seconds (default: 24 hours for streaming)
  * @returns Signed URL for download
  */
@@ -112,6 +138,12 @@ export async function getDownloadSignedUrl(
   folder: string = 'tracks',
   expiresIn: number = 86400
 ): Promise<string> {
+  const cacheKey = `${folder}/${fileName}`;
+  const cached = _signedUrlCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.url;
+  }
+
   const maxRetries = 2;
   let lastError: Error | null = null;
 
@@ -124,6 +156,13 @@ export async function getDownloadSignedUrl(
       if (error) {
         throw new Error(`Failed to create download URL: ${error.message}`);
       }
+
+      // Cache the URL, evict 120 s before actual expiry
+      _pruneCache();
+      _signedUrlCache.set(cacheKey, {
+        url: data.signedUrl,
+        expiresAt: Date.now() + (expiresIn - 120) * 1000,
+      });
 
       return data.signedUrl;
     } catch (err) {
@@ -142,6 +181,13 @@ export async function getDownloadSignedUrl(
   }
 
   throw lastError!;
+}
+
+/**
+ * Invalidate a cached signed URL (call after uploading a new file to the same path).
+ */
+export function invalidateSignedUrlCache(fileName: string, folder: string = 'tracks') {
+  _signedUrlCache.delete(`${folder}/${fileName}`);
 }
 
 /**
