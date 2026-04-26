@@ -604,9 +604,10 @@ export async function getCrmLookupsAction() {
       .orderBy(asc(businessNiches.name));
 
     return { success: true as const, data: { cities: allCities, niches: allNiches } };
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("getCrmLookupsAction error:", error);
-    return { success: false as const, error: "Ошибка загрузки данных" };
+    const cause = error?.cause?.message || error?.cause || "";
+    return { success: false as const, error: `DB: ${cause} | ${error?.message || String(error)}` };
   }
 }
 
