@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { partnerRegisterAction } from "./actions";
+import { SubmitButton } from "./SubmitButton";
 
 export const metadata = { title: "Регистрация партнёра — Бизмюзик" };
 
@@ -139,12 +140,7 @@ export default async function PartnerRegisterPage({
               </select>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-[#5cf387] text-black font-black uppercase tracking-widest text-sm py-4 rounded-2xl hover:bg-[#5cf387]/90 transition mt-2"
-            >
-              Зарегистрироваться
-            </button>
+            <SubmitButton />
           </form>
 
           <p className="mt-6 text-center text-neutral-600 text-sm">

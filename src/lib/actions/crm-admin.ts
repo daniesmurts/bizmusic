@@ -77,6 +77,7 @@ export async function getCrmBusinessesAction(filters?: {
         phone: crmBusinesses.phone,
         address: crmBusinesses.address,
         website: crmBusinesses.website,
+        email: crmBusinesses.email,
         contactName: crmBusinesses.contactName,
         source: crmBusinesses.source,
         isAssigned: crmBusinesses.isAssigned,
@@ -115,6 +116,7 @@ export async function addCrmBusinessAction(data: {
   phone?: string;
   address?: string;
   website?: string;
+  email?: string;
   contactName?: string;
   cityId?: string;
   nicheId?: string;
@@ -131,6 +133,7 @@ export async function addCrmBusinessAction(data: {
         phone: data.phone ?? null,
         address: data.address ?? null,
         website: data.website ?? null,
+        email: data.email ?? null,
         contactName: data.contactName ?? null,
         cityId: data.cityId ?? null,
         nicheId: data.nicheId ?? null,
@@ -150,6 +153,8 @@ export async function addCrmBusinessAction(data: {
 interface CsvRow {
   name: string;
   phone?: string;
+  email?: string;
+  website?: string;
   address?: string;
   city?: string;
   niche?: string;
@@ -165,12 +170,24 @@ interface ImportPreview {
 }
 
 function parseCsv(text: string): CsvRow[] {
-  const lines = text.split("\n").filter((l) => l.trim());
+  // Strip BOM if present
+  let cleanText = text;
+  if (cleanText.charCodeAt(0) === 0xfeff) {
+    cleanText = cleanText.slice(1);
+  }
+
+  const lines = cleanText.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
 
-  const header = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/"/g, ""));
+  // Detect delimiter
+  const firstLine = lines[0];
+  const delimiter = firstLine.includes(";") ? ";" : (firstLine.includes("\t") ? "\t" : ",");
+
+  const header = lines[0].split(delimiter).map((h) => h.trim().toLowerCase().replace(/"/g, ""));
   const nameIdx = header.findIndex((h) => h === "name" || h === "название" || h === "наименование");
   const phoneIdx = header.findIndex((h) => h === "phone" || h === "телефон");
+  const emailIdx = header.findIndex((h) => h === "email" || h === "почта");
+  const websiteIdx = header.findIndex((h) => h === "website" || h === "сайт");
   const addressIdx = header.findIndex((h) => h === "address" || h === "адрес");
   const cityIdx = header.findIndex((h) => h === "city" || h === "город");
   const nicheIdx = header.findIndex((h) => h === "niche" || h === "ниша" || h === "категория");
@@ -178,10 +195,12 @@ function parseCsv(text: string): CsvRow[] {
   if (nameIdx === -1) return [];
 
   return lines.slice(1, 5001).map((line) => {
-    const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+    const cols = line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
     return {
       name: cols[nameIdx] || "",
       phone: phoneIdx >= 0 ? cols[phoneIdx] : undefined,
+      email: emailIdx >= 0 ? cols[emailIdx] : undefined,
+      website: websiteIdx >= 0 ? cols[websiteIdx] : undefined,
       address: addressIdx >= 0 ? cols[addressIdx] : undefined,
       city: cityIdx >= 0 ? cols[cityIdx] : undefined,
       niche: nicheIdx >= 0 ? cols[nicheIdx] : undefined,
@@ -257,6 +276,8 @@ export async function importCsvConfirmAction(csvText: string) {
     const insertValues = rows.map((row) => ({
       name: row.name,
       phone: row.phone ?? null,
+      email: row.email ?? null,
+      website: row.website ?? null,
       address: row.address ?? null,
       cityId: row.city ? cityMap.get(row.city.toLowerCase().trim()) ?? null : null,
       nicheId: row.niche ? nicheMap.get(row.niche.toLowerCase().trim()) ?? null : null,

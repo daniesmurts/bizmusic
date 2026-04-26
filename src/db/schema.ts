@@ -787,6 +787,7 @@ export const crmBusinesses = pgTable("crm_businesses", {
   nicheId: text("nicheId").references(() => businessNiches.id),
   address: text("address"),
   phone: text("phone"),
+  email: text("email"),
   website: text("website"),
   contactName: text("contactName"),
   source: text("source").default("manual").notNull(), // 'manual', '2gis', 'avito', 'yandex'

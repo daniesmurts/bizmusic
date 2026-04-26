@@ -33,11 +33,11 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const [isSigned, setIsSigned] = useState(false);
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
   const isBranchManager = role === "STAFF";
-  const isPartner = role === "PARTNER";
+  const isPartner = role === "PARTNER" || user?.user_metadata?.is_partner === true;
 
   // Track whether we already fetched business status — avoids a DB call on
   // every navigation click (layout re-renders when pathname changes).

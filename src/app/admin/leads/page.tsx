@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   Database, Users, Activity, TrendingUp, Plus, Upload, UserPlus,
-  Phone, Check, Search, Filter, X, ChevronRight,
+  Phone, Check, Search, Filter, X, ChevronRight, Loader2,
 } from "lucide-react";
 
 const TABS = [
@@ -42,7 +42,7 @@ export default function AdminLeadsPage() {
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [csvPreview, setCsvPreview] = useState<{ totalRows: number; matchedCities: number; unmatchedCities: string[]; matchedNiches: number; unmatchedNiches: string[] } | null>(null);
-  const [newBiz, setNewBiz] = useState({ name: "", phone: "", address: "", cityId: "", nicheId: "" });
+  const [newBiz, setNewBiz] = useState({ name: "", phone: "", address: "", cityId: "", nicheId: "", email: "", website: "" });
   const [assignAgentId, setAssignAgentId] = useState("");
 
   const { data: lookups } = useQuery({ queryKey: ["crm-lookups"], queryFn: () => getCrmLookupsAction() });
@@ -58,7 +58,7 @@ export default function AdminLeadsPage() {
 
   const addBizMut = useMutation({
     mutationFn: () => addCrmBusinessAction(newBiz),
-    onSuccess: (r) => { if (r.success) { toast.success("Бизнес добавлен"); setShowAddForm(false); setNewBiz({ name: "", phone: "", address: "", cityId: "", nicheId: "" }); qc.invalidateQueries({ queryKey: ["crm-businesses"] }); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { toast.success("Бизнес добавлен"); setShowAddForm(false); setNewBiz({ name: "", phone: "", address: "", cityId: "", nicheId: "", email: "", website: "" }); qc.invalidateQueries({ queryKey: ["crm-businesses"] }); } else toast.error(r.error); },
   });
 
   const assignMut = useMutation({
@@ -195,6 +195,8 @@ export default function AdminLeadsPage() {
                 <div className="flex justify-between"><h3 className="text-lg font-black uppercase tracking-tight text-white">Новый бизнес</h3><button onClick={() => setShowAddForm(false)} className="text-neutral-400 hover:text-white"><X className="w-5 h-5" /></button></div>
                 <input value={newBiz.name} onChange={(e) => setNewBiz({ ...newBiz, name: e.target.value })} placeholder="Название *" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon" />
                 <input value={newBiz.phone} onChange={(e) => setNewBiz({ ...newBiz, phone: e.target.value })} placeholder="Телефон" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon" />
+                <input value={newBiz.email} onChange={(e) => setNewBiz({ ...newBiz, email: e.target.value })} placeholder="Email" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon" />
+                <input value={newBiz.website} onChange={(e) => setNewBiz({ ...newBiz, website: e.target.value })} placeholder="Сайт" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon" />
                 <input value={newBiz.address} onChange={(e) => setNewBiz({ ...newBiz, address: e.target.value })} placeholder="Адрес" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon" />
                 <select value={newBiz.cityId} onChange={(e) => setNewBiz({ ...newBiz, cityId: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white appearance-none focus:outline-none focus:border-neon"><option value="">Город</option>{citiesList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
                 <select value={newBiz.nicheId} onChange={(e) => setNewBiz({ ...newBiz, nicheId: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white appearance-none focus:outline-none focus:border-neon"><option value="">Ниша</option>{nichesList.map((n) => <option key={n.id} value={n.id}>{n.icon} {n.name}</option>)}</select>
@@ -219,7 +221,7 @@ export default function AdminLeadsPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center"><div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setShowCsvModal(false); setCsvPreview(null); setCsvText(""); }} />
               <div className="relative z-10 w-full max-w-lg bg-[#0d0f1a] border border-white/10 rounded-2xl p-6 space-y-4">
                 <h3 className="text-lg font-black uppercase tracking-tight text-white">Импорт CSV</h3>
-                <p className="text-xs text-neutral-500">Колонки: name, phone, address, city, niche (до 5 000 строк)</p>
+                <p className="text-xs text-neutral-500">Колонки: name, phone, email, website, address, city, niche (до 5 000 строк)</p>
                 <textarea value={csvText} onChange={(e) => { setCsvText(e.target.value); setCsvPreview(null); }} rows={6} placeholder="Вставьте CSV или загрузите файл..."
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon font-mono" />
                 <label className="block"><input type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = (ev) => { setCsvText(ev.target?.result as string); setCsvPreview(null); }; r.readAsText(f); } }} /><span className="text-neon text-xs font-black uppercase tracking-widest cursor-pointer hover:underline">📎 Загрузить файл</span></label>
@@ -234,9 +236,15 @@ export default function AdminLeadsPage() {
                 )}
                 <div className="flex gap-3">
                   {!csvPreview ? (
-                    <Button onClick={() => csvPreviewMut.mutate()} disabled={!csvText || csvPreviewMut.isPending} className="flex-1 bg-white/10 text-white rounded-xl font-black uppercase text-xs">Предпросмотр</Button>
+                    <Button onClick={() => csvPreviewMut.mutate()} disabled={!csvText || csvPreviewMut.isPending} className="flex-1 bg-white/10 text-white rounded-xl font-black uppercase text-xs gap-2">
+                      {csvPreviewMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Предпросмотр
+                    </Button>
                   ) : (
-                    <Button onClick={() => csvConfirmMut.mutate()} disabled={csvConfirmMut.isPending} className="flex-1 bg-neon text-black rounded-xl font-black uppercase text-xs">Импортировать {csvPreview.totalRows} записей</Button>
+                    <Button onClick={() => csvConfirmMut.mutate()} disabled={csvConfirmMut.isPending} className="flex-1 bg-neon text-black rounded-xl font-black uppercase text-xs gap-2">
+                      {csvConfirmMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Импортировать {csvPreview.totalRows} записей
+                    </Button>
                   )}
                 </div>
               </div>

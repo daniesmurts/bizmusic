@@ -72,6 +72,7 @@ export async function getAgentLeadsAction(status?: string) {
           name: crmBusinesses.name,
           phone: crmBusinesses.phone,
           address: crmBusinesses.address,
+          email: crmBusinesses.email,
           contactName: crmBusinesses.contactName,
         },
         city: {
@@ -149,6 +150,7 @@ export async function getAgentTodayCallbacksAction() {
           id: crmBusinesses.id,
           name: crmBusinesses.name,
           phone: crmBusinesses.phone,
+          email: crmBusinesses.email,
           contactName: crmBusinesses.contactName,
         },
         city: { name: cities.name },
@@ -352,6 +354,7 @@ export async function getLeadDetailAction(leadId: string) {
           name: crmBusinesses.name,
           phone: crmBusinesses.phone,
           address: crmBusinesses.address,
+          email: crmBusinesses.email,
           website: crmBusinesses.website,
           contactName: crmBusinesses.contactName,
         },

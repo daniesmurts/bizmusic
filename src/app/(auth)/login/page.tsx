@@ -51,13 +51,13 @@ export default function Login() {
         .eq("id", authData.user.id)
         .single();
 
-      if (profile?.role === "PARTNER") {
+      if (profile?.role === "PARTNER" || authData.user.user_metadata?.is_partner === true) {
         destination = "/dashboard/affiliate";
       }
     }
 
-    router.push(destination);
-    router.refresh();
+    // Force a hard navigation so cookies are correctly sent to the Next.js server components
+    window.location.href = destination;
   };
 
   return (
