@@ -38,6 +38,7 @@ export default function DashboardLayout({
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
   const isBranchManager = role === "STAFF";
   const isPartner = role === "PARTNER" || user?.user_metadata?.is_partner === true;
+  const isAdmin = role === "ADMIN";
 
   // Track whether we already fetched business status — avoids a DB call on
   // every navigation click (layout re-renders when pathname changes).
@@ -48,11 +49,22 @@ export default function DashboardLayout({
   useEffect(() => {
     if (role === null) return;
 
-    // --- Role-based redirect: runs on every pathname change (cheap, no DB) ---
     if (isPartner) {
-      if (!pathname.startsWith("/dashboard/affiliate") && !pathname.startsWith("/dashboard/leads")) router.push("/dashboard/affiliate");
+      const isAllowed = pathname.startsWith("/dashboard/affiliate") || 
+                        pathname.startsWith("/dashboard/leads") || 
+                        pathname.startsWith("/dashboard/scripts");
+      if (!isAllowed) {
+        router.push("/dashboard/affiliate");
+      }
       return;
     }
+
+    // Admins are allowed to see partner pages if they navigate there, 
+    // and they should not be forced into the business setup flow.
+    const isPartnerRoute = pathname.startsWith("/dashboard/affiliate") || 
+                           pathname.startsWith("/dashboard/leads") || 
+                           pathname.startsWith("/dashboard/scripts");
+
     if (isBranchManager) {
       const staffAllowedRoutes = ["/dashboard/player", "/dashboard/announcements"];
       if (!staffAllowedRoutes.some((r) => pathname.startsWith(r))) {
@@ -62,7 +74,7 @@ export default function DashboardLayout({
     }
 
     // --- Business profile check: runs ONCE per session, not on every nav ---
-    if (!isBranchManager && !businessCheckedRef.current) {
+    if (!isBranchManager && !isAdmin && !businessCheckedRef.current) {
       businessCheckedRef.current = true;
       getBusinessDetailsAction()
         .then((result) => {
@@ -82,13 +94,13 @@ export default function DashboardLayout({
 
     // --- Support unread check: at most once every 60 s ---
     const now = Date.now();
-    if (!isPartner && now - lastSupportCheckRef.current > 60_000) {
+    if (!isPartner && !isAdmin && now - lastSupportCheckRef.current > 60_000) {
       lastSupportCheckRef.current = now;
       getMyUnreadSupportReplyAction().then((res) => {
         if (res.success) setHasUnreadSupport(res.hasUnread);
       });
     }
-  }, [isBranchManager, isPartner, pathname, role, router]);
+  }, [isBranchManager, isPartner, isAdmin, pathname, role, router]);
 
   const navItems = role === null
     ? [] // auth resolving — render nothing so we never flash B2B items to a partner
@@ -103,6 +115,11 @@ export default function DashboardLayout({
           name: "Мои лиды",
           href: "/dashboard/leads",
           icon: Phone,
+        },
+        {
+          name: "Мои скрипты",
+          href: "/dashboard/scripts",
+          icon: FileText,
         },
       ]
     : isBranchManager
