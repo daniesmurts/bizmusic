@@ -10,20 +10,22 @@ import {
   Menu,
   Users,
   Phone,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
 
 export function BottomNav({ onMoreClick }: { onMoreClick?: () => void }) {
   const pathname = usePathname();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const isBranchManager = role === "STAFF";
-  const isPartner = role === "PARTNER";
+  const isPartner = role === "PARTNER" || user?.user_metadata?.is_partner === true;
 
   const items = isPartner
     ? [
         { name: "Кабинет", href: "/dashboard/affiliate", icon: Users },
         { name: "Лиды", href: "/dashboard/leads", icon: Phone },
+        { name: "Скрипты", href: "/dashboard/scripts", icon: FileText },
       ]
     : isBranchManager
     ? [

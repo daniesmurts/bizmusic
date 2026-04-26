@@ -69,14 +69,15 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies('/login')
   }
 
-  // PARTNER isolation: partners may access /dashboard/affiliate and /dashboard/leads.
+  // PARTNER isolation: partners may access /dashboard/affiliate, /dashboard/leads and /dashboard/scripts.
   // Any attempt to access other /dashboard/* routes sends them home.
   if (
     user &&
     userRole === 'PARTNER' &&
     request.nextUrl.pathname.startsWith('/dashboard') &&
     !request.nextUrl.pathname.startsWith('/dashboard/affiliate') &&
-    !request.nextUrl.pathname.startsWith('/dashboard/leads')
+    !request.nextUrl.pathname.startsWith('/dashboard/leads') &&
+    !request.nextUrl.pathname.startsWith('/dashboard/scripts')
   ) {
     return redirectWithCookies('/dashboard/affiliate')
   }

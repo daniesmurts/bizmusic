@@ -265,8 +265,8 @@ export default function HomeClient() {
               bg: "bg-cyan-400/10"
             }
           ].map((feature, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className={cn(
                 "group relative glass-dark border border-white/10 rounded-[2.5rem] p-8 md:p-10 space-y-8 transition-all duration-500 overflow-hidden shadow-2xl hover:-translate-y-2",
                 feature.border,
@@ -275,7 +275,7 @@ export default function HomeClient() {
             >
               {/* Animated Glow Background */}
               <div className={cn("absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[100px] opacity-0 group-hover:opacity-20 transition-all duration-1000", feature.bg)} />
-              
+
               <div className="flex items-center justify-between">
                 <div className={cn(
                   "w-16 h-16 rounded-[1.5rem] flex items-center justify-center border border-white/10 shadow-inner group-hover:scale-110 transition-all duration-500 relative overflow-hidden",
@@ -322,7 +322,7 @@ export default function HomeClient() {
           <Link href={`/song-of-the-week/${formatDate(new Date(songOfWeek.postedAt), "yyyy-MM-dd")}`}>
             <div className="group relative glass-dark border border-white/10 hover:border-neon/30 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 transition-all duration-500 overflow-hidden shadow-xl hover:shadow-neon/20">
               <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[100px] opacity-0 group-hover:opacity-20 bg-neon/10 transition-all duration-1000" />
-              
+
               <div className="relative z-10 grid md:grid-cols-3 gap-6 md:gap-10 items-center">
                 {/* Album Art */}
                 <div className="md:col-span-1 flex items-center justify-center">
@@ -449,7 +449,7 @@ export default function HomeClient() {
         <div className="space-y-4">
           <FAQItem
             question="Как начать пользоваться сервисом?"
-            answer="Зарегистрируйтесь, выберите подходящий тариф и привяжите карту. Вы получите 14 дней бесплатного периода для тестирования всех функций без ограничений."
+            answer="Зарегистрируйтесь, выберите подходящий тариф и привяжите карту. Вы получите 7 дней бесплатного периода для тестирования всех функций без ограничений."
           />
           <FAQItem
             question="Нужно ли платить в РАО и ВОИС?"
