@@ -606,3 +606,61 @@ export async function getCrmLookupsAction() {
     return { success: false as const, error: "Ошибка загрузки данных" };
   }
 }
+
+export async function getPartnerProfileAction() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false as const, error: "Unauthorized" };
+
+  try {
+    const agent = await db.query.referralAgents.findFirst({
+      where: eq(referralAgents.userId, user.id),
+      columns: {
+        id: true,
+        fullName: true,
+        phone: true,
+        city: true,
+        telegramChatId: true,
+        referralCode: true,
+      }
+    });
+
+    if (!agent) return { success: false as const, error: "Agent not found" };
+
+    return { success: true as const, data: agent };
+  } catch (error: unknown) {
+    console.error("getPartnerProfileAction error:", error);
+    return { success: false as const, error: "Internal error" };
+  }
+}
+
+export async function updatePartnerProfileAction(data: {
+  fullName: string;
+  phone: string;
+  city: string;
+  telegramChatId: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false as const, error: "Unauthorized" };
+
+  try {
+    const [agent] = await db
+      .update(referralAgents)
+      .set({
+        fullName: data.fullName || null,
+        phone: data.phone || null,
+        city: data.city || null,
+        telegramChatId: data.telegramChatId || null,
+      })
+      .where(eq(referralAgents.userId, user.id))
+      .returning({ id: referralAgents.id });
+
+    if (!agent) return { success: false as const, error: "Agent not found" };
+
+    return { success: true as const };
+  } catch (error: unknown) {
+    console.error("updatePartnerProfileAction error:", error);
+    return { success: false as const, error: "Internal error" };
+  }
+}

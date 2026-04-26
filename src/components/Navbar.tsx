@@ -137,7 +137,7 @@ export const Navbar = () => {
           ) : user ? (
              <div className="flex items-center gap-4">
                <Link
-                 href={isPartner ? "/dashboard/affiliate" : "/dashboard"}
+                 href={isPartner ? "/dashboard/affiliate/profile" : "/dashboard"}
                  className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors overflow-hidden"
                >
                  {user.user_metadata?.avatar_url ? (
