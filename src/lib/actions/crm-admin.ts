@@ -22,6 +22,7 @@ import {
   isNull,
   gte,
   lte,
+  not,
 } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 import { sendTelegramMessage } from "@/lib/telegram";
@@ -325,19 +326,31 @@ export async function bulkAssignLeadsAction(
     let created = 0;
     for (const businessId of businessIds) {
       try {
-        await db.insert(leads).values({
-          businessId,
-          agentId,
-          status: "new",
-        });
+        const [existing] = await db
+          .select({ id: leads.id })
+          .from(leads)
+          .where(eq(leads.businessId, businessId))
+          .limit(1);
+
+        if (existing) {
+          await db.update(leads)
+            .set({ agentId, updatedAt: new Date() })
+            .where(eq(leads.id, existing.id));
+        } else {
+          await db.insert(leads).values({
+            businessId,
+            agentId,
+            status: "new",
+          });
+        }
+
         await db
           .update(crmBusinesses)
           .set({ isAssigned: true })
           .where(eq(crmBusinesses.id, businessId));
         created++;
       } catch (e) {
-        // Skip duplicates
-        console.warn("Duplicate lead assignment skipped:", businessId, e);
+        console.warn("Error assigning lead:", businessId, e);
       }
     }
 
@@ -373,6 +386,7 @@ export async function getAgentsOverviewAction() {
         status: referralAgents.status,
       })
       .from(referralAgents)
+      .where(not(eq(referralAgents.status, "blocked")))
       .orderBy(asc(referralAgents.fullName));
 
     const now = new Date();
@@ -465,7 +479,24 @@ export async function getAgentsOverviewAction() {
   }
 }
 
-// ─── Agent Drilldown ──────────────────────────────────────────────────────────
+export async function blockAgentAction(agentId: string) {
+  try {
+    const isAdmin = await requireAdmin();
+    if (!isAdmin) return { success: false as const, error: "Нет доступа" };
+
+    await db
+      .update(referralAgents)
+      .set({ status: "blocked" })
+      .where(eq(referralAgents.id, agentId));
+
+    return { success: true as const };
+  } catch (error: unknown) {
+    console.error("blockAgentAction error:", error);
+    return { success: false as const, error: "Ошибка блокировки агента" };
+  }
+}
+
+// ─── Agent Detail ───────────────────────────────────────────────────────────────
 
 export async function getAgentDrilldownAction(agentId: string) {
   try {

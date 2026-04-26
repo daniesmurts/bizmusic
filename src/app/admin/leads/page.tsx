@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getCrmBusinessesAction, addCrmBusinessAction, bulkAssignLeadsAction,
   getAgentsOverviewAction, getActivityFeedAction, getFunnelDataAction,
-  getAgentsListAction, importCsvPreviewAction, importCsvConfirmAction,
+  getAgentsListAction, importCsvPreviewAction, importCsvConfirmAction, blockAgentAction,
 } from "@/lib/actions/crm-admin";
 import { getCrmLookupsAction } from "@/lib/actions/crm-leads";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   Database, Users, Activity, TrendingUp, Plus, Upload, UserPlus,
-  Phone, Check, Search, Filter, X, ChevronRight, Loader2,
+  Phone, Check, Search, Filter, X, ChevronRight, Loader2, Ban,
 } from "lucide-react";
 
 const TABS = [
@@ -83,6 +83,11 @@ export default function AdminLeadsPage() {
     enabled: tab === "agents",
   });
 
+  const blockAgentMut = useMutation({
+    mutationFn: (id: string) => blockAgentAction(id),
+    onSuccess: (r) => { if (r.success) { toast.success("Агент заблокирован и скрыт"); qc.invalidateQueries({ queryKey: ["crm-agents-overview"] }); } else toast.error(r.error); },
+  });
+
   const { data: agentsListRes } = useQuery({
     queryKey: ["crm-agents-list"],
     queryFn: () => getAgentsListAction(),
@@ -145,7 +150,7 @@ export default function AdminLeadsPage() {
             </div>
             <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}
               className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-bold uppercase tracking-widest appearance-none focus:outline-none focus:border-neon">
-              <option value="">Все города</option>
+              <option value="">Все города {lookups?.error ? `(Error: ${lookups.error})` : ''}</option>
               {citiesList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <select value={nicheFilter} onChange={(e) => setNicheFilter(e.target.value)}
@@ -168,16 +173,17 @@ export default function AdminLeadsPage() {
                 <table className="w-full text-sm">
                   <thead><tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-neutral-500">
                     <th className="p-4 text-left w-10"><input type="checkbox" className="accent-neon" onChange={(e) => { if (e.target.checked) setSelected(new Set(businesses.map((b) => b.id))); else setSelected(new Set()); }} /></th>
-                    <th className="p-4 text-left">Название</th><th className="p-4 text-left">Город</th><th className="p-4 text-left">Ниша</th><th className="p-4 text-left">Телефон</th><th className="p-4 text-left">Статус</th>
+                    <th className="p-4 text-left">Название</th><th className="p-4 text-left">Город</th><th className="p-4 text-left">Ниша</th><th className="p-4 text-left">Телефон</th><th className="p-4 text-left">Email</th><th className="p-4 text-left">Статус</th>
                   </tr></thead>
                   <tbody>
                     {businesses.map((b) => (
                       <tr key={b.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td className="p-4"><input type="checkbox" checked={selected.has(b.id)} onChange={() => toggleSelect(b.id)} className="accent-neon" disabled={b.isAssigned} /></td>
+                        <td className="p-4"><input type="checkbox" checked={selected.has(b.id)} onChange={() => toggleSelect(b.id)} className="accent-neon" /></td>
                         <td className="p-4 font-bold text-white">{b.name}</td>
                         <td className="p-4 text-neutral-400">{b.city?.name || "—"}</td>
                         <td className="p-4 text-neutral-400">{b.niche?.icon} {b.niche?.name || "—"}</td>
                         <td className="p-4 text-neutral-400">{b.phone || "—"}</td>
+                        <td className="p-4 text-neutral-400">{b.email || "—"}</td>
                         <td className="p-4">{b.isAssigned ? <span className="text-neon text-[10px] font-black uppercase">Назначен</span> : <span className="text-neutral-500 text-[10px] font-black uppercase">Свободен</span>}</td>
                       </tr>
                     ))}
@@ -211,7 +217,13 @@ export default function AdminLeadsPage() {
               <div className="relative z-10 w-full max-w-sm bg-[#0d0f1a] border border-white/10 rounded-2xl p-6 space-y-4">
                 <h3 className="text-lg font-black uppercase tracking-tight text-white">Назначить {selected.size} лидов</h3>
                 <select value={assignAgentId} onChange={(e) => setAssignAgentId(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white appearance-none focus:outline-none focus:border-neon"><option value="">Выберите агента</option>{agentsList.map((a) => <option key={a.id} value={a.id}>{a.fullName || a.referralCode}</option>)}</select>
-                <div className="flex gap-3"><Button onClick={() => setShowAssignModal(false)} className="flex-1 bg-white/5 text-white rounded-xl font-black uppercase text-xs">Отмена</Button><Button onClick={() => assignMut.mutate()} disabled={!assignAgentId || assignMut.isPending} className="flex-1 bg-neon text-black rounded-xl font-black uppercase text-xs">Назначить</Button></div>
+                <div className="flex gap-3">
+                  <Button onClick={() => setShowAssignModal(false)} className="flex-1 bg-white/5 text-white rounded-xl font-black uppercase text-xs">Отмена</Button>
+                  <Button onClick={() => assignMut.mutate()} disabled={!assignAgentId || assignMut.isPending} className="flex-1 bg-neon text-black rounded-xl font-black uppercase text-xs gap-2">
+                    {assignMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Назначить
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -264,16 +276,22 @@ export default function AdminLeadsPage() {
             <div className="glass-dark border border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-neutral-500">
-                  <th className="p-4 text-left">Агент</th><th className="p-4 text-left">Лиды</th><th className="p-4 text-left">Сегодня</th><th className="p-4 text-left">В работе</th><th className="p-4 text-left">Конверсии</th><th className="p-4 text-left">Посл. акт.</th>
+                  <th className="p-4 text-left">Агент</th><th className="p-4 text-left">Контакты</th><th className="p-4 text-left">Лиды</th><th className="p-4 text-left">Сегодня</th><th className="p-4 text-left">В работе</th><th className="p-4 text-left">Конверсии</th><th className="p-4 text-left">Посл. акт.</th><th className="p-4 text-left">Действия</th>
                 </tr></thead>
                 <tbody>{agents.map((a) => (
                   <tr key={a.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="p-4"><div className="font-bold text-white">{a.fullName || "—"}</div><div className="text-[10px] text-neutral-500">{a.city || ""}</div></td>
+                    <td className="p-4 text-neutral-400 text-xs">{a.phone || "—"}</td>
                     <td className="p-4 text-white font-bold">{a.totalLeads}</td>
                     <td className="p-4 text-neon font-bold">{a.callsToday}</td>
                     <td className="p-4 text-purple-400 font-bold">{a.statusMap["in_progress"] || 0}</td>
                     <td className="p-4 text-emerald-400 font-bold">{a.conversionsThisMonth}</td>
                     <td className="p-4 text-neutral-500 text-xs">{a.lastActiveAt ? new Date(a.lastActiveAt).toLocaleDateString("ru-RU") : "—"}</td>
+                    <td className="p-4">
+                      <button onClick={() => { if (confirm("Вы уверены, что хотите заблокировать агента?")) blockAgentMut.mutate(a.id); }} disabled={blockAgentMut.isPending} className="text-red-500 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors" title="Заблокировать">
+                        <Ban className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}</tbody>
               </table>
