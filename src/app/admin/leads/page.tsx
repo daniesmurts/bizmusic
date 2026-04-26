@@ -256,7 +256,9 @@ export default function AdminLeadsPage() {
       {/* AGENTS TAB */}
       {tab === "agents" && (
         <div className="space-y-4">
-          {agentsLoading ? <Skeleton className="h-96 bg-white/5 rounded-2xl" /> : agents.length === 0 ? (
+          {agentsLoading ? <Skeleton className="h-96 bg-white/5 rounded-2xl" /> : agentsRes && !agentsRes.success ? (
+            <div className="glass-dark border border-red-500/30 p-12 rounded-2xl text-center text-red-500 font-mono text-xs">Error: {agentsRes.error}</div>
+          ) : agents.length === 0 ? (
             <div className="glass-dark border border-white/10 p-12 rounded-2xl text-center text-neutral-500">Нет зарегистрированных агентов</div>
           ) : (
             <div className="glass-dark border border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
