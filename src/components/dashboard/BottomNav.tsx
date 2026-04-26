@@ -9,6 +9,7 @@ import {
   CreditCard,
   Menu,
   Users,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
@@ -20,7 +21,10 @@ export function BottomNav({ onMoreClick }: { onMoreClick?: () => void }) {
   const isPartner = role === "PARTNER";
 
   const items = isPartner
-    ? [{ name: "Кабинет", href: "/dashboard/affiliate", icon: Users }]
+    ? [
+        { name: "Кабинет", href: "/dashboard/affiliate", icon: Users },
+        { name: "Лиды", href: "/dashboard/leads", icon: Phone },
+      ]
     : isBranchManager
     ? [
         { name: "Плеер", href: "/dashboard/player", icon: Play },
