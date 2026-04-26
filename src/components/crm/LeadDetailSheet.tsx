@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   X, Phone, Globe, MapPin, Copy, Check, ChevronDown, ChevronUp,
-  Send, Calendar, MessageSquare, User,
+  Send, Calendar, MessageSquare, User, Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -180,6 +180,12 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 text-sm text-blue-400 hover:underline">
                     <Globe className="w-4 h-4 shrink-0" /> {lead.business.website}
+                  </a>
+                )}
+                {lead.business.email && (
+                  <a href={`mailto:${lead.business.email}`}
+                    className="flex items-center gap-2 text-sm text-emerald-400 hover:underline">
+                    <Mail className="w-4 h-4 shrink-0" /> {lead.business.email}
                   </a>
                 )}
                 {/* Editable contact */}

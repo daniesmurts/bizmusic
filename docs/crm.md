@@ -309,14 +309,14 @@ If no Telegram token found, skip notifications silently and add TODO comment.
 ---
 
 ## DELIVERABLES CHECKLIST
-[ ] Migration: cities, business_niches, businesses, leads, 
+[x] Migration: cities, business_niches, businesses, leads, 
     lead_activities, agent_assignments + RLS
-[ ] /dashboard/leads pipeline page (mobile-first)
-[ ] /dashboard/leads/stats agent stats page  
-[ ] Lead detail bottom sheet/modal with scripts, activity log, actions
-[ ] /admin/leads with 4 tabs (database, agents, activity, funnel)
-[ ] CSV import for businesses
-[ ] Bulk lead assignment flow
-[ ] All server actions (status update, note, callback, assignment)
-[ ] Telegram notification hooks (if env var present)
+[x] /dashboard/leads pipeline page (mobile-first)
+[x] /dashboard/leads/stats agent stats page  
+[x] Lead detail bottom sheet/modal with scripts, activity log, actions
+[x] /admin/leads with 4 tabs (database, agents, activity, funnel)
+[x] CSV import for businesses
+[x] Bulk lead assignment flow
+[x] All server actions (status update, note, callback, assignment)
+[x] Telegram notification hooks (if env var present)
 [ ] Seed script: 3 cities, 5 niches, 20 businesses, 2 agents, 10 leads
