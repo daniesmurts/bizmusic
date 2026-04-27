@@ -11,6 +11,7 @@ import {
   Users,
   Phone,
   FileText,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
@@ -26,6 +27,7 @@ export function BottomNav({ onMoreClick }: { onMoreClick?: () => void }) {
         { name: "Кабинет", href: "/dashboard/affiliate", icon: Users },
         { name: "Лиды", href: "/dashboard/leads", icon: Phone },
         { name: "Скрипты", href: "/dashboard/scripts", icon: FileText },
+        { name: "Гайды", href: "/dashboard/guides", icon: BookOpen },
       ]
     : isBranchManager
     ? [
