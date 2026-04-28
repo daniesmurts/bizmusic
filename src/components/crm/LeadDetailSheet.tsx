@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   X, Phone, Globe, MapPin, Copy, Check, ChevronDown, ChevronUp,
-  Send, Calendar, MessageSquare, User, Mail,
+  Send, Calendar, MessageSquare, User, Mail, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -130,7 +130,7 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+    <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center md:pt-20">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full md:max-w-lg max-h-[90vh] bg-[#0d0f1a] border border-white/10 rounded-t-[2rem] md:rounded-[2rem] overflow-y-auto custom-scrollbar">
         {/* Handle bar (mobile) */}
@@ -212,18 +212,23 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Статус</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                    <button key={key} onClick={() => statusMutation.mutate(key)}
-                      disabled={statusMutation.isPending}
-                      className={cn(
-                        "px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
-                        lead.status === key
-                          ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-lg`
-                          : "bg-white/5 text-neutral-500 border-transparent hover:bg-white/10"
-                      )}>
-                      {cfg.label}
-                    </button>
-                  ))}
+                  {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                    const isPending = statusMutation.isPending && statusMutation.variables === key;
+                    return (
+                      <button key={key} onClick={() => statusMutation.mutate(key)}
+                        disabled={statusMutation.isPending}
+                        className={cn(
+                          "px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2",
+                          lead.status === key
+                            ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-lg`
+                            : "bg-white/5 text-neutral-500 border-transparent hover:bg-white/10",
+                          isPending && "opacity-70 cursor-not-allowed"
+                        )}>
+                        {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                        {cfg.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -247,10 +252,11 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
                   <div className="flex gap-2">
                     <input value={subId || lead.convertedSubscriptionId || ""} onChange={(e) => setSubId(e.target.value)}
                       placeholder="Введите ID..."
-                      className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-emerald-400" />
-                    <Button size="sm" onClick={() => subIdMutation.mutate()} disabled={!subId}
+                      disabled={subIdMutation.isPending}
+                      className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-emerald-400 disabled:opacity-50" />
+                    <Button size="sm" onClick={() => subIdMutation.mutate()} disabled={!subId || subIdMutation.isPending}
                       className="bg-emerald-400 text-black h-9 rounded-lg">
-                      <Check className="w-4 h-4" />
+                      {subIdMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     </Button>
                   </div>
                 </div>
@@ -273,12 +279,14 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Напоминание о звонке</p>
                 <div className="flex gap-2">
                   <input type="date" value={callbackDate} onChange={(e) => setCallbackDate(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neon [color-scheme:dark]" />
+                    disabled={callbackMutation.isPending}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neon [color-scheme:dark] disabled:opacity-50" />
                   <input type="time" value={callbackTime} onChange={(e) => setCallbackTime(e.target.value)}
-                    className="w-24 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neon [color-scheme:dark]" />
+                    disabled={callbackMutation.isPending}
+                    className="w-24 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neon [color-scheme:dark] disabled:opacity-50" />
                   <Button size="sm" onClick={() => callbackMutation.mutate()} disabled={!callbackDate || callbackMutation.isPending}
                     className="bg-neon/10 border border-neon/20 text-neon h-9 rounded-lg hover:bg-neon hover:text-black">
-                    <Calendar className="w-4 h-4" />
+                    {callbackMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
@@ -289,11 +297,12 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
                 <div className="flex gap-2">
                   <input value={noteText} onChange={(e) => setNoteText(e.target.value)}
                     placeholder="Напишите заметку..."
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon"
-                    onKeyDown={(e) => { if (e.key === "Enter" && noteText.trim()) noteMutation.mutate(); }} />
+                    disabled={noteMutation.isPending}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon disabled:opacity-50"
+                    onKeyDown={(e) => { if (e.key === "Enter" && noteText.trim() && !noteMutation.isPending) noteMutation.mutate(); }} />
                   <Button size="sm" onClick={() => noteMutation.mutate()} disabled={!noteText.trim() || noteMutation.isPending}
                     className="bg-neon/10 border border-neon/20 text-neon h-9 rounded-lg hover:bg-neon hover:text-black">
-                    <Send className="w-4 h-4" />
+                    {noteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>

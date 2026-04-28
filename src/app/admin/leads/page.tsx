@@ -105,13 +105,12 @@ export default function AdminLeadsPage() {
   const { data: funnelRes, isLoading: funnelLoading } = useQuery({
     queryKey: ["crm-funnel"],
     queryFn: () => getFunnelDataAction(),
-    enabled: tab === "funnel",
   });
 
   const businesses = bizRes?.success ? bizRes.data : [];
   const agents = agentsRes?.success ? agentsRes.data : [];
   const activities = activityRes?.success ? activityRes.data : [];
-  const funnel = funnelRes?.success ? funnelRes.data : null;
+  const funnelData = funnelRes?.success ? funnelRes.data : null;
 
   const toggleSelect = (id: string) => {
     const s = new Set(selected);
@@ -324,23 +323,36 @@ export default function AdminLeadsPage() {
       {/* FUNNEL TAB */}
       {tab === "funnel" && (
         <div className="space-y-6">
-          {funnelLoading ? <Skeleton className="h-64 bg-white/5 rounded-2xl" /> : funnel ? (
+          {funnelLoading ? <Skeleton className="h-64 bg-white/5 rounded-2xl" /> : funnelData ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-white">{funnel.total}</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">Всего лидов</div></div>
-                <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-neon">{funnel.rates.convertedRate}%</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">Конверсия</div></div>
-                <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-purple-400">{funnel.rates.trialRate}%</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">До пробного</div></div>
-                <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-yellow-400">{funnel.rates.inProgressRate}%</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">В работу</div></div>
+                <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-white">{funnelData.total}</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">Всего лидов</div></div>
+                <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-neon">{funnelData.rates.convertedRate}%</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">Конверсия</div></div>
+                <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-purple-400">{funnelData.rates.trialRate}%</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">До пробного</div></div>
+                <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-yellow-400">{funnelData.rates.inProgressRate}%</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">В работу</div></div>
               </div>
               <div className="glass-dark border border-white/10 rounded-2xl p-6 space-y-4">
                 <h3 className="text-lg font-black uppercase tracking-tighter text-white">Воронка</h3>
                 {["new", "no_answer", "in_progress", "trial_sent", "converted"].map((s) => {
-                  const val = funnel.funnel[s] ?? 0;
-                  const maxV = Math.max(...Object.values(funnel.funnel), 1);
+                  const val = funnelData.funnel[s] ?? 0;
+                  const maxV = Math.max(...Object.values(funnelData.funnel), 1);
                   return (
-                    <div key={s} className="space-y-1">
-                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest"><span className="text-neutral-400">{STATUS_LABELS[s]}</span><span className="text-white">{val}</span></div>
-                      <div className="h-4 bg-white/5 rounded-full overflow-hidden"><div className={cn("h-full rounded-full", s === "converted" ? "bg-gradient-to-r from-neon to-emerald-400" : "bg-neon/40")} style={{ width: `${(val / maxV) * 100}%` }} /></div>
+                    <div key={s} className="space-y-2">
+                      <div className="flex justify-between items-end">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500">{STATUS_LABELS[s]}</span>
+                        <span className="text-lg font-black text-white leading-none">{val}</span>
+                      </div>
+                      <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all duration-1000",
+                            s === "converted"
+                              ? "bg-gradient-to-r from-neon to-emerald-400 shadow-[0_0_20px_rgba(57,255,20,0.3)]"
+                              : "bg-neon shadow-[0_0_15px_rgba(57,255,20,0.2)]"
+                          )}
+                          style={{ width: `${(val / maxV) * 100}%` }}
+                        />
+                      </div>
                     </div>
                   );
                 })}
