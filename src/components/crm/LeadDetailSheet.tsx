@@ -562,9 +562,9 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
                         const t = getEmailTemplate(selectedTemplateId, {
                           clientName: lead.business?.contactName || "Добрый день",
                           businessName: lead.business?.name || "",
-                          agentFirstName: "Менеджер", 
+                          agentFirstName: lead.agentFullName?.split(' ')[0] || "Менеджер", 
                           referralCode: lead.referralCode || "PROMO",
-                          niche: getNicheFromBusinessNiche(lead.business?.niche?.name || ""),
+                          niche: getNicheFromBusinessNiche(lead.niche?.name || ""),
                           customNote: emailCustomNote,
                         });
                         return (

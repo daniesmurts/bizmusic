@@ -363,11 +363,14 @@ export async function getLeadDetailAction(leadId: string) {
         },
         city: { name: cities.name },
         niche: { name: businessNiches.name, icon: businessNiches.icon },
+        referralCode: referralAgents.referralCode,
+        agentFullName: referralAgents.fullName,
       })
       .from(leads)
       .innerJoin(crmBusinesses, eq(leads.businessId, crmBusinesses.id))
       .leftJoin(cities, eq(crmBusinesses.cityId, cities.id))
       .leftJoin(businessNiches, eq(crmBusinesses.nicheId, businessNiches.id))
+      .innerJoin(referralAgents, eq(leads.agentId, referralAgents.id))
       .where(and(eq(leads.id, leadId), eq(leads.agentId, agentId)))
       .limit(1);
 
