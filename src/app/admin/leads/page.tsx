@@ -6,6 +6,7 @@ import {
   getCrmBusinessesAction, addCrmBusinessAction, bulkAssignLeadsAction,
   getAgentsOverviewAction, getActivityFeedAction, getFunnelDataAction,
   getAgentsListAction, importCsvPreviewAction, importCsvConfirmAction, blockAgentAction,
+  updateAgentAliasAction,
 } from "@/lib/actions/crm-admin";
 import { getCrmLookupsAction } from "@/lib/actions/crm-leads";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,67 @@ const STATUS_LABELS: Record<string, string> = {
   new: "Новые", no_answer: "Нет ответа", in_progress: "В работе",
   trial_sent: "Пробный", converted: "Оплата", rejected: "Отказ", invalid: "Невалид",
 };
+
+function AgentRow({ a, blockAgentMut }: { a: any; blockAgentMut: any }) {
+  const qc = useQueryClient();
+  const [alias, setAlias] = useState(a.emailAlias || "");
+  const [isEditing, setIsEditing] = useState(false);
+
+  const aliasMut = useMutation({
+    mutationFn: () => updateAgentAliasAction(a.id, alias),
+    onSuccess: (r) => {
+      if (r.success) {
+        toast.success("Алиас обновлен");
+        setIsEditing(false);
+        qc.invalidateQueries({ queryKey: ["crm-agents-overview"] });
+      } else toast.error(r.error);
+    },
+  });
+
+  return (
+    <tr key={a.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+      <td className="p-4">
+        <div className="font-bold text-white">{a.fullName || "—"}</div>
+        <div className="text-[10px] text-neutral-500">{a.city || ""}</div>
+      </td>
+      <td className="p-4 text-neutral-400 text-xs">{a.phone || "—"}</td>
+      <td className="p-4">
+        <div className="flex items-center gap-1 group/alias">
+          <span className="text-neutral-600 text-[10px]">@</span>
+          <input 
+            value={alias}
+            onChange={(e) => setAlias(e.target.value.toLowerCase())}
+            onFocus={() => setIsEditing(true)}
+            placeholder="alias"
+            className={cn(
+              "w-20 bg-transparent border-b border-transparent text-xs text-white focus:outline-none focus:border-neon transition-all",
+              isEditing && "border-white/20 bg-white/5 px-1 rounded-t"
+            )}
+          />
+          {isEditing && (
+            <button 
+              onClick={() => aliasMut.mutate()}
+              disabled={aliasMut.isPending}
+              className="text-neon hover:text-white transition-colors"
+            >
+              {aliasMut.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+            </button>
+          )}
+        </div>
+      </td>
+      <td className="p-4 text-white font-bold">{a.totalLeads}</td>
+      <td className="p-4 text-neon font-bold">{a.callsToday}</td>
+      <td className="p-4 text-purple-400 font-bold">{a.statusMap["in_progress"] || 0}</td>
+      <td className="p-4 text-emerald-400 font-bold">{a.conversionsThisMonth}</td>
+      <td className="p-4 text-neutral-500 text-xs">{a.lastActiveAt ? new Date(a.lastActiveAt).toLocaleDateString("ru-RU") : "—"}</td>
+      <td className="p-4">
+        <button onClick={() => { if (confirm("Вы уверены, что хотите заблокировать агента?")) blockAgentMut.mutate(a.id); }} disabled={blockAgentMut.isPending} className="text-red-500 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors" title="Заблокировать">
+          <Ban className="w-4 h-4" />
+        </button>
+      </td>
+    </tr>
+  );
+}
 
 export default function AdminLeadsPage() {
   const qc = useQueryClient();
@@ -275,23 +337,10 @@ export default function AdminLeadsPage() {
             <div className="glass-dark border border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-neutral-500">
-                  <th className="p-4 text-left">Агент</th><th className="p-4 text-left">Контакты</th><th className="p-4 text-left">Лиды</th><th className="p-4 text-left">Сегодня</th><th className="p-4 text-left">В работе</th><th className="p-4 text-left">Конверсии</th><th className="p-4 text-left">Посл. акт.</th><th className="p-4 text-left">Действия</th>
+                  <th className="p-4 text-left">Агент</th><th className="p-4 text-left">Контакты</th><th className="p-4 text-left">Алиас Email</th><th className="p-4 text-left">Лиды</th><th className="p-4 text-left">Сегодня</th><th className="p-4 text-left">В работе</th><th className="p-4 text-left">Конверсии</th><th className="p-4 text-left">Посл. акт.</th><th className="p-4 text-left">Действия</th>
                 </tr></thead>
                 <tbody>{agents.map((a) => (
-                  <tr key={a.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="p-4"><div className="font-bold text-white">{a.fullName || "—"}</div><div className="text-[10px] text-neutral-500">{a.city || ""}</div></td>
-                    <td className="p-4 text-neutral-400 text-xs">{a.phone || "—"}</td>
-                    <td className="p-4 text-white font-bold">{a.totalLeads}</td>
-                    <td className="p-4 text-neon font-bold">{a.callsToday}</td>
-                    <td className="p-4 text-purple-400 font-bold">{a.statusMap["in_progress"] || 0}</td>
-                    <td className="p-4 text-emerald-400 font-bold">{a.conversionsThisMonth}</td>
-                    <td className="p-4 text-neutral-500 text-xs">{a.lastActiveAt ? new Date(a.lastActiveAt).toLocaleDateString("ru-RU") : "—"}</td>
-                    <td className="p-4">
-                      <button onClick={() => { if (confirm("Вы уверены, что хотите заблокировать агента?")) blockAgentMut.mutate(a.id); }} disabled={blockAgentMut.isPending} className="text-red-500 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors" title="Заблокировать">
-                        <Ban className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
+                  <AgentRow key={a.id} a={a} blockAgentMut={blockAgentMut} />
                 ))}</tbody>
               </table>
             </div>
@@ -313,6 +362,12 @@ export default function AdminLeadsPage() {
                 {a.type === "note" && <span className="text-neutral-400 text-xs"> 📝 {a.business.name}: {a.note}</span>}
                 {a.type === "callback_scheduled" && <span className="text-neutral-400 text-xs"> 📅 {a.business.name}</span>}
                 {(a.type === "converted" || a.type === "trial_sent") && <span className="text-neutral-400 text-xs"> 🚀 {a.business.name}</span>}
+                {(a.type === "email_sent" || a.type === "email_received") && (
+                  <span className="text-neutral-400 text-xs">
+                    {a.type === "email_sent" ? "📤" : "📥"} {a.business.name}: <span className="text-white font-bold">{a.emailSubject}</span>
+                    <span className="block text-[10px] text-neutral-500 line-clamp-1">{a.emailBodyText}</span>
+                  </span>
+                )}
               </div>
               <div className="text-neutral-600 text-[10px]">{new Date(a.createdAt).toLocaleDateString("ru-RU")}</div>
             </div>
@@ -331,24 +386,38 @@ export default function AdminLeadsPage() {
                 <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-purple-400">{funnelData.rates.trialRate}%</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">До пробного</div></div>
                 <div className="glass-dark border border-white/10 p-5 rounded-2xl text-center"><div className="text-3xl font-black text-yellow-400">{funnelData.rates.inProgressRate}%</div><div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">В работу</div></div>
               </div>
-              <div className="glass-dark border border-white/10 rounded-2xl p-6 space-y-4">
-                <h3 className="text-lg font-black uppercase tracking-tighter text-white">Воронка</h3>
-                {["new", "no_answer", "in_progress", "trial_sent", "converted"].map((s) => {
-                  const val = funnelData.funnel[s] ?? 0;
-                  const maxV = Math.max(...Object.values(funnelData.funnel), 1);
+              <div className="glass-dark border border-white/10 rounded-2xl p-8 space-y-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xl font-black uppercase tracking-tighter text-white flex items-center gap-2">
+                    <div className="w-2 h-6 bg-neon rounded-full" />
+                    Воронка продаж
+                  </h3>
+                </div>
+                {["new", "no_answer", "in_progress", "trial_sent", "converted"].map((s, idx) => {
+                  const val = Number(funnelData.funnel[s] || 0);
+                  const allVals = Object.values(funnelData.funnel).map(v => Number(v));
+                  const maxV = Math.max(...allVals, 1);
+                  
+                  const colors = [
+                    "from-blue-500 to-cyan-400",
+                    "from-neutral-500 to-neutral-400",
+                    "from-yellow-500 to-orange-400",
+                    "from-purple-500 to-pink-400",
+                    "from-neon to-emerald-400"
+                  ];
+
                   return (
-                    <div key={s} className="space-y-2">
+                    <div key={s} className="space-y-2 group">
                       <div className="flex justify-between items-end">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500">{STATUS_LABELS[s]}</span>
-                        <span className="text-lg font-black text-white leading-none">{val}</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-neutral-500 group-hover:text-neutral-300 transition-colors">{STATUS_LABELS[s]}</span>
+                        <span className="text-2xl font-black text-white tabular-nums">{val}</span>
                       </div>
-                      <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/5">
                         <div
                           className={cn(
-                            "h-full rounded-full transition-all duration-1000",
-                            s === "converted"
-                              ? "bg-gradient-to-r from-neon to-emerald-400 shadow-[0_0_20px_rgba(57,255,20,0.3)]"
-                              : "bg-neon shadow-[0_0_15px_rgba(57,255,20,0.2)]"
+                            "h-full rounded-full transition-all duration-1000 ease-out",
+                            s === "converted" ? "shadow-[0_0_20px_rgba(57,255,20,0.3)]" : "",
+                            `bg-gradient-to-r ${colors[idx]}`
                           )}
                           style={{ width: `${(val / maxV) * 100}%` }}
                         />

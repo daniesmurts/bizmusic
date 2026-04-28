@@ -65,6 +65,7 @@ export default async function AdminAffiliatesPage() {
       referralCode: a.referralCode,
       city: a.city,
       status: a.status,
+      emailAlias: a.emailAlias,
       commissionRate: a.commissionRate,
       clientCount: Number(cc?.value ?? 0),
       pendingKopecks: Number(pending?.total ?? 0),

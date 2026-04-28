@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getLeadDetailAction,
@@ -9,14 +9,18 @@ import {
   addLeadNoteAction,
   updateLeadContactNameAction,
   setConvertedSubscriptionIdAction,
+  markLeadEmailsReadAction,
 } from "@/lib/actions/crm-leads";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   X, Phone, Globe, MapPin, Copy, Check, ChevronDown, ChevronUp,
-  Send, Calendar, MessageSquare, User, Mail, Loader2,
+  Send, Calendar, MessageSquare, User, Mail, Loader2, ChevronRight, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getEmailTemplate } from "@/lib/email-templates";
+import { getNicheFromBusinessNiche } from "@/lib/email-helpers";
+
 import { toast } from "sonner";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -64,6 +68,12 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
   const [editingContact, setEditingContact] = useState(false);
   const [subId, setSubId] = useState("");
   const [copied, setCopied] = useState(false);
+  
+  // Email states
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [emailCustomNote, setEmailCustomNote] = useState("");
+  const [expandedEmailIds, setExpandedEmailIds] = useState<Set<string>>(new Set());
 
   const { data: res, isLoading } = useQuery({
     queryKey: ["lead-detail", leadId],
@@ -116,6 +126,38 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
     },
   });
 
+  const markReadMutation = useMutation({
+    mutationFn: () => markLeadEmailsReadAction(leadId),
+    onSuccess: (res) => {
+      if (res.success) invalidateAll();
+    },
+  });
+
+  const sendEmailMutation = useMutation({
+    mutationFn: (data: { templateId: string; customNote?: string }) => {
+      console.log("[CRM] Sending email request:", { leadId, ...data });
+      return fetch("/api/email/send", {
+        method: "POST",
+        body: JSON.stringify({ leadId, ...data }),
+      }).then(async r => {
+        const json = await r.json();
+        console.log("[CRM] Email response:", json);
+        return json;
+      });
+    },
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success("Письмо отправлено ✓");
+        setEmailPreviewOpen(false);
+        setEmailCustomNote("");
+        invalidateAll();
+      } else {
+        console.error("[CRM] Email send failed:", res);
+        toast.error(res.message || "Ошибка отправки");
+      }
+    },
+  });
+
   const lead = res?.success ? res.data : null;
   const script = lead?.niche?.name ? (SCRIPTS[lead.niche.name] || DEFAULT_SCRIPT) : DEFAULT_SCRIPT;
   const referralLink = lead?.referralCode ? `https://bizmuzik.ru/r/${lead.referralCode}` : null;
@@ -128,6 +170,24 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
       toast.success("Ссылка скопирована");
     }
   };
+
+  const toggleEmailExpand = (id: string) => {
+    setExpandedEmailIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const [activeSubTab, setActiveSubTab] = useState<"history" | "emails">("emails");
+
+  // Mark as read on open
+  useEffect(() => {
+    if (lead?.unreadEmailCount && lead.unreadEmailCount > 0) {
+      markReadMutation.mutate();
+    }
+  }, [lead?.id, lead?.unreadEmailCount]);
 
   return (
     <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center md:pt-20">
@@ -307,48 +367,251 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
                 </div>
               </div>
 
-              {/* Activity Log */}
-              <div className="space-y-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
-                  <MessageSquare className="w-3 h-3 inline mr-1" /> История ({lead.activities.length})
-                </p>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
+              {/* Activity & Email Thread */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setActiveSubTab("emails")}
+                      className={cn(
+                        "text-[10px] font-black uppercase tracking-widest transition-colors",
+                        activeSubTab === "emails" ? "text-neon" : "text-neutral-500 hover:text-neutral-300"
+                      )}
+                    >
+                      <Mail className="w-3 h-3 inline mr-1" /> Почта ({lead.activities.filter(a => a.type.startsWith('email')).length})
+                    </button>
+                    <button 
+                      onClick={() => setActiveSubTab("history")}
+                      className={cn(
+                        "text-[10px] font-black uppercase tracking-widest transition-colors",
+                        activeSubTab === "history" ? "text-neon" : "text-neutral-500 hover:text-neutral-300"
+                      )}
+                    >
+                      <MessageSquare className="w-3 h-3 inline mr-1" /> История ({lead.activities.length})
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
                   {lead.activities.length === 0 ? (
-                    <p className="text-neutral-600 text-xs text-center py-4">Пока нет активности</p>
+                    <p className="text-neutral-600 text-xs text-center py-8">Пока нет активности</p>
                   ) : (
-                    lead.activities.map((a) => (
-                      <div key={a.id} className="flex gap-3 text-xs p-3 rounded-lg bg-white/5">
-                        <div className="text-neutral-600 font-mono text-[10px] shrink-0 w-12">
-                          {new Date(a.createdAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
-                        </div>
-                        <div className="min-w-0">
-                          {a.type === "status_change" && (
-                            <p className="text-neutral-300">
-                              Статус: <span className="text-neutral-500">{STATUS_CONFIG[a.previousStatus ?? ""]?.label}</span>
-                              {" → "}
-                              <span className={STATUS_CONFIG[a.newStatus ?? ""]?.color}>{STATUS_CONFIG[a.newStatus ?? ""]?.label}</span>
+                    lead.activities
+                      .filter(a => activeSubTab === "emails" ? a.type.startsWith('email') : true)
+                      .map((a) => {
+                      if (a.type === "email_sent" || a.type === "email_received") {
+                        const isSent = a.type === "email_sent";
+                        const isExpanded = expandedEmailIds.has(a.id);
+                        return (
+                          <div key={a.id} className={cn(
+                            "flex flex-col gap-1 p-3 rounded-2xl border transition-all",
+                            isSent 
+                              ? "ml-8 bg-blue-500/5 border-blue-500/20" 
+                              : "mr-8 bg-white/5 border-white/10",
+                            !isSent && !a.isRead && "border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.1)]"
+                          )}>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                                {isSent ? "📤 Вы отправили" : "📥 Ответ клиента"}
+                              </span>
+                              <span className="text-[9px] text-neutral-600">
+                                {new Date(a.createdAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                            <p className="text-xs font-bold text-white mb-1">{a.emailSubject}</p>
+                            <p className={cn(
+                              "text-xs text-neutral-400 whitespace-pre-line leading-relaxed",
+                              !isExpanded && "line-clamp-2"
+                            )}>
+                              {a.emailBodyText}
                             </p>
-                          )}
-                          {a.type === "note" && <p className="text-neutral-300">📝 {a.note}</p>}
-                          {a.type === "callback_scheduled" && (
-                            <p className="text-neutral-300">
-                              📅 Звонок назначен на {a.callbackAt ? new Date(a.callbackAt).toLocaleString("ru-RU") : "—"}
+                            <button 
+                              onClick={() => toggleEmailExpand(a.id)}
+                              className="text-[9px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white mt-1 w-fit"
+                            >
+                              {isExpanded ? "Свернуть" : "Показать полностью"}
+                            </button>
+                            <div className="text-[9px] text-neutral-600 mt-2 italic">
+                              {isSent ? `на ${a.emailTo}` : `от ${a.emailFrom}`}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={a.id} className="flex gap-3 text-xs p-3 rounded-lg bg-white/5">
+                          <div className="text-neutral-600 font-mono text-[10px] shrink-0 w-12">
+                            {new Date(a.createdAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                          <div className="min-w-0">
+                            {a.type === "status_change" && (
+                              <p className="text-neutral-300">
+                                Статус: <span className="text-neutral-500">{STATUS_CONFIG[a.previousStatus ?? ""]?.label}</span>
+                                {" → "}
+                                <span className={STATUS_CONFIG[a.newStatus ?? ""]?.color}>{STATUS_CONFIG[a.newStatus ?? ""]?.label}</span>
+                              </p>
+                            )}
+                            {a.type === "note" && <p className="text-neutral-300">📝 {a.note}</p>}
+                            {a.type === "callback_scheduled" && (
+                              <p className="text-neutral-300">
+                                📅 Звонок назначен на {a.callbackAt ? new Date(a.callbackAt).toLocaleString("ru-RU") : "—"}
+                              </p>
+                            )}
+                            {a.type === "trial_sent" && <p className="text-neon">🚀 Отправлен пробный период</p>}
+                            {a.type === "converted" && <p className="text-emerald-400">✅ Конвертация в клиента</p>}
+                            {(a.type === "call_attempt" || a.type === "call_connected") && (
+                              <p className="text-neutral-300">📞 {a.type === "call_connected" ? "Дозвонились" : "Попытка звонка"}</p>
+                            )}
+                            <p className="text-neutral-600 text-[10px] mt-0.5">
+                              {new Date(a.createdAt).toLocaleDateString("ru-RU")}
                             </p>
-                          )}
-                          {a.type === "trial_sent" && <p className="text-neon">🚀 Отправлен пробный период</p>}
-                          {a.type === "converted" && <p className="text-emerald-400">✅ Конвертация в клиента</p>}
-                          {(a.type === "call_attempt" || a.type === "call_connected") && (
-                            <p className="text-neutral-300">📞 {a.type === "call_connected" ? "Дозвонились" : "Попытка звонка"}</p>
-                          )}
-                          <p className="text-neutral-600 text-[10px] mt-0.5">
-                            {new Date(a.createdAt).toLocaleDateString("ru-RU")}
-                          </p>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
+
+              {/* Email Template Selector */}
+              <div className="space-y-3 pt-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                  <Mail className="w-3 h-3 inline mr-1" /> Отправить шаблон
+                </p>
+                <div className="flex flex-col gap-2">
+                  {['email_1', 'email_2', 'email_3'].map((tid) => {
+                    const isSent = lead.activities.some(a => a.type === 'email_sent' && (
+                      (tid === 'email_1' && a.note?.includes('первый')) ||
+                      (tid === 'email_2' && a.note?.includes('follow-up')) ||
+                      (tid === 'email_3' && a.note?.includes('финальный'))
+                    ));
+
+                    const isDisabled = 
+                      (tid === 'email_2' && !lead.activities.some(a => a.note?.includes('первый'))) ||
+                      (tid === 'email_3' && !lead.activities.some(a => a.note?.includes('follow-up')));
+
+                    const labels: Record<string, string> = {
+                      email_1: "Email 1: Первый контакт",
+                      email_2: "Email 2: Follow-up (3 дня)",
+                      email_3: "Email 3: Финальный (7 дней)",
+                    };
+                    
+                    const descs: Record<string, string> = {
+                      email_1: "Защита от штрафов РАО",
+                      email_2: "Про сертификат соответствия",
+                      email_3: "Последний вопрос",
+                    };
+
+                    return (
+                      <button
+                        key={tid}
+                        disabled={isDisabled}
+                        onClick={() => {
+                          setSelectedTemplateId(tid);
+                          setEmailPreviewOpen(true);
+                        }}
+                        className={cn(
+                          "group flex items-center justify-between p-3 rounded-xl border transition-all text-left",
+                          isSent 
+                            ? "bg-white/2 border-white/5 opacity-60" 
+                            : "bg-white/5 border-white/10 hover:bg-neon hover:border-neon",
+                          isDisabled && "opacity-30 cursor-not-allowed"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                            isSent ? "bg-white/5" : "bg-white/5 group-hover:bg-black/10"
+                          )}>
+                            <Zap className={cn(
+                              "w-4 h-4", 
+                              isSent ? "text-neutral-600" : (tid === 'email_1' ? "text-blue-400" : tid === 'email_2' ? "text-purple-400" : "text-neon"),
+                              !isSent && "group-hover:text-black"
+                            )} />
+                          </div>
+                          <div>
+                            <div className={cn("text-xs font-bold transition-colors", isSent ? "text-neutral-400" : "text-white group-hover:text-black")}>
+                              {isSent ? `✓ ${labels[tid]} отправлен` : labels[tid]}
+                            </div>
+                            <div className={cn("text-[10px] transition-colors", isSent ? "text-neutral-600" : "text-neutral-500 group-hover:text-black/60")}>
+                              {descs[tid]}
+                            </div>
+                          </div>
+                        </div>
+                        {!isSent && !isDisabled && <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-black" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Email Preview "Sheet" */}
+              {emailPreviewOpen && selectedTemplateId && (
+                <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setEmailPreviewOpen(false)} />
+                  <div className="relative z-10 w-full max-w-lg bg-[#0d0f1a] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                      <h4 className="text-sm font-black uppercase tracking-tight text-white">Предпросмотр письма</h4>
+                      <button onClick={() => setEmailPreviewOpen(false)} className="text-neutral-500 hover:text-white">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white/5">
+                      {(() => {
+                        const t = getEmailTemplate(selectedTemplateId, {
+                          clientName: lead.business?.contactName || "Добрый день",
+                          businessName: lead.business?.name || "",
+                          agentFirstName: "Менеджер", 
+                          referralCode: lead.referralCode || "PROMO",
+                          niche: getNicheFromBusinessNiche(lead.business?.niche?.name || ""),
+                          customNote: emailCustomNote,
+                        });
+                        return (
+                          <div className="space-y-4">
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Тема</p>
+                              <p className="text-sm text-white font-bold">{t.subject}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Текст письма</p>
+                              <div className="bg-white p-4 rounded-xl text-sm text-black whitespace-pre-line leading-relaxed font-sans">
+                                {t.text}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="p-6 border-t border-white/5 space-y-4 bg-[#0d0f1a]">
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Добавить личный комментарий (опционально)</p>
+                        <textarea 
+                          value={emailCustomNote}
+                          onChange={(e) => setEmailCustomNote(e.target.value)}
+                          placeholder="Например: 'Был рад пообщаться сегодня!'"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neon h-20 resize-none"
+                        />
+                      </div>
+                      <Button 
+                        onClick={() => sendEmailMutation.mutate({ 
+                          templateId: selectedTemplateId, 
+                          customNote: emailCustomNote 
+                        })}
+                        disabled={sendEmailMutation.isPending}
+                        className="w-full bg-neon text-black font-black uppercase tracking-widest py-6 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(92,243,135,0.2)]"
+                      >
+                        {sendEmailMutation.isPending ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          "Отправить сейчас"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <p className="text-neutral-400 text-center py-8">Лид не найден</p>

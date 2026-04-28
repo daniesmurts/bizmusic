@@ -195,6 +195,9 @@ export default function LeadsPage() {
                   <h4 className="text-sm font-black uppercase tracking-tight text-white truncate">
                     {lead.business.name}
                   </h4>
+                  {lead.unreadEmailCount > 0 && (
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
+                  )}
                   <span className="text-xs shrink-0">{PRIORITY_ICONS[lead.priority]?.emoji}</span>
                 </div>
                 <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest truncate">

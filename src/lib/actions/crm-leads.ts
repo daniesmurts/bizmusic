@@ -64,6 +64,7 @@ export async function getAgentLeadsAction(status?: string) {
         callAttempts: leads.callAttempts,
         nextCallbackAt: leads.nextCallbackAt,
         lastContactedAt: leads.lastContactedAt,
+        unreadEmailCount: leads.unreadEmailCount,
         convertedAt: leads.convertedAt,
         createdAt: leads.createdAt,
         updatedAt: leads.updatedAt,
@@ -666,5 +667,37 @@ export async function updatePartnerProfileAction(data: {
   } catch (error: unknown) {
     console.error("updatePartnerProfileAction error:", error);
     return { success: false as const, error: "Internal error" };
+  }
+}
+
+// ─── Mark Emails as Read ─────────────────────────────────────────────────────
+
+export async function markLeadEmailsReadAction(leadId: string) {
+  try {
+    const agentId = await getAgentId();
+    if (!agentId) return { success: false as const, error: "Агент не найден" };
+
+    // Update lead_activities
+    await db
+      .update(leadActivities)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(leadActivities.leadId, leadId),
+          eq(leadActivities.type, "email_received"),
+          eq(leadActivities.isRead, false)
+        )
+      );
+
+    // Reset lead counter
+    await db
+      .update(leads)
+      .set({ unreadEmailCount: 0 })
+      .where(and(eq(leads.id, leadId), eq(leads.agentId, agentId)));
+
+    return { success: true as const };
+  } catch (error: unknown) {
+    console.error("markLeadEmailsReadAction error:", error);
+    return { success: false as const, error: "Ошибка" };
   }
 }

@@ -714,11 +714,13 @@ export const referralAgents = pgTable("referral_agents", {
   phone: text("phone"),
   city: text("city"),
   telegramChatId: text("telegramChatId"),
+  emailAlias: text("emailAlias").unique(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 }, (t) => ({
   referralCodeIdx: index("referral_agents_code_idx").on(t.referralCode),
   userIdIdx: index("referral_agents_user_id_idx").on(t.userId),
+  emailAliasIdx: uniqueIndex("referral_agents_email_alias_idx").on(t.emailAlias),
 }));
 
 export const referralClicks = pgTable("referral_clicks", {
@@ -809,6 +811,8 @@ export const leads = pgTable("leads", {
   convertedSubscriptionId: text("convertedSubscriptionId"),
   callAttempts: integer("callAttempts").default(0).notNull(),
   lastContactedAt: timestamp("lastContactedAt"),
+  unreadEmailCount: integer("unreadEmailCount").default(0).notNull(),
+  lastEmailAt: timestamp("lastEmailAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
 }, (t) => ({
@@ -826,10 +830,17 @@ export const leadActivities = pgTable("lead_activities", {
   previousStatus: text("previousStatus"),
   newStatus: text("newStatus"),
   callbackAt: timestamp("callbackAt"),
+  emailSubject: text("emailSubject"),
+  emailBodyText: text("emailBodyText"),
+  emailFrom: text("emailFrom"),
+  emailTo: text("emailTo"),
+  emailMessageId: text("emailMessageId"),
+  isRead: boolean("isRead").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (t) => ({
   leadIdx: index("lead_activities_lead_idx").on(t.leadId),
   agentCreatedIdx: index("lead_activities_agent_created_idx").on(t.agentId, t.createdAt),
+  isReadIdx: index("lead_activities_is_read_idx").on(t.isRead),
 }));
 
 export const agentAssignments = pgTable("agent_assignments", {
