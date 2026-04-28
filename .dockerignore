@@ -17,3 +17,7 @@ yarn-error.log
 # Removing from ignore as requested by audit
 tmp
 scratch
+
+# Scratch and debug files
+scratch/
+*.log

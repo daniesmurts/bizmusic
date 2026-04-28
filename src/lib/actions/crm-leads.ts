@@ -348,6 +348,8 @@ export async function getLeadDetailAction(leadId: string) {
         lastContactedAt: leads.lastContactedAt,
         convertedAt: leads.convertedAt,
         convertedSubscriptionId: leads.convertedSubscriptionId,
+        unreadEmailCount: leads.unreadEmailCount,
+        lastEmailAt: leads.lastEmailAt,
         createdAt: leads.createdAt,
         updatedAt: leads.updatedAt,
         business: {
