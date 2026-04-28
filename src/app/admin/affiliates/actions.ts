@@ -65,3 +65,17 @@ export async function runApproveCommissionsAction() {
   revalidatePath("/admin/affiliates");
   return json as { approved: number };
 }
+
+export async function updateAgentAliasAction(agentId: string, emailAlias: string) {
+  await requireAdmin();
+  
+  // Basic validation: lowercase alphanumeric and dots
+  const valid = /^[a-z0-9.]+$/.test(emailAlias);
+  if (!valid && emailAlias !== "") throw new Error("Invalid alias format");
+
+  await db.update(referralAgents)
+    .set({ emailAlias: emailAlias || null, updatedAt: new Date() })
+    .where(eq(referralAgents.id, agentId));
+
+  revalidatePath("/admin/affiliates");
+}

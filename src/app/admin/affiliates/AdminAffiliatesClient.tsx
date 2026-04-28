@@ -6,6 +6,7 @@ import {
   updateAgentCommissionAction,
   markCommissionsPaidAction,
   runApproveCommissionsAction,
+  updateAgentAliasAction,
 } from "./actions";
 
 interface Agent {
@@ -15,6 +16,7 @@ interface Agent {
   referralCode: string;
   city: string | null;
   status: string;
+  emailAlias: string | null;
   commissionRate: number;
   clientCount: number;
   pendingKopecks: number;
@@ -77,6 +79,7 @@ function StatusBadge({ status }: { status: string }) {
 function AgentRow({ agent }: { agent: Agent }) {
   const [isPending, startTransition] = useTransition();
   const [rate, setRate] = useState(String(Math.round(agent.commissionRate * 100)));
+  const [alias, setAlias] = useState(agent.emailAlias || "");
 
   return (
     <tr className="border-b border-white/5 hover:bg-white/[0.02] transition">
@@ -130,6 +133,29 @@ function AgentRow({ agent }: { agent: Agent }) {
             <option value="paused">Пауза</option>
             <option value="suspended">Заблокировать</option>
           </select>
+
+          {/* Email Alias */}
+          <div className="flex items-center gap-1">
+            <span className="text-neutral-600 text-[10px]">@</span>
+            <input
+              type="text"
+              value={alias}
+              onChange={(e) => setAlias(e.target.value.toLowerCase())}
+              placeholder="alias"
+              className="w-20 bg-black border border-white/10 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-neon/40"
+            />
+            <button
+              onClick={() =>
+                startTransition(() =>
+                  updateAgentAliasAction(agent.id, alias)
+                )
+              }
+              disabled={isPending}
+              className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 transition"
+            >
+              ✓
+            </button>
+          </div>
         </div>
       </td>
     </tr>

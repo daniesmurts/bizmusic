@@ -384,6 +384,7 @@ export async function getAgentsOverviewAction() {
         city: referralAgents.city,
         referralCode: referralAgents.referralCode,
         status: referralAgents.status,
+        emailAlias: referralAgents.emailAlias,
       })
       .from(referralAgents)
       .where(not(eq(referralAgents.status, "blocked")))
@@ -533,6 +534,8 @@ export async function getAgentDrilldownAction(agentId: string) {
         note: leadActivities.note,
         previousStatus: leadActivities.previousStatus,
         newStatus: leadActivities.newStatus,
+        emailSubject: leadActivities.emailSubject,
+        emailBodyText: leadActivities.emailBodyText,
         createdAt: leadActivities.createdAt,
         leadId: leadActivities.leadId,
       })
@@ -581,6 +584,8 @@ export async function getActivityFeedAction(filters?: {
         note: leadActivities.note,
         previousStatus: leadActivities.previousStatus,
         newStatus: leadActivities.newStatus,
+        emailSubject: leadActivities.emailSubject,
+        emailBodyText: leadActivities.emailBodyText,
         createdAt: leadActivities.createdAt,
         agent: {
           id: referralAgents.id,
@@ -697,5 +702,24 @@ export async function getAgentsListAction() {
   } catch (error: unknown) {
     console.error("getAgentsListAction error:", error);
     return { success: false as const, error: "Ошибка загрузки агентов" };
+  }
+}
+
+export async function updateAgentAliasAction(agentId: string, emailAlias: string) {
+  try {
+    const isAdmin = await requireAdmin();
+    if (!isAdmin) return { success: false as const, error: "Нет доступа" };
+
+    const valid = /^[a-z0-9.]+$/.test(emailAlias);
+    if (!valid && emailAlias !== "") return { success: false as const, error: "Неверный формат алиаса" };
+
+    await db.update(referralAgents)
+      .set({ emailAlias: emailAlias || null, updatedAt: new Date() })
+      .where(eq(referralAgents.id, agentId));
+
+    return { success: true as const };
+  } catch (error: unknown) {
+    console.error("updateAgentAliasAction error:", error);
+    return { success: false as const, error: "Ошибка обновления алиаса" };
   }
 }
