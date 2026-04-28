@@ -46,3 +46,7 @@ next-env.d.ts
 gen-smtp.py
 test-ses-api.py
 test-smtp2.js
+
+# Scratch and debug files
+scratch/
+*.log
