@@ -18,6 +18,7 @@ import {
   BookOpen,
   BarChart3,
   MessageSquare,
+  TrendingUp,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -35,6 +36,7 @@ const adminNavItems = [
   { name: "Поддержка", href: "/admin/support", icon: MessageSquare },
   { name: "Комплаенс", href: "/admin/logs", icon: ShieldCheck },
   { name: "Финансы", href: "/admin/billing", icon: CreditCard },
+  { name: "P&L Модель", href: "/admin/financials", icon: TrendingUp },
   { name: "Настройки", href: "/admin/settings", icon: Settings },
 ];
 

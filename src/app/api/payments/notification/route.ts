@@ -32,7 +32,50 @@ export async function POST(req: Request) {
       return new NextResponse("Invalid token", { status: 400 });
     }
 
-    const { OrderId, Status, PaymentId, RebillId, ErrorCode, Amount, Pan, ExpDate } = data;
+    const { OrderId, Status, PaymentId, ErrorCode, Amount } = data;
+    let { RebillId, Pan, ExpDate } = data;
+
+    // 2. Find the payment in DB (moved up to check paymentType)
+    // Refactored to use standard join instead of 'with' relation to avoid potential 
+    // pooler/lateral join issues (Issue 5).
+    const paymentRows = await db
+      .select({
+        payment: payments,
+        business: businesses,
+      })
+      .from(payments)
+      .leftJoin(businesses, eq(payments.businessId, businesses.id))
+      .where(eq(payments.orderId, OrderId))
+      .limit(1);
+
+    if (paymentRows.length === 0 || !paymentRows[0].payment || !paymentRows[0].business) {
+      return new NextResponse("Payment not found", { status: 404 });
+    }
+
+    // Map to a single object for compatibility with the rest of the code
+    const payment = {
+      ...paymentRows[0].payment,
+      business: paymentRows[0].business,
+    };
+
+    // Issue 4: Robust RebillId Capture
+    // If it's a confirmed subscription payment but RebillId is missing from webhook, try to fetch it via GetState
+    if (isConfirmedPaymentStatus(Status) && payment.paymentType === "subscription" && !RebillId) {
+      console.log(`[Webhook] RebillId missing for confirmed payment ${PaymentId}, fetching via GetState...`);
+      try {
+        const state = await tbank.getState(PaymentId);
+        if (state.Success && state.RebillId) {
+          RebillId = state.RebillId;
+          Pan = state.Pan || Pan;
+          ExpDate = state.ExpDate || ExpDate;
+          console.log(`[Webhook] Successfully recovered RebillId: ${RebillId}`);
+        } else {
+          console.warn(`[Webhook] GetState did not return RebillId for ${PaymentId}: ${state.Message}`);
+        }
+      } catch (err) {
+        console.error(`[Webhook] Failed to call GetState for ${PaymentId}:`, err);
+      }
+    }
 
     // 2. Rate limit (keyed on verified fields only after HMAC passes)
     const rateLimitKey = `webhook:${getRequestIp(req)}:${String(OrderId || "unknown")}:${String(PaymentId || "unknown")}`;
@@ -51,16 +94,6 @@ export async function POST(req: Request) {
     // 3. Validate required fields
     if (!OrderId || !Status || !PaymentId) {
       return new NextResponse("Missing required fields", { status: 400 });
-    }
-
-    // 3. Find the payment in DB
-    const payment = await db.query.payments.findFirst({
-      where: eq(payments.orderId, OrderId),
-      with: { business: true },
-    });
-
-    if (!payment) {
-      return new NextResponse("Payment not found", { status: 404 });
     }
 
     let wasAlreadyConfirmed = isConfirmedPaymentStatus(payment.status);
@@ -308,6 +341,7 @@ export async function POST(req: Request) {
       );
 
       // Activate subscription and save plan info (moved from startFreeTrial)
+      const now = new Date();
       await db.update(businesses)
         .set({
           rebillId: RebillId || undefined,
@@ -319,6 +353,14 @@ export async function POST(req: Request) {
           subscriptionExpiresAt: trialEndsAt,
           subscriptionStatus: "ACTIVE",
           cancelAtPeriodEnd: false,
+          // Initialize usage counters for the trial period
+          ttsMonthlyUsed: 0,
+          ttsMonthlyPeriodStart: now,
+          ttsMonthlyPeriodEnd: trialEndsAt,
+          aiMonthlyUsed: 0,
+          aiMonthlyPeriodStart: now,
+          aiMonthlyPeriodEnd: trialEndsAt,
+          updatedAt: now,
         })
         .where(eq(businesses.id, payment.businessId));
 

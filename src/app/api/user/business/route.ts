@@ -1,8 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { businesses, licenses } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { businesses } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -33,6 +33,12 @@ export async function GET() {
         cancelAtPeriodEnd: true,
         cardMask: true,
         cardExpiry: true,
+        ttsMonthlyUsed: true,
+        ttsMonthlyPeriodStart: true,
+        ttsMonthlyPeriodEnd: true,
+        aiMonthlyUsed: true,
+        aiMonthlyPeriodStart: true,
+        aiMonthlyPeriodEnd: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -43,9 +49,9 @@ export async function GET() {
     }
 
     return NextResponse.json(business);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[API/Business] Error:", error);
-    const responseBody: any = { error: "Internal Server Error" };
+    const responseBody: { error: string; details?: string } = { error: "Internal Server Error" };
     if (process.env.NODE_ENV !== 'production') {
       responseBody.details = error instanceof Error ? error.message : String(error);
     }

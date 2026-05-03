@@ -16,6 +16,7 @@ import {
   Zap,
   Crown,
   Sparkles,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -37,90 +38,127 @@ interface PricingTier {
   popular?: boolean;
 }
 
-const pricingTiers: PricingTier[] = [
-  {
-    name: "Бизнес",
-    slug: "business",
-    description: "Для бизнеса: кафе, ритейл, офисы, салоны красоты",
-    icon: Music,
-    monthlyPrice: 990,
-    yearlyPrice: 8400,
-    yearlyDiscount: 29,
-    features: [
-      "Голосовые объявления: 30 генераций/мес",
-      "Стриминг через PWA плеер",
-      "Публичное исполнение (ст. 1243 ГК РФ)",
-      "Безлимитные точки вещания",
-      "Курируемые плейлисты",
-      "Планирование ротации",
-      "Ограничение громкости",
-      "Оффлайн кэш",
-      "Лицензионный сертификат",
-      "Защита от РАО/ВОИС",
-      "Play logs для аудита",
-      "УПД для бухгалтерии",
-    ],
-    notIncluded: [
-      "Скачивание треков",
-      "Синхронизация с видео",
-      "Приоритетная поддержка",
-      "Кастомные запросы",
-    ],
-  },
-  {
-    name: "Контент",
-    slug: "content",
-    description: "Для блогеров, SMM, видео-мейкеров, маркетологов",
-    icon: Video,
-    monthlyPrice: 1490,
-    yearlyPrice: 12000,
-    yearlyDiscount: 33,
-    features: [
-      "Голосовые объявления: 10 генераций/мес",
-      "Скачивание MP3/WAV файлов",
-      "Стриминг через плеер",
-      "Синхронизация с видео/аудио",
-      "YouTube, VK, Telegram, Rutube",
-      "Яндекс.Дзен, OK.ru",
-      "Content ID Whitelist",
-      "Атрибуция (не обязательно)",
-      "Лицензионный сертификат",
-      "Защита от претензий",
-    ],
-    notIncluded: [
-      "Публичное исполнение в оффлайн",
-      "Коммерческое использование",
-      "Кастомные запросы",
-    ],
-    popular: true,
-  },
-  {
-    name: "Бизнес +",
-    slug: "business-plus",
-    description: "Для сетей, агентств, крупных компаний",
-    icon: Crown,
-    monthlyPrice: 4990,
-    yearlyPrice: 48000,
-    yearlyDiscount: 20,
-    features: [
-      "Голосовые объявления: 100 генераций/мес",
-      "Стриминг + Скачивание всех треков",
-      "Публичное исполнение + Синхронизация",
-      "Ограниченное коммерческое использование",
-      "Безлимитные локации",
-      "Безлимитный цифровой контент",
-      "Приоритетная поддержка 24/7",
-      "Кастомные запросы на треки",
-      "Расширенная аналитика",
-      "Отчёты по контенту",
-      "White-label опция",
-      "Лицензирование для клиентов",
-      "Персональный менеджер",
-    ],
-    notIncluded: [],
-    highlight: true,
-  },
-];
+interface PricingProps {
+  prices: {
+    businessMonthly: number;
+    contentMonthly: number;
+    businessProMonthly: number;
+    businessPlusMonthly: number;
+  };
+}
+
+function buildTiers(prices: PricingProps["prices"]): PricingTier[] {
+  return [
+    {
+      name: "Бизнес",
+      slug: "business",
+      description: "Для бизнеса: кафе, ритейл, офисы, салоны красоты",
+      icon: Music,
+      monthlyPrice: prices.businessMonthly,
+      yearlyPrice: Math.round(prices.businessMonthly * 12 * 0.8),
+      yearlyDiscount: 20,
+      features: [
+        "Голосовые объявления: 30 генераций/мес",
+        "Стриминг через PWA плеер",
+        "Публичное исполнение (ст. 1243 ГК РФ)",
+        "Безлимитные точки вещания",
+        "Курируемые плейлисты",
+        "Планирование ротации",
+        "Ограничение громкости",
+        "Оффлайн кэш",
+        "Лицензионный сертификат",
+        "Защита от РАО/ВОИС",
+        "Play logs для аудита",
+        "УПД для бухгалтерии",
+      ],
+      notIncluded: [
+        "Скачивание треков",
+        "Синхронизация с видео",
+        "Приоритетная поддержка",
+        "Кастомные запросы",
+      ],
+    },
+    {
+      name: "Контент",
+      slug: "content",
+      description: "Для блогеров, SMM, видео-мейкеров, маркетологов",
+      icon: Video,
+      monthlyPrice: prices.contentMonthly,
+      yearlyPrice: Math.round(prices.contentMonthly * 12 * 0.8),
+      yearlyDiscount: 20,
+      features: [
+        "Голосовые объявления: 10 генераций/мес",
+        "Скачивание MP3/WAV файлов",
+        "Стриминг через плеер",
+        "Синхронизация с видео/аудио",
+        "YouTube, VK, Telegram, Rutube",
+        "Яндекс.Дзен, OK.ru",
+        "Content ID Whitelist",
+        "Атрибуция (не обязательно)",
+        "Лицензионный сертификат",
+        "Защита от претензий",
+      ],
+      notIncluded: [
+        "Публичное исполнение в оффлайн",
+        "Коммерческое использование",
+        "Кастомные запросы",
+      ],
+      popular: true,
+    },
+    {
+      name: "Бизнес Про",
+      slug: "business-pro",
+      description: "Для растущего бизнеса: сети, франшизы, рестораны",
+      icon: Star,
+      monthlyPrice: prices.businessProMonthly,
+      yearlyPrice: Math.round(prices.businessProMonthly * 12 * 0.8),
+      yearlyDiscount: 20,
+      features: [
+        "Голосовые объявления: 60 генераций/мес",
+        "Стриминг + Скачивание треков",
+        "Публичное исполнение + Синхронизация",
+        "Безлимитные локации",
+        "Расширенная аналитика",
+        "Приоритетная поддержка",
+        "Content ID Whitelist",
+        "Лицензионный сертификат",
+        "Защита от РАО/ВОИС",
+        "Play logs для аудита",
+        "УПД для бухгалтерии",
+      ],
+      notIncluded: [
+        "Кастомные запросы на треки",
+        "White-label опция",
+      ],
+      highlight: true,
+    },
+    {
+      name: "Бизнес +",
+      slug: "business-plus",
+      description: "Для сетей, агентств, крупных компаний",
+      icon: Crown,
+      monthlyPrice: prices.businessPlusMonthly,
+      yearlyPrice: Math.round(prices.businessPlusMonthly * 12 * 0.8),
+      yearlyDiscount: 20,
+      features: [
+        "Голосовые объявления: 100 генераций/мес",
+        "Стриминг + Скачивание всех треков",
+        "Публичное исполнение + Синхронизация",
+        "Ограниченное коммерческое использование",
+        "Безлимитные локации",
+        "Безлимитный цифровой контент",
+        "Приоритетная поддержка 24/7",
+        "Кастомные запросы на треки",
+        "Расширенная аналитика",
+        "Отчёты по контенту",
+        "White-label опция",
+        "Лицензирование для клиентов",
+        "Персональный менеджер",
+      ],
+      notIncluded: [],
+    },
+  ];
+}
 
 const faqs = [
   {
@@ -131,7 +169,7 @@ const faqs = [
   {
     question: "Могу ли я использовать музыку в YouTube?",
     answer:
-      "Да, тарифы «Контент» и «Бизнес +» включают право на синхронизацию с видео и воспроизведение в социальных сетях: YouTube, VK Video, Telegram, Яндекс.Дзен, Rutube, OK.ru.",
+      "Да, тарифы «Контент», «Бизнес Про» и «Бизнес +» включают право на синхронизацию с видео и воспроизведение в социальных сетях: YouTube, VK Video, Telegram, Яндекс.Дзен, Rutube, OK.ru.",
   },
   {
     question: "Как работает защита от РАО/ВОИС?",
@@ -141,7 +179,7 @@ const faqs = [
   {
     question: "Можно ли добавить точки вещания позже?",
     answer:
-      "Да, на тарифе «Бизнес» вы можете добавить дополнительные точки вещания за дополнительную плату. На тарифе «Бизнес +» количество локаций не ограничено.",
+      "Да, на тарифе «Бизнес» вы можете добавить дополнительные точки вещания за дополнительную плату. На тарифах «Бизнес Про» и «Бизнес +» количество локаций не ограничено.",
   },
   {
     question: "Как отменить подписку?",
@@ -155,8 +193,39 @@ const faqs = [
   },
 ];
 
-export default function PricingClient() {
+// Comparison table rows — now includes businessPro column
+interface ComparisonRow {
+  feature: string;
+  business: boolean | string;
+  content: boolean | string;
+  businessPro: boolean | string;
+  businessPlus: boolean | string;
+}
+
+const comparisonRows: ComparisonRow[] = [
+  { feature: "Голосовые объявления / мес", business: "30", content: "10", businessPro: "60", businessPlus: "100" },
+  { feature: "Стриминг музыки", business: true, content: true, businessPro: true, businessPlus: true },
+  { feature: "Скачивание треков", business: false, content: true, businessPro: true, businessPlus: true },
+  { feature: "Публичное исполнение", business: true, content: false, businessPro: true, businessPlus: true },
+  { feature: "Синхронизация с видео", business: false, content: true, businessPro: true, businessPlus: true },
+  { feature: "Точки вещания", business: "∞", content: "—", businessPro: "∞", businessPlus: "∞" },
+  { feature: "Content ID Whitelist", business: false, content: true, businessPro: true, businessPlus: true },
+  { feature: "Расширенная аналитика", business: false, content: false, businessPro: true, businessPlus: true },
+  { feature: "Приоритетная поддержка", business: false, content: false, businessPro: true, businessPlus: true },
+  { feature: "Кастомные запросы", business: false, content: false, businessPro: false, businessPlus: true },
+  { feature: "White-label", business: false, content: false, businessPro: false, businessPlus: true },
+  { feature: "Персональный менеджер", business: false, content: false, businessPro: false, businessPlus: true },
+];
+
+function CellValue({ value }: { value: boolean | string }) {
+  if (value === true) return <Check className="w-5 h-5 text-neon mx-auto" />;
+  if (value === false) return <X className="w-5 h-5 text-neutral-700 mx-auto" />;
+  return <span className="text-white font-bold">{value}</span>;
+}
+
+export default function PricingClient({ prices }: PricingProps) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const pricingTiers = buildTiers(prices);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("ru-RU", {
@@ -230,7 +299,7 @@ export default function PricingClient() {
       </section>
 
       {/* Pricing Cards */}
-      <section className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto px-6">
+      <section className="grid md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto px-6">
         {pricingTiers.map((tier) => {
           const price =
             billingCycle === "monthly" ? tier.monthlyPrice : tier.yearlyPrice;
@@ -242,7 +311,7 @@ export default function PricingClient() {
               className={cn(
                 "relative group p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] border transition-all duration-500 flex flex-col",
                 tier.highlight
-                  ? "bg-neon/5 border-neon/30 shadow-[0_0_60px_rgba(92,243,135,0.15)] md:scale-105"
+                  ? "bg-neon/5 border-neon/30 shadow-[0_0_60px_rgba(92,243,135,0.15)] md:scale-[1.03]"
                   : "bg-white/[0.02] border-white/5 hover:border-white/10",
                 tier.popular && !tier.highlight && "border-neon/20"
               )}
@@ -252,6 +321,15 @@ export default function PricingClient() {
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                   <div className="px-4 py-1 rounded-full bg-neon text-black text-xs font-black uppercase tracking-widest">
                     Популярный
+                  </div>
+                </div>
+              )}
+
+              {/* Highlight Badge */}
+              {tier.highlight && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <div className="px-4 py-1 rounded-full bg-neon text-black text-xs font-black uppercase tracking-widest">
+                    Рекомендуем
                   </div>
                 </div>
               )}
@@ -275,17 +353,17 @@ export default function PricingClient() {
                 </div>
 
                 <div>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter text-white mb-2">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">
                     {tier.name}
                   </h3>
-                  <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">
+                  <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">
                     {tier.description}
                   </p>
                 </div>
 
                 <div className="pt-4">
                   <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-5xl font-black text-white">
+                    <span className="text-4xl xl:text-5xl font-black text-white">
                       {formatPrice(price)}
                     </span>
                     {billingCycle === "yearly" && tier.yearlyDiscount > 0 && (
@@ -349,7 +427,7 @@ export default function PricingClient() {
       </section>
 
       {/* Comparison Table */}
-      <section className="max-w-5xl mx-auto px-6">
+      <section className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-4">
             Сравнение <span className="text-neon">тарифов</span>
@@ -368,7 +446,7 @@ export default function PricingClient() {
                   Возможность
                 </th>
                 {pricingTiers.map((tier) => (
-                  <th key={tier.slug} className="py-6 px-6 text-center">
+                  <th key={tier.slug} className="py-6 px-4 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <tier.icon
                         className={cn(
@@ -376,7 +454,7 @@ export default function PricingClient() {
                           tier.highlight ? "text-neon" : "text-neutral-400"
                         )}
                       />
-                      <span className="text-sm font-black uppercase tracking-tight text-white">
+                      <span className="text-xs font-black uppercase tracking-tight text-white">
                         {tier.name}
                       </span>
                     </div>
@@ -385,50 +463,22 @@ export default function PricingClient() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {[
-                { feature: "Голосовые объявления / мес", business: "30", content: "10", businessPlus: "100" },
-                { feature: "Стриминг музыки", business: true, content: true, businessPlus: true },
-                { feature: "Скачивание треков", business: false, content: true, businessPlus: true },
-                { feature: "Публичное исполнение", business: true, content: false, businessPlus: true },
-                { feature: "Синхронизация с видео", business: false, content: true, businessPlus: true },
-                { feature: "Точки вещания", business: "∞", content: "—", businessPlus: "∞" },
-                { feature: "Content ID Whitelist", business: false, content: true, businessPlus: true },
-                { feature: "Приоритетная поддержка", business: false, content: false, businessPlus: true },
-                { feature: "Кастомные запросы", business: false, content: false, businessPlus: true },
-                { feature: "White-label", business: false, content: false, businessPlus: true },
-              ].map((row, i) => (
+              {comparisonRows.map((row, i) => (
                 <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                   <td className="py-5 px-8 text-sm font-bold text-white">
                     {row.feature}
                   </td>
-                  <td className="py-5 px-6 text-center">
-                    {row.business === true ? (
-                      <Check className="w-5 h-5 text-neon mx-auto" />
-                    ) : row.business === false ? (
-                      <X className="w-5 h-5 text-neutral-700 mx-auto" />
-                    ) : (
-                      <span className="text-white font-bold">{row.business}</span>
-                    )}
+                  <td className="py-5 px-4 text-center">
+                    <CellValue value={row.business} />
                   </td>
-                  <td className="py-5 px-6 text-center">
-                    {row.content === true ? (
-                      <Check className="w-5 h-5 text-neon mx-auto" />
-                    ) : row.content === false ? (
-                      <X className="w-5 h-5 text-neutral-700 mx-auto" />
-                    ) : (
-                      <span className="text-white font-bold">{row.content}</span>
-                    )}
+                  <td className="py-5 px-4 text-center">
+                    <CellValue value={row.content} />
                   </td>
-                  <td className="py-5 px-6 text-center">
-                    {row.businessPlus === true ? (
-                      <Check className="w-5 h-5 text-neon mx-auto" />
-                    ) : row.businessPlus === false ? (
-                      <X className="w-5 h-5 text-neutral-700 mx-auto" />
-                    ) : (
-                      <span className="text-white font-bold">
-                        {row.businessPlus}
-                      </span>
-                    )}
+                  <td className="py-5 px-4 text-center">
+                    <CellValue value={row.businessPro} />
+                  </td>
+                  <td className="py-5 px-4 text-center">
+                    <CellValue value={row.businessPlus} />
                   </td>
                 </tr>
               ))}
@@ -438,33 +488,27 @@ export default function PricingClient() {
 
         {/* Mobile View */}
         <div className="md:hidden space-y-6">
-          {[
-            { feature: "Стриминг музыки", business: true, content: true, businessPlus: true },
-            { feature: "Скачивание треков", business: false, content: true, businessPlus: true },
-            { feature: "Публичное исполнение", business: true, content: false, businessPlus: true },
-            { feature: "Синхронизация с видео", business: false, content: true, businessPlus: true },
-            { feature: "Точки вещания", business: "∞", content: "—", businessPlus: "∞" },
-            { feature: "Content ID Whitelist", business: false, content: true, businessPlus: true },
-            { feature: "Приоритетная поддержка", business: false, content: false, businessPlus: true },
-            { feature: "Кастомные запросы", business: false, content: false, businessPlus: true },
-            { feature: "White-label", business: false, content: false, businessPlus: true },
-          ].map((row, i) => (
+          {comparisonRows.map((row, i) => (
             <div key={i} className="glass-dark border border-white/5 rounded-3xl p-6 space-y-4">
               <h4 className="text-white font-black uppercase text-sm border-b border-white/5 pb-3">
                 {row.feature}
               </h4>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-tight text-neutral-500">Бизнес</span>
-                  {row.business === true ? <Check className="w-4 h-4 text-neon" /> : row.business === false ? <X className="w-4 h-4 text-neutral-700" /> : <span className="text-xs font-bold text-white">{row.business}</span>}
+                  <span className="text-[9px] font-black uppercase tracking-tight text-neutral-500">Бизнес</span>
+                  <CellValue value={row.business} />
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-tight text-neutral-500">Контент</span>
-                  {row.content === true ? <Check className="w-4 h-4 text-neon" /> : row.content === false ? <X className="w-4 h-4 text-neutral-700" /> : <span className="text-xs font-bold text-white">{row.content}</span>}
+                  <span className="text-[9px] font-black uppercase tracking-tight text-neutral-500">Контент</span>
+                  <CellValue value={row.content} />
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-tight text-neutral-500">Бизнес +</span>
-                  {row.businessPlus === true ? <Check className="w-4 h-4 text-neon" /> : row.businessPlus === false ? <X className="w-4 h-4 text-neutral-700" /> : <span className="text-xs font-bold text-white">{row.businessPlus}</span>}
+                  <span className="text-[9px] font-black uppercase tracking-tight text-neutral-500">Про</span>
+                  <CellValue value={row.businessPro} />
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-[9px] font-black uppercase tracking-tight text-neutral-500">Бизнес +</span>
+                  <CellValue value={row.businessPlus} />
                 </div>
               </div>
             </div>
