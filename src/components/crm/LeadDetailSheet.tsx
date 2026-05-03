@@ -33,32 +33,37 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   invalid: { label: "Невалидный", color: "text-neutral-400", bg: "bg-neutral-400/10", border: "border-neutral-400/30" },
 };
 
-const SCRIPTS: Record<string, { title: string; text: string }> = {
-  "Салоны красоты": {
-    title: "Скрипт: Салон красоты",
-    text: `Добрый день! [Имя клиента]? Меня зовут [Ваше имя], сервис BizMuzik.\nВы знаете, что РАО штрафует салоны красоты за музыку без лицензии — до 25 000₽ за трек?\nМы защищаем от этого за 990₽/месяц. Есть 2 минуты?`,
-  },
-  "Кафе и кофейни": {
-    title: "Скрипт: Кафе",
-    text: `Добрый день! Это [название кафе]? Меня зовут [Ваше имя], сервис BizMuzik.\nХочу предупредить — РАО активно проверяет кафе в вашем районе.\nШтраф за каждую песню без лицензии — до 25 000₽.\nМы решаем это за 990₽/месяц с полным пакетом документов. Есть минута?`,
-  },
-  "Рестораны и бары": {
-    title: "Скрипт: Ресторан",
-    text: `Добрый день! Это [название кафе]? Меня зовут [Ваше имя], сервис BizMuzik.\nХочу предупредить — РАО активно проверяет кафе в вашем районе.\nШтраф за каждую песню без лицензии — до 25 000₽.\nМы решаем это за 990₽/месяц с полным пакетом документов. Есть минута?`,
-  },
-};
+function getScripts(price: string): Record<string, { title: string; text: string }> {
+  return {
+    "Салоны красоты": {
+      title: "Скрипт: Салон красоты",
+      text: `Добрый день! [Имя клиента]? Меня зовут [Ваше имя], сервис BizMuzik.\nВы знаете, что РАО штрафует салоны красоты за музыку без лицензии — до 25 000₽ за трек?\nМы защищаем от этого за ${price}/месяц. Есть 2 минуты?`,
+    },
+    "Кафе и кофейни": {
+      title: "Скрипт: Кафе",
+      text: `Добрый день! Это [название кафе]? Меня зовут [Ваше имя], сервис BizMuzik.\nХочу предупредить — РАО активно проверяет кафе в вашем районе.\nШтраф за каждую песню без лицензии — до 25 000₽.\nМы решаем это за ${price}/месяц с полным пакетом документов. Есть минута?`,
+    },
+    "Рестораны и бары": {
+      title: "Скрипт: Ресторан",
+      text: `Добрый день! Это [название кафе]? Меня зовут [Ваше имя], сервис BizMuzik.\nХочу предупредить — РАО активно проверяет кафе в вашем районе.\nШтраф за каждую песню без лицензии — до 25 000₽.\nМы решаем это за ${price}/месяц с полным пакетом документов. Есть минута?`,
+    },
+  };
+}
 
-const DEFAULT_SCRIPT = {
-  title: "Скрипт: Универсальный",
-  text: `Добрый день! Меня зовут [Ваше имя], сервис BizMuzik — легальная музыка для бизнеса.\nВы знаете о штрафах РАО за музыку без лицензии? До 25 000₽ за каждый трек.\nМы защищаем от этих штрафов за 990₽/месяц. Удобно говорить?`,
-};
+function getDefaultScript(price: string) {
+  return {
+    title: "Скрипт: Универсальный",
+    text: `Добрый день! Меня зовут [Ваше имя], сервис BizMuzik — легальная музыка для бизнеса.\nВы знаете о штрафах РАО за музыку без лицензии? До 25 000₽ за каждый трек.\nМы защищаем от этих штрафов за ${price}/месяц. Удобно говорить?`,
+  };
+}
 
 interface LeadDetailSheetProps {
   leadId: string;
   onClose: () => void;
+  startingPrice?: string;
 }
 
-export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
+export function LeadDetailSheet({ leadId, onClose, startingPrice = "1 490 ₽" }: LeadDetailSheetProps) {
   const qc = useQueryClient();
   const [noteText, setNoteText] = useState("");
   const [callbackDate, setCallbackDate] = useState("");
@@ -158,6 +163,8 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
     },
   });
 
+  const SCRIPTS = getScripts(startingPrice);
+  const DEFAULT_SCRIPT = getDefaultScript(startingPrice);
   const lead = res?.success ? res.data : null;
   const script = lead?.niche?.name ? (SCRIPTS[lead.niche.name] || DEFAULT_SCRIPT) : DEFAULT_SCRIPT;
   const referralLink = lead?.referralCode ? `https://bizmuzik.ru/r/${lead.referralCode}` : null;
@@ -566,6 +573,7 @@ export function LeadDetailSheet({ leadId, onClose }: LeadDetailSheetProps) {
                           referralCode: lead.referralCode || "PROMO",
                           niche: getNicheFromBusinessNiche(lead.niche?.name || ""),
                           customNote: emailCustomNote,
+                          startingPrice,
                         });
                         return (
                           <div className="space-y-4">

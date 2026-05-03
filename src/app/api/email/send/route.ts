@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { resend } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email-templates";
 import { getAgentFromAddress, getReplyToAddress, getNicheFromBusinessNiche } from "@/lib/email-helpers";
+import { getPlatformPrices, formatPriceRub } from "@/lib/pricing";
 import fs from "fs";
 import path from "path";
 
@@ -81,6 +82,8 @@ export async function POST(req: NextRequest) {
     const nicheName = lead.business?.niche?.name || "";
     const niche = getNicheFromBusinessNiche(nicheName);
 
+    const prices = await getPlatformPrices();
+
     const template = getEmailTemplate(templateId, {
       clientName: lead.business?.contactName || "Добрый день",
       businessName: lead.business?.name || "",
@@ -89,6 +92,7 @@ export async function POST(req: NextRequest) {
       referralCode: agent.referralCode,
       niche,
       customNote,
+      startingPrice: formatPriceRub(prices.startingPrice),
     });
 
     // 5. Send via Resend

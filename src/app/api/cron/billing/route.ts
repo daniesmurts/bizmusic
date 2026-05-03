@@ -4,6 +4,7 @@ import { businesses, payments, users } from "@/db/schema";
 import { eq, and, lte, isNotNull, desc } from "drizzle-orm";
 import { tbank } from "@/lib/payments/tbank";
 import { PLANS } from "@/lib/payments/plans";
+import { getLivePlanPricing } from "@/lib/payments/plans-server";
 import { sendEmail } from "@/lib/email";
 
 export const dynamic = 'force-dynamic';
@@ -20,26 +21,39 @@ export async function GET(req: Request) {
 
     const now = new Date();
 
-    // 2. Find businesses that are ACTIVE, have a RebillId, and are past their expiration date.
-    // (Since we sync trialEndsAt and subscriptionExpiresAt at the same time upon trial creation, 
-    // simply checking subscriptionExpiresAt <= now handles both trial conversions and monthly renewals.)
-    const dueBusinesses = await db.query.businesses.findMany({
-      where: and(
+    // 2. Fetch LIVE prices from platform_settings (falls back to static PLANS)
+    const livePrices = await getLivePlanPricing();
+    console.log("[Cron] Live pricing loaded:", Object.entries(livePrices).map(([k, v]) => `${k}=${v.monthlyPrice}`).join(", "));
+
+    // 3. Find businesses that are ACTIVE, have a RebillId, and are past their expiration date.
+    // Refactored to join with users to avoid N+1 queries in the loop and prevent 
+    // lateral join issues (Issue 5).
+    const dueBusinesses = await db
+      .select({
+        business: businesses,
+        owner: users,
+      })
+      .from(businesses)
+      .leftJoin(users, eq(businesses.userId, users.id))
+      .where(and(
         eq(businesses.subscriptionStatus, "ACTIVE"),
         isNotNull(businesses.rebillId),
         lte(businesses.subscriptionExpiresAt, now)
-      )
-    });
+      ));
 
     const results = [];
 
     // 3. Process each due subscription
-    for (const business of dueBusinesses) {
+    for (const { business, owner } of dueBusinesses) {
       try {
+        if (!owner?.email) {
+          throw new Error(`Owner email not found for business ${business.id}`);
+        }
         const planSlug = business.currentPlanSlug || "content"; // Fallback to content tier if null
         const plan = PLANS[planSlug];
+        const livePrice = livePrices[planSlug];
         
-        if (!plan) {
+        if (!plan && !livePrice) {
           throw new Error(`Invalid plan slug: ${planSlug}`);
         }
 
@@ -47,7 +61,9 @@ export async function GET(req: Request) {
         const orderId = `REN_${shortBizId}_${Date.now()}`;
         const safeCustomerKey = business.userId.replace(/-/g, "").substring(0, 36);
 
-        const priceToCharge = business.billingInterval === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+        // Use live DB prices; fall back to static PLANS if DB returned nothing for this slug
+        const pricing = livePrice || { monthlyPrice: plan.monthlyPrice, yearlyPrice: plan.yearlyPrice };
+        const priceToCharge = business.billingInterval === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
         
         // --- NEW: Handle scheduled cancellation ---
         if (business.cancelAtPeriodEnd) {
@@ -64,8 +80,7 @@ export async function GET(req: Request) {
 
           // Send expiration email
           try {
-            const owner = await db.query.users.findFirst({ where: eq(users.id, business.userId) });
-            if (owner?.email) {
+            if (owner.email) {
               const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bizmuzik.ru";
               await sendEmail({
                 to: owner.email,
@@ -95,20 +110,11 @@ export async function GET(req: Request) {
         }
         // ------------------------------------------
 
-        // Fetch user email for Receipt
-        const owner = await db.query.users.findFirst({
-          where: eq(users.id, business.userId),
-        });
-
-        if (!owner?.email) {
-          throw new Error(`Owner email not found for business ${business.id}`);
-        }
-
         // A. Initialize the recurring payment
         const initResult = await tbank.init({
           Amount: priceToCharge,
           OrderId: orderId,
-          Description: `Продление подписки - ${plan.name} (${business.billingInterval === "yearly" ? "Год" : "Месяц"})`,
+          Description: `Продление подписки - ${plan?.name || planSlug} (${business.billingInterval === "yearly" ? "Год" : "Месяц"})`,
           Recurrent: 'Y',
           CustomerKey: safeCustomerKey,
           Receipt: {
@@ -116,7 +122,7 @@ export async function GET(req: Request) {
             Taxation: 'usn_income_outcome',
             Items: [
               {
-                Name: `Продление подписки - ${plan.name} (${business.billingInterval === "yearly" ? "Год" : "Месяц"})`,
+                Name: `Продление подписки - ${plan?.name || planSlug} (${business.billingInterval === "yearly" ? "Год" : "Месяц"})`,
                 Price: priceToCharge,
                 Quantity: 1,
                 Amount: priceToCharge,
@@ -160,9 +166,26 @@ export async function GET(req: Request) {
             nextExpiration.setMonth(nextExpiration.getMonth() + 1);
           }
 
+          // Calculate new monthly usage period bounds
+          const newPeriodStart = new Date(Date.UTC(
+            nextExpiration.getUTCFullYear(),
+            nextExpiration.getUTCMonth() - (business.billingInterval === "yearly" ? 12 : 1),
+            nextExpiration.getUTCDate(), 0, 0, 0, 0
+          ));
+          const periodStartForCounters = new Date(Math.max(newPeriodStart.getTime(), now.getTime()));
+
           await db.update(businesses)
             .set({
               subscriptionExpiresAt: nextExpiration,
+              cardMask: chargeResult.Pan || business.cardMask,
+              cardExpiry: chargeResult.ExpDate || business.cardExpiry,
+              // Reset monthly usage counters for new billing period
+              ttsMonthlyUsed: 0,
+              ttsMonthlyPeriodStart: periodStartForCounters,
+              ttsMonthlyPeriodEnd: nextExpiration,
+              aiMonthlyUsed: 0,
+              aiMonthlyPeriodStart: periodStartForCounters,
+              aiMonthlyPeriodEnd: nextExpiration,
               updatedAt: new Date()
             })
             .where(eq(businesses.id, business.id));

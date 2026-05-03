@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { Mail, MessageSquare, Coffee, Utensils, Building2, ShoppingBag, Gem, Scissors, Car, ShoppingCart, Music, Sparkles, Dumbbell, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { niches } from "@/lib/data/niches";
-import { scriptTemplates } from "@/lib/data/scripts";
+import { getScriptTemplates } from "@/lib/data/scripts";
 import { ScriptCard } from "@/components/dashboard/ScriptCard";
 import { getReferralDataAction } from "@/lib/actions/referral";
+import { usePlatformPrices, fmtRub } from "@/hooks/use-platform-prices";
 
 const TABS = [
   { key: "email", label: "Email", icon: Mail },
@@ -33,6 +34,7 @@ export default function ScriptsPage() {
   const [selectedNiche, setSelectedNiche] = useState<string>("salon");
   const [isNicheDropdownOpen, setIsNicheDropdownOpen] = useState(false);
   const [referralData, setReferralData] = useState<{ referralCode: string; fullName: string } | null>(null);
+  const { prices } = usePlatformPrices();
 
   useEffect(() => {
     getReferralDataAction().then((res) => {
@@ -42,7 +44,7 @@ export default function ScriptsPage() {
     });
   }, []);
 
-  const filteredScripts = scriptTemplates.filter(
+  const filteredScripts = getScriptTemplates(fmtRub(prices.startingPrice)).filter(
     (s) => s.type === tab && s.niche === selectedNiche
   );
 

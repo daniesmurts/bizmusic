@@ -9,6 +9,7 @@ import { Phone, Clock, BarChart3, ChevronRight, Bell, Sparkles } from "lucide-re
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { LeadDetailSheet } from "@/components/crm/LeadDetailSheet";
+import { usePlatformPrices, fmtRub } from "@/hooks/use-platform-prices";
 
 const TABS = [
   { key: "new", label: "Новые" },
@@ -39,6 +40,7 @@ function timeAgo(date: Date | string | null): string {
 export default function LeadsPage() {
   const [activeTab, setActiveTab] = useState("new");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const { prices } = usePlatformPrices();
 
   const { data: callbacksRes, isLoading: callbacksLoading } = useQuery({
     queryKey: ["agent-callbacks"],
@@ -240,6 +242,7 @@ export default function LeadsPage() {
         <LeadDetailSheet
           leadId={selectedLeadId}
           onClose={() => setSelectedLeadId(null)}
+          startingPrice={fmtRub(prices.startingPrice)}
         />
       )}
     </div>

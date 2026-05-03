@@ -15,6 +15,10 @@ interface InitResponse {
   Status: string;
   PaymentId: string;
   PaymentURL?: string;
+  RebillId?: string;
+  CardId?: string;
+  Pan?: string;
+  ExpDate?: string;
 }
 
 export interface ReceiptItem {

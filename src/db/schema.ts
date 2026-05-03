@@ -1224,3 +1224,39 @@ export const agentAssignmentsRelations = relations(agentAssignments, ({ one }) =
   city: one(cities, { fields: [agentAssignments.cityId], references: [cities.id] }),
   niche: one(businessNiches, { fields: [agentAssignments.nicheId], references: [businessNiches.id] }),
 }));
+
+// ─── Platform Settings (single-row config) ────────────────────────────────────
+
+export const platformSettings = pgTable("platform_settings", {
+  id: text("id").primaryKey().default("singleton"),
+  // Subscription tier prices (kopeks)
+  tierBusinessPrice: integer("tierBusinessPrice").default(149000).notNull(),
+  tierContentPrice: integer("tierContentPrice").default(179000).notNull(),
+  tierBusinessProPrice: integer("tierBusinessProPrice").default(249000).notNull(),
+  tierBusinessPlusPrice: integer("tierBusinessPlusPrice").default(499000).notNull(),
+  // Fee & tax settings
+  paymentProcessingFeePercent: doublePrecision("paymentProcessingFeePercent").default(2.5).notNull(),
+  taxRatePercent: doublePrecision("taxRatePercent").default(6.0).notNull(),
+  ambassadorCommissionPercent: doublePrecision("ambassadorCommissionPercent").default(30.0).notNull(),
+  minimumPayoutThresholdKopeks: integer("minimumPayoutThresholdKopeks").default(50000).notNull(),
+  payoutDay: text("payoutDay").default("friday").notNull(),
+  // Infrastructure fixed costs (kopeks/month)
+  infrastructureCostKopeks: integer("infrastructureCostKopeks").default(0).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdateFn(() => new Date()),
+});
+
+export const platformSettingsAuditLog = pgTable("platform_settings_audit_log", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  adminUserId: text("adminUserId").references(() => users.id, { onDelete: "set null" }),
+  field: text("field").notNull(),
+  oldValue: text("oldValue").notNull(),
+  newValue: text("newValue").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  adminUserIdx: index("platform_settings_audit_log_admin_user_idx").on(t.adminUserId),
+  createdAtIdx: index("platform_settings_audit_log_created_at_idx").on(t.createdAt),
+}));
+
+export const platformSettingsAuditLogRelations = relations(platformSettingsAuditLog, ({ one }) => ({
+  adminUser: one(users, { fields: [platformSettingsAuditLog.adminUserId], references: [users.id] }),
+}));

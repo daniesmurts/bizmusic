@@ -18,8 +18,8 @@ export const PLANS: Record<string, Plan> = {
   business: {
     name: "Бизнес",
     slug: "business",
-    monthlyPrice: 99000,
-    yearlyPrice: 840000,
+    monthlyPrice: 149000,
+    yearlyPrice: 1200000,
     ttsMonthlyLimit: 30,
     aiMonthlyLimit: 5,
     brandVoiceMonthlyLimit: 0,
@@ -27,10 +27,19 @@ export const PLANS: Record<string, Plan> = {
   content: {
     name: "Контент",
     slug: "content",
-    monthlyPrice: 149000,
-    yearlyPrice: 1200000,
+    monthlyPrice: 179000,
+    yearlyPrice: 1440000,
     ttsMonthlyLimit: 10,
     aiMonthlyLimit: 2,
+    brandVoiceMonthlyLimit: 0,
+  },
+  "business-pro": {
+    name: "Бизнес Про",
+    slug: "business-pro",
+    monthlyPrice: 249000,
+    yearlyPrice: 2400000,
+    ttsMonthlyLimit: 60,
+    aiMonthlyLimit: 8,
     brandVoiceMonthlyLimit: 0,
   },
   "business-plus": {
@@ -58,3 +67,4 @@ export function getPlanBySlug(slug: string): Plan | undefined {
 export function getTtsTokenPackById(packId: string): TtsTokenPack | undefined {
   return (TTS_TOKEN_PACKS as readonly TtsTokenPack[]).find((pack) => pack.id === packId);
 }
+

@@ -29,9 +29,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { usePlatformPrices, fmtRub } from "@/hooks/use-platform-prices";
 
 export default function BusinessMusicPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const { prices } = usePlatformPrices();
 
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
@@ -260,7 +262,7 @@ export default function BusinessMusicPage() {
                 </thead>
                 <tbody className="text-sm font-medium">
                   {[
-                    { label: "Цена", start: "990 ₽/мес", biz: "1 490 ₽/мес", net: "2 990 ₽/мес" },
+                    { label: "Цена", start: `${fmtRub(prices.contentMonthly)}/мес`, biz: `${fmtRub(prices.businessMonthly)}/мес`, net: `${fmtRub(prices.businessPlusMonthly)}/мес` },
                     { label: "Точки вещания", start: "1 точка", biz: "3 точки", net: "Безлимитно" },
                     { label: "Качество звука", start: "128 kbps", biz: "320 kbps", net: "Lossless" },
                     { label: "Приоритет поддержки", start: "Стандарт", biz: "Приоритет", net: "Персональный менеджер" },
@@ -283,19 +285,19 @@ export default function BusinessMusicPage() {
                {[
                  { 
                    name: "Старт", 
-                   price: "990 ₽/мес", 
+                   price: `${fmtRub(prices.contentMonthly)}/мес`, 
                    color: "text-white",
                    features: ["1 точка", "128 kbps", "Электронные док."]
                  },
                  { 
                    name: "Бизнес", 
-                   price: "1 490 ₽/мес", 
+                   price: `${fmtRub(prices.businessMonthly)}/мес`, 
                    color: "text-neon",
                    features: ["3 точки", "320 kbps", "ЭДО + Приоритет"]
                  },
                  { 
                    name: "Сеть", 
-                   price: "2 990 ₽/мес", 
+                   price: `${fmtRub(prices.businessPlusMonthly)}/мес`, 
                    color: "text-blue-500",
                    features: ["Безлимитно", "Lossless", "Персональный менеджер"]
                  }
