@@ -170,7 +170,7 @@ export default function PlayerPage() {
       )}
 
       {/* Music Catalog Browser */}
-      <TrackBrowser />
+      <TrackBrowser subscriptionStatus={dashboardData?.stats?.licenseStatus || "INACTIVE"} />
 
       {/* Grid Layout for Playlists & Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">
