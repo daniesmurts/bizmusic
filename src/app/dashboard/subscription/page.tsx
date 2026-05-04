@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, resilient } from "@/db";
 import { platformSettings } from "@/db/schema";
 import SubscriptionClient from "./SubscriptionClient";
 
@@ -6,12 +6,15 @@ export const dynamic = "force-dynamic";
 
 export default async function SubscriptionPage() {
   // Fetch prices from admin-managed settings
-  let settingsRows = await db.select().from(platformSettings).limit(1);
+  // Wrap in resilient() to handle transient "Connection terminated unexpectedly" errors from Supabase pooler
+  let settingsRows = await resilient(() => db.select().from(platformSettings).limit(1));
+  
   if (settingsRows.length === 0) {
-    const [created] = await db
-      .insert(platformSettings)
-      .values({ id: "singleton" })
-      .returning();
+    const [created] = await resilient(() => 
+      db.insert(platformSettings)
+        .values({ id: "singleton" })
+        .returning()
+    );
     settingsRows = [created];
   }
   const s = settingsRows[0];
