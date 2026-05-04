@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/db";
+import { db, resilient } from "@/db";
 import { businesses, locations, licenses, playlistTracks, tracks, playlists, users } from "@/db/schema";
 import { eq, desc, sql, or, inArray } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
@@ -27,7 +27,7 @@ async function enrichPlaylistsWithStats(
 
   const ids = playlistMeta.map((p) => p.id);
 
-  const rows = await db
+  const rows = await resilient(() => db
     .select({
       playlistId: playlistTracks.playlistId,
       count: sql<number>`cast(count(${playlistTracks.id}) as int)`,
@@ -36,7 +36,7 @@ async function enrichPlaylistsWithStats(
     .from(playlistTracks)
     .leftJoin(tracks, eq(playlistTracks.trackId, tracks.id))
     .where(inArray(playlistTracks.playlistId, ids))
-    .groupBy(playlistTracks.playlistId);
+    .groupBy(playlistTracks.playlistId));
 
   const statsMap = new Map(rows.map((r) => [r.playlistId, r]));
 
@@ -70,7 +70,7 @@ export async function getDashboardDataAction() {
         return { success: false, error: "Филиал не назначен. Обратитесь к владельцу бизнеса." };
       }
 
-      const [business, assignedLocation] = await Promise.all([
+      const [business, assignedLocation] = await resilient(() => Promise.all([
         db.query.businesses.findFirst({
           where: eq(businesses.id, scope.businessId),
           columns: { id: true, legalName: true, subscriptionStatus: true },
@@ -92,7 +92,7 @@ export async function getDashboardDataAction() {
             deviceId: true,
           },
         }),
-      ]);
+      ]));
 
       if (!business || !assignedLocation) {
         return { success: false, error: "Данные филиала не найдены" };
@@ -118,7 +118,7 @@ export async function getDashboardDataAction() {
       };
     }
 
-    const business = await db.query.businesses.findFirst({
+    const business = await resilient(() => db.query.businesses.findFirst({
       where: eq(businesses.userId, user.id),
       orderBy: [desc(businesses.subscriptionStatus), desc(businesses.updatedAt)],
       with: {
@@ -138,7 +138,7 @@ export async function getDashboardDataAction() {
           limit: 1,
         },
       }
-    });
+    }));
 
     if (!business) {
       return {
@@ -155,22 +155,22 @@ export async function getDashboardDataAction() {
     }
 
     // Find all businesses owned by ADMIN or CREATOR users to include their playlists as curated
-    const admins = await db.select({ id: users.id })
+    const admins = await resilient(() => db.select({ id: users.id })
       .from(users)
-      .where(or(eq(users.role, "ADMIN"), eq(users.userType, "CREATOR")));
+      .where(or(eq(users.role, "ADMIN"), eq(users.userType, "CREATOR"))));
     
     const adminUserIds = admins.map(u => u.id);
     
     let adminBusinessIds: string[] = [];
     if (adminUserIds.length > 0) {
-      const adminBiz = await db.select({ id: businesses.id })
+      const adminBiz = await resilient(() => db.select({ id: businesses.id })
         .from(businesses)
-        .where(inArray(businesses.userId, adminUserIds));
+        .where(inArray(businesses.userId, adminUserIds)));
       adminBusinessIds = adminBiz.map(b => b.id);
     }
 
     // Fetch global (admin) playlists where businessId is null OR belongs to an admin business
-    const globalPlaylistsFromDb = await db.query.playlists.findMany({
+    const globalPlaylistsFromDb = await resilient(() => db.query.playlists.findMany({
       where: (p, { isNull, inArray, or }) => {
         const conditions = [isNull(p.businessId)];
         if (adminBusinessIds.length > 0) {
@@ -183,7 +183,7 @@ export async function getDashboardDataAction() {
         name: true,
         businessId: true,
       }
-    });
+    }));
 
     // filter out playlists that already belong to THIS specific business (from the current logged in business context)
     const filteredGlobalPlaylists = globalPlaylistsFromDb.filter(p => p.businessId !== business.id);
@@ -238,7 +238,7 @@ export async function getBusinessDetailsAction() {
 
     if (!user) return { success: false, error: "Not authenticated" };
 
-    const business = await db.query.businesses.findFirst({
+    const business = await resilient(() => db.query.businesses.findFirst({
       where: eq(businesses.userId, user.id),
       orderBy: [desc(businesses.subscriptionStatus), desc(businesses.updatedAt)],
       with: {
@@ -248,7 +248,7 @@ export async function getBusinessDetailsAction() {
         },
         locations: true,
       }
-    });
+    }));
 
     if (!business) return { success: true, data: null };
 
