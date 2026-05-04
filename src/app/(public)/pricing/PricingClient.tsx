@@ -6,7 +6,6 @@ import {
   Check,
   X,
   Music,
-  Download,
   Globe,
   ShieldCheck,
   Headphones,
@@ -339,15 +338,12 @@ export default function PricingClient({ prices }: PricingProps) {
                 <div
                   className={cn(
                     "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center border transition-transform group-hover:scale-110",
-                    tier.highlight
-                      ? "bg-neon/20 border-neon/30"
-                      : "bg-white/5 border-white/10"
+                    "bg-neon/20 border-neon/30"
                   )}
                 >
                   <Icon
                     className={cn(
-                      "w-8 h-8",
-                      tier.highlight ? "text-neon" : "text-neutral-400"
+                      "w-8 h-8 text-neon"
                     )}
                   />
                 </div>
@@ -412,10 +408,7 @@ export default function PricingClient({ prices }: PricingProps) {
               <Link href="/register">
                 <Button
                   className={cn(
-                    "w-full h-14 rounded-2xl font-black uppercase tracking-widest text-sm transition-all",
-                    tier.highlight
-                      ? "bg-neon text-black hover:scale-105 shadow-[0_0_30px_rgba(92,243,135,0.4)]"
-                      : "bg-white/10 text-white hover:bg-white/20"
+                    "w-full h-14 rounded-2xl font-black uppercase tracking-widest text-sm transition-all duration-300 bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.2)] hover:scale-105 hover:shadow-[0_0_30px_rgba(92,243,135,0.4)]"
                   )}
                 >
                   Начать бесплатно
@@ -450,8 +443,7 @@ export default function PricingClient({ prices }: PricingProps) {
                     <div className="flex flex-col items-center gap-2">
                       <tier.icon
                         className={cn(
-                          "w-6 h-6",
-                          tier.highlight ? "text-neon" : "text-neutral-400"
+                          "w-6 h-6 text-neon"
                         )}
                       />
                       <span className="text-xs font-black uppercase tracking-tight text-white">

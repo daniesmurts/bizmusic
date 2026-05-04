@@ -12,7 +12,8 @@ import {
   Crown,
   Star,
   Trash2,
-  Lock
+  Lock,
+  Loader2
 } from "lucide-react";
 import { startFreeTrial, cancelSubscription, reactivateSubscription, removePaymentMethod } from "@/lib/actions/payments";
 import { toast } from "sonner";
@@ -21,6 +22,12 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
 import { isBusinessProfileComplete } from "@/lib/validation/business";
+
+interface LicenseData {
+  id: string;
+  documentStatus: string;
+  pdfUrl: string | null;
+}
 
 interface BusinessData {
   id: string;
@@ -40,6 +47,7 @@ interface BusinessData {
   aiMonthlyUsed: number;
   aiMonthlyPeriodStart: string | null;
   aiMonthlyPeriodEnd: string | null;
+  licenses?: LicenseData[];
 }
 
 interface SubscriptionPrices {
@@ -54,6 +62,7 @@ export default function SubscriptionClient({ prices }: { prices: SubscriptionPri
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [businessData, setBusinessData] = useState<BusinessData | null>(null);
+  const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [isYearly, setIsYearly] = useState(false);
 
   useEffect(() => {
@@ -75,6 +84,8 @@ export default function SubscriptionClient({ prices }: { prices: SubscriptionPri
         }
       } catch (error) {
         console.error("Failed to fetch business:", error);
+      } finally {
+        setInitialFetchDone(true);
       }
     }
 
@@ -87,12 +98,22 @@ export default function SubscriptionClient({ prices }: { prices: SubscriptionPri
     return null;
   }
 
+  if (!initialFetchDone) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="w-10 h-10 text-neon animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 animate-pulse">Загрузка данных...</p>
+      </div>
+    );
+  }
+
   const handleStartTrial = async (planSlug: string) => {
     if (!user?.id || !businessData?.id) {
         toast.error("Сначала завершите регистрацию бизнеса");
         return;
     }
 
+    // 1. Check if profile is complete (INN, Address, Name)
     if (!isBusinessProfileComplete({
       inn: businessData.inn,
       legalName: businessData.legalName,
@@ -102,12 +123,28 @@ export default function SubscriptionClient({ prices }: { prices: SubscriptionPri
       router.push('/dashboard/setup');
       return;
     }
+
+    // 2. Check if Legal Agreement is signed (License generated)
+    const activeLicense = businessData.licenses?.[0];
+    const isAgreementSigned = activeLicense?.documentStatus === "READY" || !!activeLicense?.pdfUrl;
+
+    if (!isAgreementSigned) {
+      toast.error("Для активации подписки необходимо подписать Лицензионный договор");
+      router.push('/dashboard/contract');
+      return;
+    }
     
     setLoading(planSlug);
     try {
       const result = await startFreeTrial(businessData.id, planSlug, isYearly ? "yearly" : "monthly");
       if (result.success && result.paymentUrl) {
         router.push(result.paymentUrl);
+      } else if (result.success) {
+        toast.success(result.message || "Тариф успешно обновлен");
+        // Refresh to see new status
+        router.refresh();
+        // Also manually update local state if possible, or just wait for refresh
+        setTimeout(() => window.location.reload(), 1500);
       } else if (!result.success) {
         toast.error(result.error || "Не удалось создать платеж");
       }
@@ -196,7 +233,7 @@ export default function SubscriptionClient({ prices }: { prices: SubscriptionPri
       description: "Все для вашего пространства",
       ttsMonthlyLimit: 30,
       icon: Music,
-      color: "blue"
+      color: "neon"
     },
     {
       name: "Контент",
@@ -228,7 +265,7 @@ export default function SubscriptionClient({ prices }: { prices: SubscriptionPri
       description: "Сети и агентства",
       ttsMonthlyLimit: 100,
       icon: Crown,
-      color: "purple"
+      color: "neon"
     }
   ];
 
@@ -414,9 +451,9 @@ export default function SubscriptionClient({ prices }: { prices: SubscriptionPri
               <div className={cn(
                 "shrink-0 rounded-xl flex items-center justify-center border",
                 "w-12 h-12 sm:w-12 sm:h-12 sm:mx-auto sm:mb-4",
-                (tier.popular || tier.highlight) ? "bg-neon/20 border-neon/30" : "bg-white/5 border-white/10"
+                "bg-neon/20 border-neon/30"
               )}>
-                <tier.icon className={cn("w-6 h-6", (tier.popular || tier.highlight) ? "text-neon" : "text-neutral-400")} />
+                <tier.icon className={cn("w-6 h-6 text-neon")} />
               </div>
 
               {/* Info */}
@@ -439,9 +476,11 @@ export default function SubscriptionClient({ prices }: { prices: SubscriptionPri
                 onClick={() => handleStartTrial(tier.slug)}
                 disabled={loading !== null || isCurrent}
                 className={cn(
-                  "shrink-0 font-black uppercase tracking-widest text-[10px] transition-transform hover:scale-[1.02]",
+                  "shrink-0 font-black uppercase tracking-widest text-[10px] transition-all duration-300",
                   "h-10 px-4 rounded-xl sm:h-14 sm:rounded-2xl sm:w-full sm:mt-auto",
-                  isCurrent ? "bg-white/5 text-neutral-500" : (tier.popular || tier.highlight) ? "bg-neon text-black" : "bg-white/10 text-white hover:bg-white/20"
+                  isCurrent 
+                    ? "bg-white/5 text-neutral-500 cursor-default" 
+                    : "bg-neon text-black shadow-[0_0_20px_rgba(92,243,135,0.2)] hover:shadow-[0_0_30px_rgba(92,243,135,0.4)] hover:scale-[1.02]"
                 )}
               >
                 {isCurrent 

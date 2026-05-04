@@ -14,8 +14,11 @@ import {
   ChevronUp,
   Music,
   X,
+  Lock,
 } from "lucide-react";
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { usePlayerStore, Track } from "@/store/usePlayerStore";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -36,12 +39,15 @@ interface CatalogTrack {
   moodTags?: string[];
 }
 
-export function TrackBrowser() {
+export function TrackBrowser({ subscriptionStatus = "INACTIVE" }: { subscriptionStatus?: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [search, setSearch] = useState("");
   const [activeMood, setActiveMood] = useState<string | null>(null);
   const [activeGenre, setActiveGenre] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  const isLocked = subscriptionStatus !== "ACTIVE";
 
   const { currentTrack, isPlaying, loadPlaylist, togglePlay, addToQueue } = usePlayerStore();
 
@@ -67,6 +73,16 @@ export function TrackBrowser() {
   });
 
   const handlePlay = (track: CatalogTrack) => {
+    if (isLocked) {
+      toast.error("Для прослушивания полного каталога необходимо активировать подписку и подписать договор.", {
+        action: {
+          label: "Подключить",
+          onClick: () => router.push("/dashboard/subscription")
+        }
+      });
+      return;
+    }
+
     if (currentTrack?.id === track.id) {
       togglePlay();
     } else {
@@ -85,6 +101,11 @@ export function TrackBrowser() {
   };
 
   const handleAddToQueue = (track: CatalogTrack) => {
+    if (isLocked) {
+      toast.error("Эта функция доступна только после активации подписки.");
+      return;
+    }
+
     addToQueue({
       id: track.id,
       title: track.title,
@@ -113,13 +134,25 @@ export function TrackBrowser() {
         className="w-full flex items-center justify-between glass-dark border border-white/10 hover:border-white/20 rounded-2xl sm:rounded-[2rem] px-5 py-4 sm:px-8 sm:py-5 transition-all group"
       >
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center border border-purple-500/20">
-            <Library className="w-6 h-6 text-purple-400" />
+          <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center border border-purple-500/20 relative">
+            <Library className={cn("w-6 h-6", isLocked ? "text-neutral-600" : "text-purple-400")} />
+            {isLocked && (
+              <div className="absolute -top-1 -right-1 bg-neutral-900 border border-white/10 rounded-full p-1">
+                <Lock className="w-3 h-3 text-neutral-500" />
+              </div>
+            )}
           </div>
           <div className="text-left">
-            <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-white">Каталог музыки</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-white">Каталог музыки</h3>
+              {isLocked && (
+                <span className="text-[8px] font-black uppercase tracking-widest bg-white/5 text-neutral-500 px-2 py-0.5 rounded-full border border-white/10">
+                  Требуется подписка
+                </span>
+              )}
+            </div>
             <p className="text-neutral-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-              {isExpanded ? `${filtered.length} треков` : "Поиск и прослушивание всех треков"}
+              {isExpanded ? `${filtered.length} треков` : isLocked ? "Ограниченный доступ" : "Поиск и прослушивание всех треков"}
             </p>
           </div>
         </div>
@@ -191,100 +224,117 @@ export function TrackBrowser() {
           </div>
 
           {/* Track List */}
-          <div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-1">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-16 text-neutral-500 space-y-4">
-                <Loader2 className="w-8 h-8 animate-spin text-neon" />
-                <p className="text-sm font-bold uppercase tracking-widest">Загрузка каталога...</p>
-              </div>
-            ) : filtered.length > 0 ? (
-              filtered.map((track) => {
-                const isCurrentTrack = currentTrack?.id === track.id;
-                const isTrackPlaying = isCurrentTrack && isPlaying;
+          <div className="relative">
+            <div className={cn(
+              "max-h-[60vh] overflow-y-auto custom-scrollbar space-y-1",
+              isLocked && "blur-[2px] pointer-events-none opacity-50"
+            )}>
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 text-neutral-500 space-y-4">
+                  <Loader2 className="w-8 h-8 animate-spin text-neon" />
+                  <p className="text-sm font-bold uppercase tracking-widest">Загрузка каталога...</p>
+                </div>
+              ) : filtered.length > 0 ? (
+                filtered.map((track) => {
+                  const isCurrentTrack = currentTrack?.id === track.id;
+                  const isTrackPlaying = isCurrentTrack && isPlaying;
 
-                return (
-                  <div
-                    key={track.id}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl border transition-all group",
-                      isCurrentTrack
-                        ? "bg-neon/5 border-neon/20"
-                        : "border-transparent hover:bg-white/5 hover:border-white/5"
-                    )}
-                  >
-                    {/* Play Button */}
-                    <button
-                      onClick={() => handlePlay(track)}
+                  return (
+                    <div
+                      key={track.id}
                       className={cn(
-                        "w-10 h-10 rounded-lg flex items-center justify-center border shrink-0 transition-all",
+                        "flex items-center gap-3 p-3 rounded-xl border transition-all group",
                         isCurrentTrack
-                          ? "bg-neon text-black border-neon"
-                          : "bg-white/5 border-white/10 text-neutral-400 hover:text-white hover:bg-white/10"
+                          ? "bg-neon/5 border-neon/20"
+                          : "border-transparent hover:bg-white/5 hover:border-white/5"
                       )}
                     >
-                      {isTrackPlaying ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4 ml-0.5 fill-current" />
-                      )}
-                    </button>
+                      {/* Play Button */}
+                      <button
+                        onClick={() => handlePlay(track)}
+                        className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center border shrink-0 transition-all",
+                          isCurrentTrack
+                            ? "bg-neon text-black border-neon"
+                            : isLocked 
+                            ? "bg-white/5 border-white/10 text-neutral-600 grayscale cursor-not-allowed"
+                            : "bg-white/5 border-white/10 text-neutral-400 hover:text-white hover:bg-white/10"
+                        )}
+                      >
+                        {isLocked ? (
+                          <Lock className="w-4 h-4 opacity-50" />
+                        ) : isTrackPlaying ? (
+                          <Pause className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4 ml-0.5 fill-current" />
+                        )}
+                      </button>
 
-                    {/* Track Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-sm font-bold truncate",
-                          isCurrentTrack ? "text-neon" : "text-white"
-                        )}>
-                          {track.title}
-                        </span>
-                        {isTrackPlaying && (
-                          <div className="flex items-end gap-[2px] h-3">
-                            <div className="w-[2px] bg-neon animate-[pulse_0.6s_ease-in-out_infinite] h-1" />
-                            <div className="w-[2px] bg-neon animate-[pulse_0.6s_ease-in-out_infinite_0.15s] h-2" />
-                            <div className="w-[2px] bg-neon animate-[pulse_0.6s_ease-in-out_infinite_0.3s] h-3" />
-                          </div>
+                      {/* Track Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "text-sm font-bold truncate",
+                            isCurrentTrack ? "text-neon" : "text-white"
+                          )}>
+                            {track.title}
+                          </span>
+                        </div>
+                        <p className="text-xs text-neutral-500 truncate">{track.artist}</p>
+                      </div>
+
+                      {/* Tags */}
+                      <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                        {track.genre && (
+                          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded bg-white/5 text-neutral-500 border border-white/10">
+                            {track.genre}
+                          </span>
                         )}
                       </div>
-                      <p className="text-xs text-neutral-500 truncate">{track.artist}</p>
-                    </div>
 
-                    {/* Tags (hidden on small mobile) */}
-                    <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-                      {track.genre && (
-                        <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded bg-white/5 text-neutral-500 border border-white/10">
-                          {track.genre}
-                        </span>
-                      )}
-                      {track.bpm && (
-                        <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded bg-white/5 text-neutral-500 border border-white/10">
-                          {track.bpm}
-                        </span>
+                      {/* Actions */}
+                      {!isLocked && (
+                        <button
+                          onClick={() => handleAddToQueue(track)}
+                          className="w-9 h-9 rounded-lg flex items-center justify-center border border-white/10 text-neutral-400 hover:text-neon hover:border-neon/30 hover:bg-neon/5 transition-all shrink-0 opacity-0 group-hover:opacity-100 sm:opacity-100"
+                          title="Добавить в очередь"
+                        >
+                          <ListPlus className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
-
-                    {/* Actions */}
-                    <button
-                      onClick={() => handleAddToQueue(track)}
-                      className="w-9 h-9 rounded-lg flex items-center justify-center border border-white/10 text-neutral-400 hover:text-neon hover:border-neon/30 hover:bg-neon/5 transition-all shrink-0 opacity-0 group-hover:opacity-100 sm:opacity-100"
-                      title="Добавить в очередь"
-                    >
-                      <ListPlus className="w-4 h-4" />
-                    </button>
+                  );
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+                  <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5">
+                    <Music className="text-neutral-600 w-7 h-7" />
                   </div>
-                );
-              })
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
-                <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5">
-                  <Music className="text-neutral-600 w-7 h-7" />
+                  <p className="text-neutral-500 font-medium text-sm">Ничего не найдено</p>
                 </div>
-                <p className="text-neutral-500 font-medium text-sm">Ничего не найдено</p>
-                {hasActiveFilters && (
-                  <button onClick={clearFilters} className="text-neon text-xs font-bold uppercase tracking-widest hover:underline">
-                    Сбросить фильтры
-                  </button>
-                )}
+              )}
+            </div>
+
+            {/* Locked Overlay */}
+            {isLocked && !isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px] rounded-xl z-10 p-6 text-center">
+                <div className="max-w-xs space-y-4 animate-in fade-in zoom-in duration-500">
+                  <div className="w-16 h-16 bg-neon/10 border border-neon/20 rounded-2xl flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(92,243,135,0.1)]">
+                    <Lock className="w-8 h-8 text-neon" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-black uppercase tracking-tight text-white">Доступ ограничен</h4>
+                    <p className="text-xs text-neutral-400 font-medium leading-relaxed">
+                      Для прослушивания полного каталога музыки и соблюдения авторских прав необходимо активировать подписку и сформировать Лицензионный сертификат.
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => router.push("/dashboard/subscription")}
+                    className="w-full bg-neon text-black font-black uppercase text-[10px] tracking-widest h-11 rounded-xl shadow-lg shadow-neon/20 hover:scale-105 transition-transform"
+                  >
+                    Активировать доступ
+                  </Button>
+                </div>
               </div>
             )}
           </div>

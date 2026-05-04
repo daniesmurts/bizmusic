@@ -158,8 +158,10 @@ export async function generateLicenseAction(businessId: string) {
       .returning();
 
     // 8. Update business status
+    // subscriptionStatus remains INACTIVE until payment is confirmed via webhook
+    // This prevents free access just by signing the agreement.
     await db.update(businesses)
-      .set({ subscriptionStatus: "ACTIVE" })
+      .set({ updatedAt: new Date() })
       .where(eq(businesses.id, businessId));
 
     revalidatePath("/admin/clients");
@@ -542,9 +544,9 @@ export async function submitContractAction(formData: ContractFormData) {
       })
       .where(eq(licenses.id, licenseId));
 
-    // Mark business as active
+    // Mark business as updated, but not active until payment
     await db.update(businesses)
-      .set({ subscriptionStatus: "ACTIVE" })
+      .set({ updatedAt: new Date() })
       .where(eq(businesses.id, business.id));
 
     revalidatePath("/dashboard/contract");

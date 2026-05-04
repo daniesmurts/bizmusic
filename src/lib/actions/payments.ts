@@ -56,11 +56,28 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
 
     const business = await db.query.businesses.findFirst({
       where: eq(businesses.id, businessId),
-      with: { user: true },
+      with: { 
+        user: true,
+        licenses: {
+          orderBy: (l, { desc }) => [desc(l.issuedAt)],
+          limit: 1,
+        }
+      },
     });
 
     if (!business) {
       return { success: false, error: "Бизнес не найден" };
+    }
+
+    // Strict Legal Compliance Check: Must have a signed agreement (license)
+    const latestLicense = business.licenses?.[0];
+    const isAgreementSigned = latestLicense?.documentStatus === "READY" || !!latestLicense?.pdfUrl;
+
+    if (!isAgreementSigned) {
+      return { 
+        success: false, 
+        error: "Для активации подписки необходимо сначала подписать Лицензионный договор в разделе 'Договор'" 
+      };
     }
 
     if (business.userId !== user.id) {
@@ -68,7 +85,21 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
     }
 
     if (business.subscriptionStatus === "ACTIVE") {
-      return { success: false, error: "У вас уже есть активная подписка. Для смены тарифа обратитесь в поддержку." };
+      // If the user is already active, we just update their plan choice.
+      // Card verification is already done (rebillId exists).
+      // The new price will be charged at the next billing cycle by the cron.
+      await db.update(businesses)
+        .set({
+          currentPlanSlug: planSlug,
+          billingInterval: interval,
+          updatedAt: new Date(),
+        })
+        .where(eq(businesses.id, businessId));
+
+      return { 
+        success: true, 
+        message: "Тариф успешно изменен. Новые лимиты доступны сразу, оплата обновится при следующем продлении." 
+      };
     }
 
     const legalValidation = validateBusinessLegalData(
