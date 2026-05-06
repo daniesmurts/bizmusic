@@ -91,12 +91,11 @@ function ResetPasswordContent() {
     setLoading(true);
     setError(null);
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: password,
-    });
+    const { resetPasswordAction } = await import("@/lib/actions/auth");
+    const result = await resetPasswordAction(password);
 
-    if (updateError) {
-      setError(updateError.message);
+    if (!result.success) {
+      setError(result.error || "Ошибка при обновлении пароля");
       setLoading(false);
       return;
     }

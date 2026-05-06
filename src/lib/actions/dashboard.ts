@@ -38,7 +38,9 @@ async function enrichPlaylistsWithStats(
     .where(inArray(playlistTracks.playlistId, ids))
     .groupBy(playlistTracks.playlistId));
 
-  const statsMap = new Map(rows.map((r) => [r.playlistId, r]));
+  const statsMap = new Map<string, (typeof rows)[number]>(
+    rows.map((r) => [r.playlistId, r])
+  );
 
   return playlistMeta.map((p) => {
     const s = statsMap.get(p.id);
@@ -72,7 +74,7 @@ export async function getDashboardDataAction() {
 
       const [business, assignedLocation] = await resilient(() => Promise.all([
         db.query.businesses.findFirst({
-          where: eq(businesses.id, scope.businessId),
+          where: eq(businesses.id, scope.businessId as string),
           columns: { id: true, legalName: true, subscriptionStatus: true },
           with: {
             playlists: {
@@ -81,7 +83,7 @@ export async function getDashboardDataAction() {
           },
         }),
         db.query.locations.findFirst({
-          where: eq(locations.id, scope.assignedLocationId),
+          where: eq(locations.id, scope.assignedLocationId as string),
           columns: {
             id: true,
             name: true,
