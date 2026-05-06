@@ -1,9 +1,13 @@
+import * as Sentry from '@sentry/nextjs';
+
 /**
  * Next.js Instrumentation — runs once on server startup.
  * Validates that all required runtime env vars are present.
  */
 export async function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('../sentry.server.config');
+    
     const required = [
       "DATABASE_URL",
       "SUPABASE_SERVICE_ROLE_KEY",
@@ -53,4 +57,10 @@ export async function register() {
       console.log("[ENV] ✅ All required environment variables are present.");
     }
   }
+
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    await import('../sentry.edge.config');
+  }
 }
+
+export const onRequestError = Sentry.captureRequestError;
