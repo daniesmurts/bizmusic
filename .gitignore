@@ -50,3 +50,6 @@ test-smtp2.js
 # Scratch and debug files
 scratch/
 *.log
+
+# Sentry Config File
+.env.sentry-build-plugin
