@@ -269,6 +269,9 @@ export const playLogs = pgTable("play_logs", {
   businessIdIdx: index("play_logs_business_id_idx").on(t.businessId),
   locationIdIdx: index("play_logs_location_id_idx").on(t.locationId),
   playedAtIdx: index("play_logs_played_at_idx").on(t.playedAt),
+  // Composite indexes for analytics range queries (businessId/locationId + date range)
+  businessPlayedAtIdx: index("play_logs_business_played_at_idx").on(t.businessId, t.playedAt),
+  locationPlayedAtIdx: index("play_logs_location_played_at_idx").on(t.locationId, t.playedAt),
 }));
 
 // Song of the Week Table

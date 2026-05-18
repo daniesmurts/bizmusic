@@ -3,10 +3,19 @@ import { db } from "@/db";
 import { leads, leadActivities, referralAgents } from "@/db/schema";
 import { eq, gte, count, inArray } from "drizzle-orm";
 import { sendTelegramMessage } from "@/lib/telegram";
+import crypto from "crypto";
+
+function verifyCronSecret(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const authHeader = req.headers.get("authorization") ?? "";
+  const expected = `Bearer ${secret}`;
+  if (authHeader.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+}
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (secret !== process.env.CRON_SECRET) {
+  if (!verifyCronSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -7,7 +7,7 @@ const isDev = process.env.NODE_ENV === "development";
 const pwaConfig = withPWA({
   dest: "public",
   disable: isDev,
-  register: false,
+  register: true,
   skipWaiting: !isDev,
 });
 
@@ -33,9 +33,13 @@ const nextConfig: NextConfig = {
           key: "Content-Security-Policy",
           value: [
             "default-src 'self'",
-            // unsafe-eval is only needed by Next.js dev tooling (HMR), not in production.
-            // Yandex Metrika uses both mc.yandex.ru (Russia) and mc.yandex.com (CDN).
-            `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://mc.yandex.com`,
+            // 'strict-dynamic' causes modern browsers to ignore 'unsafe-inline' (kept for
+            // legacy browser fallback only). Next.js App Router requires 'unsafe-inline' for
+            // hydration scripts; full nonce enforcement requires middleware-level nonce injection.
+            // 'unsafe-eval' is only needed in dev for HMR.
+            `script-src 'self' 'strict-dynamic' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://mc.yandex.com`,
+            // 'unsafe-inline' for styles is required by Tailwind CSS class-based animations and
+            // React's style prop. External stylesheets are loaded from 'self'.
             "style-src 'self' 'unsafe-inline'",
             // Allow images from Supabase storage, data URIs, and Yandex Metrika pixel/cookie-sync
             "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob: https://mc.yandex.ru https://mc.yandex.com",

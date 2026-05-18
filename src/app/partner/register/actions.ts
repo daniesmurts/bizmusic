@@ -196,7 +196,9 @@ export async function partnerRegisterAction(formData: FormData) {
     );
     // Only roll back the auth user if WE created it in this run.
     if (createdAuthUser) {
-      await admin.auth.admin.deleteUser(userId).catch(() => {});
+      await admin.auth.admin.deleteUser(userId).catch((e) => {
+        console.error(`[partner/register] cleanup: failed to delete auth user ${userId}:`, e);
+      });
     }
     redirect("/partner/register?error=auth_failed");
   }
@@ -227,8 +229,12 @@ export async function partnerRegisterAction(formData: FormData) {
     // On resume, the public.users row / auth user pre-existed — deleting them
     // would destroy what we were trying to recover.
     if (createdAuthUser) {
-      await db.delete(users).where(eq(users.id, userId)).catch(() => {});
-      await admin.auth.admin.deleteUser(userId).catch(() => {});
+      await db.delete(users).where(eq(users.id, userId)).catch((e) => {
+        console.error(`[partner/register] cleanup: failed to delete users row ${userId}:`, e);
+      });
+      await admin.auth.admin.deleteUser(userId).catch((e) => {
+        console.error(`[partner/register] cleanup: failed to delete auth user ${userId}:`, e);
+      });
     }
     redirect("/partner/register?error=auth_failed");
   }

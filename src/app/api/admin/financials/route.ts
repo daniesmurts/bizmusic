@@ -9,6 +9,7 @@ import {
   commissionLedger,
 } from "@/db/schema";
 import { eq, sql, and } from "drizzle-orm";
+import { checkRateLimit, buildRateLimitHeaders } from "@/lib/middleware/rate-limit";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -108,10 +109,15 @@ async function getLiveData(): Promise<LiveData> {
 
 // ─── GET: Fetch settings + live data ────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await requireAdmin();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limit = checkRateLimit({ key: `admin-financials-get:${user.id}`, maxRequests: 30, windowMs: 60_000 });
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: buildRateLimitHeaders(limit.retryAfterSeconds) });
   }
 
   try {
@@ -202,6 +208,11 @@ export async function PUT(req: NextRequest) {
   const user = await requireAdmin();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limit = checkRateLimit({ key: `admin-financials-put:${user.id}`, maxRequests: 10, windowMs: 60_000 });
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: buildRateLimitHeaders(limit.retryAfterSeconds) });
   }
 
   try {

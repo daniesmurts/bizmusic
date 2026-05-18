@@ -335,7 +335,10 @@ export async function addVoiceSampleMetadataAction(input: AddVoiceSampleMetadata
     return { success: false, error: "Некорректный путь к файлу образца" };
   }
 
-  const estimatedDuration = await estimateDurationFromStoragePath(objectPath, input.mimeType);
+  // Skip the blocking server-side fetch+parse when the client already sent the duration.
+  const estimatedDuration = input.durationSeconds == null
+    ? await estimateDurationFromStoragePath(objectPath, input.mimeType)
+    : null;
   const normalizedDuration = Math.max(0, input.durationSeconds ?? estimatedDuration ?? 0);
 
   const [sample] = await db

@@ -55,7 +55,10 @@ export async function GET(
     }
 
     const requestUrl = request.nextUrl;
-    const source = requestUrl.searchParams.get("source") || "unknown";
+    const VALID_SOURCES = ["email", "website", "app", "player", "song-of-week", "unknown"] as const;
+    type ValidSource = typeof VALID_SOURCES[number];
+    const rawSource = requestUrl.searchParams.get("source") ?? "";
+    const source: ValidSource = VALID_SOURCES.includes(rawSource as ValidSource) ? (rawSource as ValidSource) : "unknown";
     const requestedSongOfWeekId = requestUrl.searchParams.get("songOfWeekId");
 
     let songOfWeekId: string | null = null;

@@ -1,16 +1,17 @@
-/**
- * Lightweight Telegram Bot API helper.
- * If TELEGRAM_BOT_TOKEN is not set, all calls are silently skipped.
- */
-
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+if (!TELEGRAM_BOT_TOKEN && process.env.NODE_ENV === "production") {
+  console.warn(
+    "[Telegram] TELEGRAM_BOT_TOKEN is not set. " +
+    "Support messages and daily summaries will NOT be delivered to Telegram."
+  );
+}
 
 export async function sendTelegramMessage(
   chatId: string,
   text: string
 ): Promise<boolean> {
   if (!TELEGRAM_BOT_TOKEN) {
-    // TODO: Set TELEGRAM_BOT_TOKEN env var to enable Telegram notifications
     return false;
   }
 

@@ -127,11 +127,8 @@ export async function POST(request: Request) {
       success: true,
       data: playLog,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Play logging API error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Failed to log play",
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to log play" }, { status: 500 });
   }
 }
