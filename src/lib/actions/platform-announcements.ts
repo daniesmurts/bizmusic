@@ -22,7 +22,7 @@ import {
   uploadFileBuffer,
 } from "@/lib/supabase-storage";
 import { resolveAccessScope } from "@/lib/auth/scope";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 type AccessModel = "FREE" | "PAID";
 type SourceType = "UPLOAD" | "TTS";
@@ -32,10 +32,7 @@ type PlatformAnnouncementProductWithTrack = typeof platformAnnouncementProducts.
 };
 
 async function requireAdminUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     throw new Error("Unauthorized");
@@ -54,10 +51,7 @@ async function requireAdminUser() {
 }
 
 async function getCurrentBusiness() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return null;

@@ -20,7 +20,7 @@ export function BottomNav({ onMoreClick }: { onMoreClick?: () => void }) {
   const pathname = usePathname();
   const { role, user } = useAuth();
   const isBranchManager = role === "STAFF";
-  const isPartner = role === "PARTNER" || user?.user_metadata?.is_partner === true;
+  const isPartner = role === "PARTNER";
 
   const items = isPartner
     ? [

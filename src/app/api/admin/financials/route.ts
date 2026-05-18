@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { db } from "@/db";
 import {
   platformSettings,
@@ -7,8 +7,10 @@ import {
   businesses,
   referralAgents,
   commissionLedger,
+  users,
 } from "@/db/schema";
 import { eq, sql, and } from "drizzle-orm";
+import { checkRateLimit, buildRateLimitHeaders } from "@/lib/middleware/rate-limit";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -37,17 +39,13 @@ interface LiveData {
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 async function requireAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
-  const { data: userData } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const userData = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    columns: { role: true },
+  });
 
   if (userData?.role !== "ADMIN") return null;
   return user;
@@ -108,10 +106,15 @@ async function getLiveData(): Promise<LiveData> {
 
 // ─── GET: Fetch settings + live data ────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await requireAdmin();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limit = checkRateLimit({ key: `admin-financials-get:${user.id}`, maxRequests: 30, windowMs: 60_000 });
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: buildRateLimitHeaders(limit.retryAfterSeconds) });
   }
 
   try {
@@ -202,6 +205,11 @@ export async function PUT(req: NextRequest) {
   const user = await requireAdmin();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limit = checkRateLimit({ key: `admin-financials-put:${user.id}`, maxRequests: 10, windowMs: 60_000 });
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: buildRateLimitHeaders(limit.retryAfterSeconds) });
   }
 
   try {

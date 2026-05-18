@@ -1,6 +1,6 @@
 {
-  "id": "19b9c53c-994e-4d43-a039-e10b49cdaf00",
-  "prevId": "480bfb28-8434-4725-8b72-d6805a9e7b58",
+  "id": "dc72195f-6f5d-489c-aacd-5eda7b2db17b",
+  "prevId": "19b9c53c-994e-4d43-a039-e10b49cdaf00",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -6769,6 +6769,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "clerkId": {
+          "name": "clerkId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "email": {
           "name": "email",
           "type": "text",
@@ -6780,7 +6786,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'SUPABASE_AUTH'"
+          "default": "'CLERK_AUTH'"
         },
         "role": {
           "name": "role",
@@ -6854,6 +6860,13 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
+        "users_clerkId_unique": {
+          "name": "users_clerkId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "clerkId"
+          ]
+        },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,

@@ -13,14 +13,11 @@ import {
   playlists,
   users,
 } from "@/db/schema";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { generateVoiceAnnouncementAction } from "@/lib/actions/voice-announcements";
 
 async function resolveBulkScope() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return { user: null, businessId: null, isBranchManager: false };

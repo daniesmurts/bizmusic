@@ -4,13 +4,12 @@ import { db } from "@/db";
 import { users, businesses, tracks, playLogs, licenses, payments, trackReactions, playlists, playlistTracks, locations, legalAcceptanceEvents, trackSkips, trackDownloadEvents } from "@/db/schema";
 import { eq, sql, desc, and, gte, between, or } from "drizzle-orm";
 import { startOfDay, subDays, startOfWeek, subWeeks, startOfMonth, subMonths, format, parseISO } from "date-fns";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export async function getAdminAnalyticsAction(dateRange?: { from: string; to: string }) {
   try {
     // Auth: only admins can access analytics
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { success: false, error: "Unauthorized" };
     }
@@ -38,48 +37,38 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
     const previousRangeEnd = rangeStart;
     const previousRangeStart = new Date(rangeStart.getTime() - rangeDiff);
 
-    // 1. Basic Stats (cumulative — NOT filtered by range)
-    const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
-    const [businessCount] = await db.select({ count: sql<number>`count(*)` }).from(businesses);
-    const [trackCount] = await db.select({ count: sql<number>`count(*)` }).from(tracks);
+    // 1–4. Parallelized stat queries (all independent)
+    const [
+      [userCount],
+      [businessCount],
+      [trackCount],
+      [playCount],
+      [downloadCount],
+      [totalDurationResult],
+      userTypeStats,
+      subscriptionStats,
+    ] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(users),
+      db.select({ count: sql<number>`count(*)` }).from(businesses),
+      db.select({ count: sql<number>`count(*)` }).from(tracks),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(playLogs)
+        .where(and(gte(playLogs.playedAt, rangeStart), sql`${playLogs.playedAt} < ${rangeEnd}`)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(trackDownloadEvents)
+        .where(and(gte(trackDownloadEvents.downloadedAt, rangeStart), sql`${trackDownloadEvents.downloadedAt} < ${rangeEnd}`)),
+      db
+        .select({ total: sql<number>`sum(${tracks.duration})` })
+        .from(playLogs)
+        .innerJoin(tracks, eq(playLogs.trackId, tracks.id))
+        .where(and(gte(playLogs.playedAt, rangeStart), sql`${playLogs.playedAt} < ${rangeEnd}`)),
+      db.select({ type: users.userType, count: sql<number>`count(*)` }).from(users).groupBy(users.userType),
+      db.select({ status: businesses.subscriptionStatus, count: sql<number>`count(*)` }).from(businesses).groupBy(businesses.subscriptionStatus),
+    ]);
 
-    // Play count & listening hours ARE range-filtered
-    const [playCount] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(playLogs)
-      .where(and(gte(playLogs.playedAt, rangeStart), sql`${playLogs.playedAt} < ${rangeEnd}`));
-
-    const [downloadCount] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(trackDownloadEvents)
-      .where(and(gte(trackDownloadEvents.downloadedAt, rangeStart), sql`${trackDownloadEvents.downloadedAt} < ${rangeEnd}`));
-    
-    // 2. Play Time Allocation (range-filtered)
-    const [totalDurationResult] = await db
-      .select({ total: sql<number>`sum(${tracks.duration})` })
-      .from(playLogs)
-      .innerJoin(tracks, eq(playLogs.trackId, tracks.id))
-      .where(and(gte(playLogs.playedAt, rangeStart), sql`${playLogs.playedAt} < ${rangeEnd}`));
-    
     const totalListeningHours = Math.round((totalDurationResult?.total || 0) / 3600);
-
-    // 3. User Type Distribution
-    const userTypeStats = await db
-      .select({ 
-        type: users.userType, 
-        count: sql<number>`count(*)` 
-      })
-      .from(users)
-      .groupBy(users.userType);
-
-    // 4. Subscription Status Distribution
-    const subscriptionStats = await db
-      .select({ 
-        status: businesses.subscriptionStatus, 
-        count: sql<number>`count(*)` 
-      })
-      .from(businesses)
-      .groupBy(businesses.subscriptionStatus);
 
     // 5. Growth Data (Last 6 Months)
     const sixMonthsAgo = subMonths(new Date(), 6);
@@ -91,7 +80,8 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
       .from(users)
       .where(gte(users.createdAt, sixMonthsAgo))
       .groupBy(sql`to_char(${users.createdAt}, 'YYYY-MM')`)
-      .orderBy(sql`to_char(${users.createdAt}, 'YYYY-MM')`);
+      .orderBy(sql`to_char(${users.createdAt}, 'YYYY-MM')`)
+      .limit(24);
 
     // 6. Top Tracks (range-filtered)
     const topTracks = await db
@@ -386,31 +376,34 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
 
     // === PHASE 3: Business & Compliance ===
 
-    // 15. Business Segmentation
-    const bizByType = await db.execute(
-      sql`SELECT "businessType" as type, cast(count(*) as int) as count
-        FROM businesses
-        WHERE "businessType" IS NOT NULL AND "businessType" != ''
-        GROUP BY "businessType"
-        ORDER BY count DESC`
-    );
-    const businessByType = Array.isArray(bizByType) ? bizByType : bizByType.rows;
-
-    const bizByPlan = await db.execute(
-      sql`SELECT COALESCE("currentPlanSlug", 'Без плана') as plan, cast(count(*) as int) as count
-        FROM businesses
-        GROUP BY plan
-        ORDER BY count DESC`
-    );
-    const businessByPlan = Array.isArray(bizByPlan) ? bizByPlan : bizByPlan.rows;
-
-    const bizByInterval = await db.execute(
-      sql`SELECT "billingInterval" as interval, cast(count(*) as int) as count
-        FROM businesses
-        GROUP BY "billingInterval"
-        ORDER BY count DESC`
-    );
-    const businessByInterval = Array.isArray(bizByInterval) ? bizByInterval : bizByInterval.rows;
+    // 15. Business Segmentation — parallelized, all with LIMIT 50
+    const [bizByTypeRaw, bizByPlanRaw, bizByIntervalRaw] = await Promise.all([
+      db.execute(
+        sql`SELECT "businessType" as type, cast(count(*) as int) as count
+          FROM businesses
+          WHERE "businessType" IS NOT NULL AND "businessType" != ''
+          GROUP BY "businessType"
+          ORDER BY count DESC
+          LIMIT 50`
+      ),
+      db.execute(
+        sql`SELECT COALESCE("currentPlanSlug", 'Без плана') as plan, cast(count(*) as int) as count
+          FROM businesses
+          GROUP BY plan
+          ORDER BY count DESC
+          LIMIT 50`
+      ),
+      db.execute(
+        sql`SELECT "billingInterval" as interval, cast(count(*) as int) as count
+          FROM businesses
+          GROUP BY "billingInterval"
+          ORDER BY count DESC
+          LIMIT 50`
+      ),
+    ]);
+    const businessByType = Array.isArray(bizByTypeRaw) ? bizByTypeRaw : bizByTypeRaw.rows;
+    const businessByPlan = Array.isArray(bizByPlanRaw) ? bizByPlanRaw : bizByPlanRaw.rows;
+    const businessByInterval = Array.isArray(bizByIntervalRaw) ? bizByIntervalRaw : bizByIntervalRaw.rows;
 
     // 16. Active/Inactive Locations
     const activeLocationsRaw = await db.execute(
@@ -576,16 +569,15 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
     const recentLicenseErrors = Array.isArray(recentLicenseErrorsRaw) ? recentLicenseErrorsRaw : recentLicenseErrorsRaw.rows;
 
     // 24. Playback Health (Silent Locations - last 24h)
+    // Use LEFT JOIN + IS NULL instead of NOT IN for better performance on large play_logs tables.
     const silentLocationsRaw = await db.execute(
       sql`SELECT cast(count(DISTINCT l.id) as int) as count
       FROM locations l
       JOIN businesses b ON l."businessId" = b.id
+      LEFT JOIN play_logs pl ON pl."locationId" = l.id
+        AND pl."playedAt" >= NOW() - INTERVAL '24 hours'
       WHERE b."subscriptionStatus" = 'ACTIVE'
-      AND l.id NOT IN (
-        SELECT DISTINCT "locationId" 
-        FROM play_logs 
-        WHERE "playedAt" >= NOW() - INTERVAL '24 hours'
-      )`
+        AND pl.id IS NULL`
     );
     const silentLocations = Number((Array.isArray(silentLocationsRaw) ? silentLocationsRaw : silentLocationsRaw.rows)?.[0]?.count || 0);
 
@@ -720,8 +712,7 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
 
 export async function exportAdminAnalyticsCSVAction(dateRange?: { from: string; to: string }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id) });

@@ -140,11 +140,7 @@ export const Navbar = () => {
                  href={isPartner ? "/dashboard/affiliate/profile" : "/dashboard"}
                  className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors overflow-hidden"
                >
-                 {user.user_metadata?.avatar_url ? (
-                   <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                 ) : (
-                   <User className="w-5 h-5 text-neutral-400" />
-                 )}
+                 <User className="w-5 h-5 text-neutral-400" />
                </Link>
                <Button
                  variant="ghost"

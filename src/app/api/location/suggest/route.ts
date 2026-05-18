@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, getRequestIp, buildRateLimitHeaders } from "@/lib/middleware/rate-limit";
 
 export async function GET(request: Request) {
+  const ip = getRequestIp(request);
+  const limit = checkRateLimit({ key: `location-suggest:${ip}`, maxRequests: 30, windowMs: 60_000 });
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: buildRateLimitHeaders(limit.retryAfterSeconds) }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const text = searchParams.get("text");
   const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;

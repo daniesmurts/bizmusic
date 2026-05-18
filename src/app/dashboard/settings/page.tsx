@@ -153,7 +153,7 @@ export default function SettingsPage() {
     try {
       const result = await updateUserEmailAction(email);
       if (result.success) {
-        toast.success(result.message);
+        toast.success("Email успешно обновлён");
       } else {
         toast.error(result.error);
       }
@@ -182,7 +182,7 @@ export default function SettingsPage() {
         passwordData.newPassword
       );
       if (result.success) {
-        toast.success(result.message);
+        toast.success("Пароль успешно обновлён");
         setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       } else {
         toast.error(result.error);

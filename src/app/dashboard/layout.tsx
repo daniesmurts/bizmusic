@@ -37,7 +37,7 @@ export default function DashboardLayout({
   const [isSigned, setIsSigned] = useState(false);
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
   const isBranchManager = role === "STAFF";
-  const isPartner = role === "PARTNER" || user?.user_metadata?.is_partner === true;
+  const isPartner = role === "PARTNER";
   const isAdmin = role === "ADMIN";
 
   // Track whether we already fetched business status — avoids a DB call on

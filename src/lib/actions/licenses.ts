@@ -9,6 +9,7 @@ import { mergePdfBuffers } from "@/lib/document-bundle";
 import { syncUserAndLegalAcceptance } from "@/lib/legal-acceptance";
 import { supabaseAdmin } from "@/lib/supabase-storage";
 import { revalidatePath } from "next/cache";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 const BUCKET_NAME = 'bizmusic-assets';
 
@@ -264,9 +265,7 @@ export async function retryLicenseGenerationAction(licenseId: string) {
 
 export async function retryFailedLicensesBatchAction(limit: number = 25) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };
@@ -392,19 +391,22 @@ export async function submitContractAction(formData: ContractFormData) {
       };
     }
 
-    // Get authenticated user from Supabase session
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    // Get authenticated user
+    const authUser = await getAuthUser();
 
     if (!authUser) {
       return { success: false, error: "Пользователь не авторизован" };
     }
 
+    const dbUserForEmail = await db.query.users.findFirst({
+      where: eq(users.id, authUser.id),
+      columns: { email: true },
+    });
+
     await syncUserAndLegalAcceptance({
       userId: authUser.id,
-      email: authUser.email!,
-      metadata: authUser.user_metadata as Record<string, unknown>,
+      email: dbUserForEmail?.email || "",
+      metadata: {},
       source: "contract_submit",
     });
 

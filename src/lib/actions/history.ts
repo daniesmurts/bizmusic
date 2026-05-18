@@ -3,12 +3,11 @@
 import { db } from "@/db";
 import { payments, businesses } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export async function getPaymentHistoryAction(businessId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };

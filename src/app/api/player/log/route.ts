@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { playLogs, businesses, locations, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized: Please log in to play music" }, { status: 401 });
@@ -127,11 +126,8 @@ export async function POST(request: Request) {
       success: true,
       data: playLog,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Play logging API error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Failed to log play",
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to log play" }, { status: 500 });
   }
 }

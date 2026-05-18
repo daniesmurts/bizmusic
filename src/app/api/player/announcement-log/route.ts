@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { announcementPlayLogs, voiceAnnouncements, businesses, locations, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

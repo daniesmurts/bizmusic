@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { businesses } from "@/db/schema";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { eq } from "drizzle-orm";
 import {
   consumeAiAssistCredit,
@@ -22,8 +22,7 @@ export interface GenerateAiAssistInput {
  */
 export async function generateAiAssistAction(input: GenerateAiAssistInput) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };
@@ -95,8 +94,7 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
  */
 export async function getAiAssistStatusAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };

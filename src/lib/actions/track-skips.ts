@@ -23,9 +23,8 @@ export async function logTrackSkipAction({
   reason?: string;
 }) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { getAuthUser } = await import("@/lib/auth/get-user");
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please log in to skip tracks" };

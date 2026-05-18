@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Player } from "@/components/Player";
 import { Toaster } from "sonner";
@@ -117,6 +118,7 @@ export default function RootLayout({
   };
 
   return (
+    <ClerkProvider>
     <html lang="ru" suppressHydrationWarning>
       <head>
         <script
@@ -146,5 +148,6 @@ export default function RootLayout({
         </Providers>
       </body>
     </html>
+    </ClerkProvider>
   );
 }

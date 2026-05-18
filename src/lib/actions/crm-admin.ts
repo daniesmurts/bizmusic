@@ -9,6 +9,7 @@ import {
   businessNiches,
   referralAgents,
   agentAssignments,
+  users,
 } from "@/db/schema";
 import {
   eq,
@@ -24,25 +25,21 @@ import {
   lte,
   not,
 } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 // ─── Auth Guard ───────────────────────────────────────────────────────────────
 
 async function requireAdmin(): Promise<boolean> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return false;
 
-  const { data } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const userData = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    columns: { role: true },
+  });
 
-  return data?.role === "ADMIN";
+  return userData?.role === "ADMIN";
 }
 
 // ─── Business Database ────────────────────────────────────────────────────────

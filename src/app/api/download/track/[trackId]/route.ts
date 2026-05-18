@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { songOfTheWeek, trackDownloadEvents, tracks } from "@/db/schema";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export const runtime = "nodejs";
 
@@ -30,8 +30,7 @@ export async function GET(
   context: { params: Promise<{ trackId: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
@@ -55,7 +54,10 @@ export async function GET(
     }
 
     const requestUrl = request.nextUrl;
-    const source = requestUrl.searchParams.get("source") || "unknown";
+    const VALID_SOURCES = ["email", "website", "app", "player", "song-of-week", "unknown"] as const;
+    type ValidSource = typeof VALID_SOURCES[number];
+    const rawSource = requestUrl.searchParams.get("source") ?? "";
+    const source: ValidSource = VALID_SOURCES.includes(rawSource as ValidSource) ? (rawSource as ValidSource) : "unknown";
     const requestedSongOfWeekId = requestUrl.searchParams.get("songOfWeekId");
 
     let songOfWeekId: string | null = null;

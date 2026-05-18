@@ -1,13 +1,18 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import { type User } from "@supabase/supabase-js";
+import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { del, keys } from "idb-keyval";
 
+// Slim user shape replacing the Supabase User type — keeps existing call sites working
+export interface AuthUser {
+  id: string;
+  email?: string | null;
+}
+
 type AuthContextType = {
-  user: User | null;
+  user: AuthUser | null;
   role: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -18,7 +23,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 async function clearAudioCache() {
   try {
     const allKeys = await keys();
-    const trackKeys = allKeys.filter((k) => typeof k === "string" && (k as string).startsWith("track-"));
+    const trackKeys = allKeys.filter(
+      (k) => typeof k === "string" && (k as string).startsWith("track-")
+    );
     await Promise.all(trackKeys.map((k) => del(k)));
   } catch {
     // IDB unavailable — ignore
@@ -26,74 +33,54 @@ async function clearAudioCache() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const { userId, isLoaded, signOut: clerkSignOut } = useClerkAuth();
+  const { user: clerkUser } = useUser();
   const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
   const router = useRouter();
   const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const fetchRole = async (userId: string) => {
-      const { data } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", userId)
-        .single();
-      setRole(data?.role ?? null);
-    };
+    if (!isLoaded) return;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        // Only refetch role when user identity changes (not on every token refresh)
-        if (currentUser.id !== lastUserIdRef.current) {
-          lastUserIdRef.current = currentUser.id;
-          fetchRole(currentUser.id);
-        }
+    if (userId && userId !== lastUserIdRef.current) {
+      lastUserIdRef.current = userId;
+      const clerkRole = clerkUser?.publicMetadata?.role as string | undefined;
+      if (clerkRole) {
+        setRole(clerkRole);
       } else {
-        lastUserIdRef.current = null;
-        setRole(null);
+        fetch("/api/user/role")
+          .then((r) => r.json())
+          .then((d) => setRole(d.role ?? null))
+          .catch(() => setRole(null));
       }
+    }
 
-      setLoading(false);
-
-      if (event === "SIGNED_IN") {
-        try {
-          localStorage.removeItem("featured-tracks-played");
-        } catch {
-          // localStorage unavailable
-        }
-        router.refresh();
-      }
-      if (event === "SIGNED_OUT") {
-        clearAudioCache();
-        router.refresh();
-        router.push("/");
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase, router]);
+    if (!userId) {
+      lastUserIdRef.current = null;
+      setRole(null);
+    }
+  }, [userId, isLoaded, clerkUser]);
 
   const signOut = async () => {
+    await clearAudioCache();
     try {
-      // Invalidate the session server-side first (revokes refresh token globally)
-      await fetch("/api/auth/logout", { method: "POST" });
+      localStorage.removeItem("featured-tracks-played");
     } catch {
-      // Network failure — fall through to client-side sign-out
+      // ignore
     }
-    await supabase.auth.signOut();
+    await clerkSignOut();
+    router.push("/");
   };
 
+  const user: AuthUser | null = userId
+    ? {
+        id: userId,
+        email: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
+      }
+    : null;
+
   return (
-    <AuthContext.Provider value={{ user, role, loading, signOut }}>
+    <AuthContext.Provider value={{ user, role, loading: !isLoaded, signOut }}>
       {children}
     </AuthContext.Provider>
   );

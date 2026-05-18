@@ -52,8 +52,9 @@ export const supportDeliveryStatusEnum = pgEnum("support_delivery_status", ["PEN
 // Users Table
 export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  clerkId: text("clerkId").unique(),
   email: text("email").notNull().unique(),
-  passwordHash: text("passwordHash").default("SUPABASE_AUTH"),
+  passwordHash: text("passwordHash").default("CLERK_AUTH"),
   role: roleEnum("role").default("BUSINESS_OWNER").notNull(),
   userType: userTypeEnum("userType").default("BUSINESS").notNull(),
   phone: text("phone"),
@@ -269,6 +270,9 @@ export const playLogs = pgTable("play_logs", {
   businessIdIdx: index("play_logs_business_id_idx").on(t.businessId),
   locationIdIdx: index("play_logs_location_id_idx").on(t.locationId),
   playedAtIdx: index("play_logs_played_at_idx").on(t.playedAt),
+  // Composite indexes for analytics range queries (businessId/locationId + date range)
+  businessPlayedAtIdx: index("play_logs_business_played_at_idx").on(t.businessId, t.playedAt),
+  locationPlayedAtIdx: index("play_logs_location_played_at_idx").on(t.locationId, t.playedAt),
 }));
 
 // Song of the Week Table

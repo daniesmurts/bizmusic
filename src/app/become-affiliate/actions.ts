@@ -2,14 +2,13 @@
 
 import { db } from "@/db";
 import { referralAgents } from "@/db/schema";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { generateUniqueReferralCode } from "@/lib/referral/code-generator";
 
 export async function becomeAffiliateAction(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     redirect("/register?next=/become-affiliate");

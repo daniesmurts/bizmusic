@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { db } from "@/db";
 import {
   referralAgents, referralConversions, commissionLedger, users, businesses,
@@ -10,8 +10,7 @@ import { AdminAffiliatesClient } from "./AdminAffiliatesClient";
 export const metadata = { title: "Партнёры — Администрирование" };
 
 export default async function AdminAffiliatesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) notFound();
 
   const userRow = await db.query.users.findFirst({

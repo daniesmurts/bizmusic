@@ -20,6 +20,6 @@ export default {
     url: databaseUrl.includes("supabase.co") && databaseUrl.includes(":5432") 
       ? databaseUrl.replace(":5432", ":6543") 
       : databaseUrl,
-    ssl: { rejectUnauthorized: false },
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
   },
 } satisfies Config;

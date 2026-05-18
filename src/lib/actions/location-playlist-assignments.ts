@@ -4,13 +4,10 @@ import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { businesses, locationPlaylistAssignments, locations, playlists, users } from "@/db/schema";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 async function resolveOwnerScope() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) return { user: null, businessId: null, isBranchManager: false };
 

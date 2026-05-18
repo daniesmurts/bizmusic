@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { generateWaveBatchAction } from "@/lib/actions/wave";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
+import { resolveAccessScope } from "@/lib/auth/scope";
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -17,10 +17,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing businessId" }, { status: 400 });
     }
 
+    const scope = await resolveAccessScope(user.id);
+    if (!scope || (scope.role !== "ADMIN" && scope.businessId !== businessId)) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
     const result = await generateWaveBatchAction(businessId, excludeTrackIds || []);
     return NextResponse.json(result);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

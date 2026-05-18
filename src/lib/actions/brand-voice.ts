@@ -20,7 +20,7 @@ import {
   MAX_FILE_SIZE,
   parseStorageObjectRef,
 } from "@/lib/supabase-storage";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { and, desc, eq } from "drizzle-orm";
 import * as mm from "music-metadata";
 
@@ -40,10 +40,7 @@ const BRAND_VOICE_ALLOWED_MIME_TYPES = [
 ];
 
 async function resolveBrandVoiceScope(): Promise<BrandVoiceScope | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return null;
@@ -335,7 +332,10 @@ export async function addVoiceSampleMetadataAction(input: AddVoiceSampleMetadata
     return { success: false, error: "Некорректный путь к файлу образца" };
   }
 
-  const estimatedDuration = await estimateDurationFromStoragePath(objectPath, input.mimeType);
+  // Skip the blocking server-side fetch+parse when the client already sent the duration.
+  const estimatedDuration = input.durationSeconds == null
+    ? await estimateDurationFromStoragePath(objectPath, input.mimeType)
+    : null;
   const normalizedDuration = Math.max(0, input.durationSeconds ?? estimatedDuration ?? 0);
 
   const [sample] = await db

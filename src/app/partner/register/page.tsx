@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { partnerRegisterAction } from "./actions";
@@ -18,8 +18,7 @@ export default async function PartnerRegisterPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   // Already logged in — send to the right place
   if (user) redirect("/dashboard/affiliate");

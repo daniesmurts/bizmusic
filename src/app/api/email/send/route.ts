@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { leads, leadActivities, referralAgents, crmBusinesses } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resend } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email-templates";
 import { getAgentFromAddress, getReplyToAddress, getNicheFromBusinessNiche } from "@/lib/email-helpers";
@@ -23,8 +23,7 @@ function logToFile(msg: string) {
 export async function POST(req: NextRequest) {
   try {
     // 1. Auth check
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -167,10 +166,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("[email/send] Uncaught Error:", error);
-    return NextResponse.json({ 
-      error: "INTERNAL_ERROR", 
-      message: error.message || "Unknown error",
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }, { status: 500 });
+    return NextResponse.json({ error: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

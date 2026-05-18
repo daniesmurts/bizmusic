@@ -431,6 +431,12 @@ export function getBrandVoiceProvider(): BrandVoiceProvider {
   const mode = process.env.BRAND_VOICE_PROVIDER_MODE || "mock";
 
   if (mode === "mock") {
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "[BrandVoice] BRAND_VOICE_PROVIDER_MODE is not set or is 'mock' in production. " +
+        "All synthesis calls will fail. Set to 'yandex' or 'http'."
+      );
+    }
     return new MockBrandVoiceProvider();
   }
 
