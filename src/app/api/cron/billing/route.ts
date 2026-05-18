@@ -6,6 +6,16 @@ import { tbank } from "@/lib/payments/tbank";
 import { PLANS } from "@/lib/payments/plans";
 import { getLivePlanPricing } from "@/lib/payments/plans-server";
 import { sendEmail } from "@/lib/email";
+import crypto from "crypto";
+
+function verifyCronSecret(req: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const authHeader = req.headers.get("authorization") ?? "";
+  const expected = `Bearer ${secret}`;
+  if (authHeader.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +24,7 @@ const MAX_BILLING_RETRIES = 3;
 export async function GET(req: Request) {
   try {
     // 1. Security: always require CRON_SECRET
-    const authHeader = req.headers.get("authorization");
-    if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!verifyCronSecret(req)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 

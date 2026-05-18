@@ -221,9 +221,13 @@ export async function adminAttachYandexModelUriAction(
             businessWithUser.legalName ?? "Ваш бизнес",
             model.actor.fullName,
           ),
-        }).catch(() => {});
+        }).catch((e) => {
+          console.warn("[brand-voice-admin] Failed to send model-ready email:", e);
+        });
       }
-    } catch {}
+    } catch (e) {
+      console.warn("[brand-voice-admin] Failed to send model-ready notification:", e);
+    }
 
     return { success: true, data: updated };
   } catch (err) {

@@ -2,10 +2,19 @@ import { db } from "@/db";
 import { commissionLedger, referralConversions } from "@/db/schema";
 import { and, eq, inArray, lt, isNotNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import crypto from "crypto";
+
+function verifyCronSecret(req: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const authHeader = req.headers.get("authorization") ?? "";
+  const expected = `Bearer ${secret}`;
+  if (authHeader.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+}
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!verifyCronSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

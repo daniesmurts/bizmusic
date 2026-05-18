@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   logToFile(`Incoming webhook request: ${req.url}`);
   
   if (secret !== process.env.INBOUND_EMAIL_SECRET) {
-    logToFile(`VERIFICATION FAILED: secret mismatch. Expected ${process.env.INBOUND_EMAIL_SECRET?.substring(0, 4)}... but got ${secret}`);
+    logToFile(`VERIFICATION FAILED: secret mismatch`);
     console.warn("[inbound] Invalid secret");
     // Return 200 anyway to prevent Mailgun retries
     return new Response("OK", { status: 200 });

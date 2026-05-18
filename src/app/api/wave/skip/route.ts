@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { businesses, trackSkips } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { trackSkips } from "@/db/schema";
 import { createClient } from "@/utils/supabase/server";
+import { resolveAccessScope } from "@/lib/auth/scope";
 
 export async function POST(req: Request) {
   try {
@@ -19,12 +19,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const business = await db.query.businesses.findFirst({
-      where: eq(businesses.id, businessId),
-      columns: { userId: true },
-    });
-
-    if (!business || business.userId !== user.id) {
+    const scope = await resolveAccessScope(user.id);
+    if (!scope || (scope.role !== "ADMIN" && scope.businessId !== businessId)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -35,8 +31,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

@@ -47,9 +47,16 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse
   }
 
-  // Fetch role once for all RBAC decisions (only when user is authenticated)
+  // Only fetch the role from DB when the current path actually requires RBAC decisions.
+  // This avoids a DB round-trip on every static asset and public-page request.
+  const pathname = request.nextUrl.pathname
+  const needsRbac =
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/dashboard') ||
+    ['/login', '/register', '/forgot-password'].some((r) => pathname.startsWith(r))
+
   let userRole: string | null = null
-  if (user) {
+  if (user && needsRbac) {
     const { data: userData } = await supabase
       .from('users')
       .select('role')

@@ -167,10 +167,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("[email/send] Uncaught Error:", error);
-    return NextResponse.json({ 
-      error: "INTERNAL_ERROR", 
-      message: error.message || "Unknown error",
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }, { status: 500 });
+    return NextResponse.json({ error: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
