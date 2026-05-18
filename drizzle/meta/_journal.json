@@ -176,6 +176,13 @@
       "when": 1779087980333,
       "tag": "0024_mighty_black_tom",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1779119342535,
+      "tag": "0025_pink_silver_centurion",
+      "breakpoints": true
     }
   ]
 }

@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { generateWaveBatchAction } from "@/lib/actions/wave";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

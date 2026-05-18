@@ -4,13 +4,12 @@ import { db } from "@/db";
 import { users, businesses, tracks, playLogs, licenses, payments, trackReactions, playlists, playlistTracks, locations, legalAcceptanceEvents, trackSkips, trackDownloadEvents } from "@/db/schema";
 import { eq, sql, desc, and, gte, between, or } from "drizzle-orm";
 import { startOfDay, subDays, startOfWeek, subWeeks, startOfMonth, subMonths, format, parseISO } from "date-fns";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export async function getAdminAnalyticsAction(dateRange?: { from: string; to: string }) {
   try {
     // Auth: only admins can access analytics
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { success: false, error: "Unauthorized" };
     }
@@ -713,8 +712,7 @@ export async function getAdminAnalyticsAction(dateRange?: { from: string; to: st
 
 export async function exportAdminAnalyticsCSVAction(dateRange?: { from: string; to: string }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id) });

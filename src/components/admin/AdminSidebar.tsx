@@ -20,7 +20,7 @@ import {
   MessageSquare,
   TrendingUp,
 } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { getAdminSupportBadgeCountAction } from "@/lib/actions/support";
 
@@ -43,7 +43,7 @@ const adminNavItems = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
+  const { signOut } = useAuth();
   const [supportBadge, setSupportBadge] = useState(0);
 
   useEffect(() => {
@@ -53,8 +53,7 @@ export function AdminSidebar() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.refresh();
+    await signOut();
     router.push("/login");
   };
 

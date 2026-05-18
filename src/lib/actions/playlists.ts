@@ -5,12 +5,11 @@ import { playlists, playlistTracks, tracks, businesses, users, type ScheduleConf
 import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
 async function checkRestrictedAccess() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return { isRestricted: true, user: null };
 
   const scope = await resolveAccessScope(user.id);

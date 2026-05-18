@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { locations, playLogs, users } from "@/db/schema";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
 function csvEscape(cell: unknown) {
@@ -11,8 +11,7 @@ function csvEscape(cell: unknown) {
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

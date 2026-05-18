@@ -11,7 +11,7 @@ import {
   commissionLedger,
 } from "@/db/schema";
 import { eq, and, desc, asc, lte, sql, count, inArray } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,10 +29,7 @@ type LeadStatus = (typeof VALID_STATUSES)[number];
 const CALL_STATUSES: LeadStatus[] = ["no_answer", "in_progress", "trial_sent"];
 
 async function getAgentId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
   const [agent] = await db
@@ -618,8 +615,7 @@ export async function getCrmLookupsAction() {
 }
 
 export async function getPartnerProfileAction() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return { success: false as const, error: "Unauthorized" };
 
   try {
@@ -650,8 +646,7 @@ export async function updatePartnerProfileAction(data: {
   city: string;
   telegramChatId: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return { success: false as const, error: "Unauthorized" };
 
   try {

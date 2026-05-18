@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { db, resilient } from "@/db";
 import {
   referralAgents, referralClicks, referralConversions,
@@ -76,8 +76,7 @@ function getPayoutStatusBadge(statuses: string[]) {
 }
 
 export default async function AffiliateDashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) redirect("/login?next=/dashboard/affiliate");
 

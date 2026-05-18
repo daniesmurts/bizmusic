@@ -9,7 +9,7 @@ import {
   supportMessages,
   users,
 } from "@/db/schema";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { dispatchSupportMessage } from "@/lib/integrations/support-dispatch";
 
 const conversationCategorySchema = z.enum(["GENERAL", "TECHNICAL", "BILLING", "LEGAL"]);
@@ -77,11 +77,7 @@ const PUBLIC_MESSAGE_LIMIT = 5;
 const PUBLIC_MESSAGE_WINDOW_MS = 10 * 60 * 1000;
 
 async function getCurrentUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  return getAuthUser();
 }
 
 async function assertAdminUser() {
@@ -303,8 +299,8 @@ export async function createDashboardSupportMessageAction(rawInput: z.infer<type
       category: input.category,
       source: "DASHBOARD",
       body: input.message,
-      visitorName: user.user_metadata?.name || null,
-      visitorEmail: user.email || null,
+      visitorName: null,
+      visitorEmail: null,
       visitorPhone: business?.phone || null,
     });
 

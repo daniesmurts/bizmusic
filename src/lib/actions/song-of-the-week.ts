@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { songOfTheWeek, tracks } from "@/db/schema";
 import { and, desc, eq, gte, lt } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
 /**
@@ -15,8 +15,7 @@ export async function setSongOfTheWeek(
   expiresAt: Date
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       throw new Error("Не авторизован");
@@ -174,8 +173,7 @@ export async function getSongOfTheWeekByDate(dateStr: string) {
  */
 export async function deactivateSongOfTheWeek(id: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       throw new Error("Не авторизован");

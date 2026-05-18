@@ -2,14 +2,23 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { useSignIn } from "@clerk/nextjs/legacy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
-import { translateAuthError } from "@/utils/auth-errors";
+
+function translateClerkError(err: unknown): string {
+  const msg = (err as { errors?: { message?: string }[] })?.errors?.[0]?.message ?? String(err);
+  if (msg.includes("Invalid credentials") || msg.includes("invalid_credentials"))
+    return "Неверный email или пароль";
+  if (msg.includes("too many requests") || msg.includes("rate_limit"))
+    return "Слишком много попыток. Попробуйте позже.";
+  if (msg.includes("not found") || msg.includes("no user"))
+    return "Пользователь не найден";
+  return "Произошла ошибка при входе. Попробуйте снова.";
+}
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,47 +26,31 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const supabase = createClient();
+  const { signIn, isLoaded } = useSignIn();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError(null);
 
-    const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (loginError) {
-      console.error("Login Error Details:", {
-        message: loginError.message,
-        status: loginError.status,
-        name: loginError.name
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
       });
 
-      setError(translateAuthError(loginError.message));
-      setLoading(false);
-      return;
-    }
-
-    // Route based on role: partners have a completely separate dashboard
-    let destination = "/dashboard";
-    if (authData.user) {
-      const { data: profile } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", authData.user.id)
-        .single();
-
-      if (profile?.role === "PARTNER" || authData.user.user_metadata?.is_partner === true) {
-        destination = "/dashboard/affiliate";
+      if (result.status === "complete") {
+        // Hard navigation so server components re-render with the new session
+        window.location.href = "/dashboard";
+      } else {
+        setError("Требуется дополнительная проверка. Обратитесь в поддержку.");
+        setLoading(false);
       }
+    } catch (err) {
+      setError(translateClerkError(err));
+      setLoading(false);
     }
-
-    // Force a hard navigation so cookies are correctly sent to the Next.js server components
-    window.location.href = destination;
   };
 
   return (
@@ -80,7 +73,7 @@ export default function Login() {
               <span className="leading-relaxed break-words">{error}</span>
             </div>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="email" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Email</Label>
             <Input
@@ -98,7 +91,7 @@ export default function Login() {
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-neutral-500">Пароль</Label>
-              <Link href="/forgot-password" data-id="forgot-password-link" className="text-xs font-black uppercase tracking-widest text-neon/60 hover:text-neon transition-colors font-black">
+              <Link href="/forgot-password" className="text-xs font-black uppercase tracking-widest text-neon/60 hover:text-neon transition-colors">
                 Забыли?
               </Link>
             </div>
@@ -119,25 +112,17 @@ export default function Login() {
                 className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neon transition-colors p-3 rounded-xl hover:bg-white/5 z-10 touch-manipulation"
                 disabled={loading}
               >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-            disabled={loading}
+            disabled={loading || !isLoaded}
           >
-            {loading ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              "Войти в кабинет"
-            )}
+            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Войти в кабинет"}
           </Button>
         </form>
       </CardContent>

@@ -9,7 +9,7 @@ import {
 } from "@/db/schema";
 import { count, desc, eq } from "drizzle-orm";
 import { getDownloadSignedUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { sendEmail } from "@/lib/email";
 
 // ---------------------------------------------------------------------------
@@ -17,10 +17,7 @@ import { sendEmail } from "@/lib/email";
 // ---------------------------------------------------------------------------
 
 async function requireAdminUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     throw new Error("Unauthorized");

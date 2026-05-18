@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { businesses, payments } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { normalizeBusinessLegalData, validateBusinessLegalData } from "@/lib/validation/business";
 
 /**
@@ -12,22 +12,21 @@ import { normalizeBusinessLegalData, validateBusinessLegalData } from "@/lib/val
  */
 export async function getUserProfileAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const user = await getAuthUser();
+
     if (!user) throw new Error("Not authenticated");
-    
+
     // Get business data
     const business = await db.query.businesses.findFirst({
       where: eq(businesses.userId, user.id),
     });
-    
+
     return {
       success: true,
       data: {
         user: {
           id: user.id,
-          email: user.email,
+          email: null, // email not available from Clerk minimal helper
         },
         business: business || null,
       },
@@ -43,87 +42,23 @@ export async function getUserProfileAction() {
 }
 
 /**
- * Update user email
+ * Update user email — managed by Clerk; use Clerk's built-in flows
  */
-export async function updateUserEmailAction(newEmail: string) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) throw new Error("Not authenticated");
-    
-    if (!newEmail || !newEmail.includes("@")) {
-      return { success: false, error: "Invalid email address" };
-    }
-    
-    const { error } = await supabase.auth.updateUser({
-      email: newEmail,
-    });
-    
-    if (error) throw error;
-    
-    revalidatePath("/dashboard/settings");
-    
-    return {
-      success: true,
-      message: "Email updated. Please check your new email for confirmation.",
-    };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to update email";
-    console.error("Update email error:", error);
-    return {
-      success: false,
-      error: message,
-    };
-  }
+export async function updateUserEmailAction(_newEmail: string) {
+  return {
+    success: false,
+    error: "Смена email выполняется через профиль Clerk. Обратитесь в поддержку.",
+  };
 }
 
 /**
- * Update user password
+ * Update user password — managed by Clerk; use Clerk's built-in flows
  */
-export async function updateUserPasswordAction(currentPassword: string, newPassword: string) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) throw new Error("Not authenticated");
-    
-    if (!currentPassword) {
-      return { success: false, error: "Введите текущий пароль" };
-    }
-    
-    if (!newPassword || newPassword.length < 8) {
-      return { success: false, error: "Пароль должен быть не менее 8 символов" };
-    }
-    
-    // Verify current password by attempting sign-in
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email!,
-      password: currentPassword,
-    });
-    
-    if (signInError) {
-      return { success: false, error: "Неверный текущий пароль" };
-    }
-    
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-    
-    if (error) throw error;
-    
-    return {
-      success: true,
-      message: "Пароль успешно обновлён",
-    };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to update password";
-    console.error("Update password error:", error);
-    return {
-      success: false,
-      error: message,
-    };
-  }
+export async function updateUserPasswordAction(_currentPassword: string, _newPassword: string) {
+  return {
+    success: false,
+    error: "Смена пароля выполняется через профиль Clerk. Воспользуйтесь ссылкой «Сменить пароль» в настройках аккаунта.",
+  };
 }
 
 export interface BusinessProfileInput {
@@ -146,9 +81,8 @@ export interface BusinessProfileInput {
  */
 export async function updateBusinessProfileAction(data: BusinessProfileInput) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const user = await getAuthUser();
+
     if (!user) throw new Error("Not authenticated");
     
     // Get existing business
@@ -237,9 +171,8 @@ export async function updateBusinessProfileAction(data: BusinessProfileInput) {
  */
 export async function getPaymentMethodsAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const user = await getAuthUser();
+
     if (!user) throw new Error("Not authenticated");
 
     // First find businessId
@@ -275,9 +208,8 @@ export async function getPaymentMethodsAction() {
  */
 export async function getSubscriptionInfoAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const user = await getAuthUser();
+
     if (!user) throw new Error("Not authenticated");
     
     const business = await db.query.businesses.findFirst({

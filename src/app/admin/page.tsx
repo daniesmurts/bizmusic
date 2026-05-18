@@ -1,4 +1,3 @@
-import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { businesses, tracks, playLogs, licenses, payments, users } from "@/db/schema";
 import { eq, sql, desc } from "drizzle-orm";

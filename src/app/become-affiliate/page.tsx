@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { db } from "@/db";
 import { referralAgents, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -13,8 +13,7 @@ export default async function BecomeAffiliatePage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   // Not logged in → partner registration (creates a PARTNER-role account)
   if (!user) {

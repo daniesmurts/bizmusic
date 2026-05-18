@@ -4,12 +4,11 @@ import { db } from "@/db";
 import { legalAcceptanceEvents, users } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import type { AdminLegalAcceptanceEvent } from "@/types/admin";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export async function getLegalAcceptanceEventsAction(limit: number = 100) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };

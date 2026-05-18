@@ -12,7 +12,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import { tbank } from "@/lib/payments/tbank";
 import { getPlanBySlug, getTtsTokenPackById } from "@/lib/payments/plans";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { sendEmail } from "@/lib/email";
 import { validateBusinessLegalData } from "@/lib/validation/business";
 
@@ -47,8 +47,7 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
     const plan = getPlanBySlug(planSlug);
     if (!plan) return { success: false, error: "Тариф не найден" };
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };
@@ -141,7 +140,7 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
       FailURL: `${appUrl}/dashboard/subscription/failure?orderId=${orderId}`,
       NotificationURL: `${appUrl}/api/payments/notification`,
       Receipt: {
-        Email: user.email,
+        Email: business.user?.email,
         Taxation: 'usn_income_outcome',
         Items: [
           {
@@ -193,8 +192,7 @@ export async function startFreeTrial(businessId: string, planSlug: string, inter
 }
 
 export async function getPaymentStatus(orderId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return undefined;
 
   const payment = await db.query.payments.findFirst({
@@ -213,8 +211,7 @@ export async function getPaymentStatus(orderId: string) {
 
 export async function cancelSubscription(businessId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };
@@ -282,8 +279,7 @@ export async function cancelSubscription(businessId: string) {
 
 export async function reactivateSubscription(businessId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };
@@ -347,8 +343,7 @@ export async function reactivateSubscription(businessId: string) {
 
 export async function removePaymentMethod(businessId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };
@@ -397,8 +392,7 @@ export async function startBrandVoiceSetupPaymentAction(modelId: string, tier: B
       return { success: false, error: "Неизвестный тариф Brand Voice" };
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };
@@ -441,7 +435,7 @@ export async function startBrandVoiceSetupPaymentAction(modelId: string, tier: B
       FailURL: `${appUrl}/dashboard/brand-voice?setup=failed`,
       NotificationURL: `${appUrl}/api/payments/notification`,
       Receipt: {
-        Email: user.email,
+        Email: business.user?.email,
         Taxation: "usn_income_outcome",
         Items: [
           {
@@ -499,8 +493,7 @@ export async function startBrandVoiceSetupPaymentAction(modelId: string, tier: B
 
 export async function purchaseBrandVoiceMonthlyAction(modelId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };
@@ -548,7 +541,7 @@ export async function purchaseBrandVoiceMonthlyAction(modelId: string) {
       FailURL: `${appUrl}/dashboard/brand-voice?monthly=failed`,
       NotificationURL: `${appUrl}/api/payments/notification`,
       Receipt: {
-        Email: user.email,
+        Email: business.user?.email,
         Taxation: "usn_income_outcome",
         Items: [
           {
@@ -614,8 +607,7 @@ export async function purchaseBrandVoiceOverageAction(modelId: string, blocksCou
       return { success: false, error: "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u043e\u0435 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e \u0431\u043b\u043e\u043a\u043e\u0432" };
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return { success: false, error: "\u0410\u0432\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u044f \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u0430" };
 
     const business = await db.query.businesses.findFirst({
@@ -657,7 +649,7 @@ export async function purchaseBrandVoiceOverageAction(modelId: string, blocksCou
       FailURL: `${appUrl}/dashboard/brand-voice?overage=failed`,
       NotificationURL: `${appUrl}/api/payments/notification`,
       Receipt: {
-        Email: user.email,
+        Email: business.user?.email,
         Taxation: "usn_income_outcome",
         Items: [
           {
@@ -710,8 +702,7 @@ export async function purchaseTtsTokensAction(
       return { success: false, error: "Пакет токенов не найден" };
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };
@@ -745,7 +736,7 @@ export async function purchaseTtsTokensAction(
       FailURL: `${appUrl}/dashboard/announcements?tokens=failed`,
       NotificationURL: `${appUrl}/api/payments/notification`,
       Receipt: {
-        Email: user.email,
+        Email: business.user?.email,
         Taxation: "usn_income_outcome",
         Items: [
           {
@@ -799,8 +790,7 @@ export async function purchaseTtsTokensAction(
 
 export async function purchasePlatformAnnouncementAction(platformAnnouncementId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Авторизация обязательна" };
@@ -859,7 +849,7 @@ export async function purchasePlatformAnnouncementAction(platformAnnouncementId:
       FailURL: `${appUrl}/dashboard/announcements?announcement=failed`,
       NotificationURL: `${appUrl}/api/payments/notification`,
       Receipt: {
-        Email: user.email,
+        Email: business.user?.email,
         Taxation: "usn_income_outcome",
         Items: [
           {

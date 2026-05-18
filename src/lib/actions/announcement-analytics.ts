@@ -3,13 +3,12 @@
 import { db } from "@/db";
 import { announcementPlayLogs, voiceAnnouncements, tracks } from "@/db/schema";
 import { eq, and, gte, sql, count, avg } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 import { businesses } from "@/db/schema";
 
 async function resolveBusinessScope() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
   const scope = await resolveAccessScope(user.id);
   if (!scope?.businessId) return null;

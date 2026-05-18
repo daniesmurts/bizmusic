@@ -6,7 +6,7 @@ import {
   getFileSizeInMB,
   getUploadSignedUrl,
 } from "@/lib/supabase-storage";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 /**
  * POST /api/upload
@@ -15,8 +15,7 @@ import { createClient } from "@/utils/supabase/server";
 export async function POST(request: NextRequest) {
   try {
     // Auth check — only authenticated users can upload
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return NextResponse.json(
         { error: "Unauthorized" },

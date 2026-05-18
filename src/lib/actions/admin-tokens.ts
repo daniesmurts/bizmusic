@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { businesses, ttsCreditLots } from "@/db/schema";
-import { createClient } from "@/utils/supabase/server";
+import { businesses, ttsCreditLots, users } from "@/db/schema";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { asc, eq } from "drizzle-orm";
 
 export interface AwardFreeTokensInput {
@@ -12,18 +12,13 @@ export interface AwardFreeTokensInput {
 }
 
 async function requireAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getAuthUser();
   if (!user) return null;
 
-  const { data: userData } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const userData = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    columns: { role: true },
+  });
 
   if (userData?.role !== "ADMIN") return null;
   return user;

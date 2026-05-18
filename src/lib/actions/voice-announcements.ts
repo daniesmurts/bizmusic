@@ -8,7 +8,7 @@ import {
   createAnnouncementDeleteScope,
   isAnnouncementOwnedByBusiness,
 } from "@/lib/voice-announcements-security";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import * as mm from "music-metadata";
@@ -27,8 +27,7 @@ import { MAX_JINGLE_DURATION_SEC, mixAnnouncementWithJingle } from "@/lib/audio-
 import { getBrandVoiceProvider } from "@/lib/integrations/brand-voice-provider";
 
 async function resolveAnnouncementScope() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return { user: null, scope: null, business: null };

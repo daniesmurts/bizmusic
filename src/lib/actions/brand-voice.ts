@@ -20,7 +20,7 @@ import {
   MAX_FILE_SIZE,
   parseStorageObjectRef,
 } from "@/lib/supabase-storage";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { and, desc, eq } from "drizzle-orm";
 import * as mm from "music-metadata";
 
@@ -40,10 +40,7 @@ const BRAND_VOICE_ALLOWED_MIME_TYPES = [
 ];
 
 async function resolveBrandVoiceScope(): Promise<BrandVoiceScope | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return null;
