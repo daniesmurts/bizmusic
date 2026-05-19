@@ -10,17 +10,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
 function translateClerkError(err: unknown): React.ReactNode {
-  const code = (err as { errors?: { code?: string }[] })?.errors?.[0]?.code ?? "";
-  const msg = (err as { errors?: { message?: string }[] })?.errors?.[0]?.message ?? String(err);
+  // Surface the raw error in dev so we can see what Clerk is returning
+  if (typeof window !== "undefined") console.error("[login error]", err);
 
-  if (code === "form_password_incorrect" || msg.includes("Invalid credentials") || msg.includes("invalid_credentials")) {
+  const first = (err as { errors?: { code?: string; message?: string; longMessage?: string }[] })?.errors?.[0];
+  const code = first?.code ?? "";
+  const msg = first?.message ?? String(err);
+
+  if (code === "form_password_incorrect" || msg.includes("Invalid credentials") || msg.includes("invalid_credentials") || code === "form_identifier_not_found_for_account") {
     return (
       <>
-        Неверный пароль.{" "}
+        Неверный email или пароль.{" "}
         <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
           Сбросьте пароль
         </a>
-        , чтобы войти.
+        , если вы не помните его.
       </>
     );
   }
@@ -28,7 +32,22 @@ function translateClerkError(err: unknown): React.ReactNode {
     return "Пользователь с таким email не найден.";
   if (msg.includes("too many requests") || msg.includes("rate_limit"))
     return "Слишком много попыток. Попробуйте позже.";
-  return "Произошла ошибка при входе. Попробуйте снова.";
+  if (code === "session_exists")
+    return "Вы уже вошли в систему. Обновите страницу.";
+  if (code === "form_password_pwned" || msg.includes("data breach") || msg.includes("pwned")) {
+    return (
+      <>
+        Ваш пароль был найден в утечке данных. В целях безопасности{" "}
+        <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
+          сбросьте пароль
+        </a>
+        .
+      </>
+    );
+  }
+
+  // Fall back to Clerk's own message — it's at least informative
+  return first?.longMessage ?? first?.message ?? "Произошла ошибка при входе. Попробуйте снова.";
 }
 
 export default function Login() {
