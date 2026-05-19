@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
             // 'unsafe-inline' required by Next.js App Router hydration scripts.
             // 'unsafe-eval' required by webpack HMR in dev. No nonce enforcement — remove
             // 'strict-dynamic' since it overrides 'self' in modern browsers without a nonce.
-            `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://mc.yandex.com https://challenges.cloudflare.com`,
+            `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://mc.yandex.com https://challenges.cloudflare.com https://*.clerk.accounts.dev`,
             "style-src 'self' 'unsafe-inline'",
             // Clerk UI components load images (profile pictures, avatars)
             "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob: https://mc.yandex.ru https://mc.yandex.com https://img.clerk.com",
