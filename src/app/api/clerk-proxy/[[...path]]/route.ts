@@ -67,9 +67,25 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
 
     // Stream response back. Preserve Set-Cookie (Clerk sets the session cookie here).
     const responseHeaders = new Headers();
+    const proxyPrefix = `${url.origin}/api/clerk-proxy`;
     upstream.headers.forEach((value, key) => {
+      const k = key.toLowerCase();
       // 'content-encoding' must not be forwarded because fetch already decoded the body
-      if (key.toLowerCase() === "content-encoding") return;
+      if (k === "content-encoding") return;
+      // Rewrite redirects to clerk.bizmuzik.ru / FAPI back through our proxy so
+      // the client never gets sent to a host that mobile carriers might block.
+      if (k === "location") {
+        try {
+          const loc = new URL(value, target);
+          const upstreamOrigin = new URL(CLERK_FAPI).origin;
+          if (loc.origin === upstreamOrigin) {
+            responseHeaders.append(key, `${proxyPrefix}${loc.pathname}${loc.search}${loc.hash}`);
+            return;
+          }
+        } catch {
+          // fall through and forward as-is
+        }
+      }
       responseHeaders.append(key, value);
     });
 
