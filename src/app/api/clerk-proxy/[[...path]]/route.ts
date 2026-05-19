@@ -35,8 +35,9 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
     headers.delete("host");
     headers.delete("content-length"); // fetch sets this itself
 
-    // Tell Clerk that traffic arrived via a proxy — required when proxy mode is on.
-    headers.set("Clerk-Proxy-Url", `${url.origin}/api/clerk-proxy`);
+    // Don't set Clerk-Proxy-Url: we're not running in Clerk's official proxy
+    // mode (their verification fails because YC can't reach frontend-api.clerk.services).
+    // Forwarding to the custom domain works fine as a transparent reverse proxy.
     headers.set("X-Forwarded-Host", url.host);
     const forwardedFor = req.headers.get("x-forwarded-for") ?? "";
     if (forwardedFor) headers.set("X-Forwarded-For", forwardedFor);
