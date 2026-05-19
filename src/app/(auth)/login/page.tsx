@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useSignIn } from "@clerk/nextjs/legacy";
 import { Button } from "@/components/ui/button";
@@ -9,14 +9,25 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
-function translateClerkError(err: unknown): string {
+function translateClerkError(err: unknown): React.ReactNode {
+  const code = (err as { errors?: { code?: string }[] })?.errors?.[0]?.code ?? "";
   const msg = (err as { errors?: { message?: string }[] })?.errors?.[0]?.message ?? String(err);
-  if (msg.includes("Invalid credentials") || msg.includes("invalid_credentials"))
-    return "Неверный email или пароль";
+
+  if (code === "form_password_incorrect" || msg.includes("Invalid credentials") || msg.includes("invalid_credentials")) {
+    return (
+      <>
+        Неверный пароль.{" "}
+        <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
+          Сбросьте пароль
+        </a>
+        , чтобы войти.
+      </>
+    );
+  }
+  if (code === "form_identifier_not_found" || msg.includes("not found") || msg.includes("no user"))
+    return "Пользователь с таким email не найден.";
   if (msg.includes("too many requests") || msg.includes("rate_limit"))
     return "Слишком много попыток. Попробуйте позже.";
-  if (msg.includes("not found") || msg.includes("no user"))
-    return "Пользователь не найден";
   return "Произошла ошибка при входе. Попробуйте снова.";
 }
 
@@ -25,7 +36,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
   const { signIn, isLoaded } = useSignIn();
 
   const handleLogin = async (e: React.FormEvent) => {
