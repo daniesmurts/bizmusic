@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 
 function translateClerkError(err: unknown): React.ReactNode {
-  // Surface the raw error in dev so we can see what Clerk is returning
   if (typeof window !== "undefined") console.error("[login error]", err);
 
   const first = (err as { errors?: { code?: string; message?: string; longMessage?: string }[] })?.errors?.[0];
@@ -45,8 +44,6 @@ function translateClerkError(err: unknown): React.ReactNode {
       </>
     );
   }
-
-  // Fall back to Clerk's own message — it's at least informative
   return first?.longMessage ?? first?.message ?? "Произошла ошибка при входе. Попробуйте снова.";
 }
 
@@ -56,6 +53,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<React.ReactNode | null>(null);
+  const [needsCode, setNeedsCode] = useState(false);
+  const [code, setCode] = useState("");
   const { signIn, setActive, isLoaded } = useSignIn();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -65,35 +64,67 @@ export default function Login() {
     setError(null);
 
     try {
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      });
+      const result = await signIn.create({ identifier: email, password });
 
       if (result.status === "complete") {
-        // Activate the session before redirecting — otherwise the cookies
-        // aren't set yet and the dashboard load thinks we're unauthenticated.
+        await setActive({ session: result.createdSessionId });
+        window.location.href = "/dashboard";
+        return;
+      }
+
+      if (result.status === "needs_second_factor") {
+        // Find the email_code second factor and send the code
+        const emailFactor = result.supportedSecondFactors?.find((f) => f.strategy === "email_code");
+        if (emailFactor && "emailAddressId" in emailFactor) {
+          await signIn.prepareSecondFactor({
+            strategy: "email_code",
+            emailAddressId: (emailFactor as { emailAddressId: string }).emailAddressId,
+          });
+          setNeedsCode(true);
+          setLoading(false);
+          return;
+        }
+        setError("Требуется двухфакторная аутентификация, но метод не поддерживается. Обратитесь в поддержку.");
+        setLoading(false);
+        return;
+      }
+
+      console.error("[login non-complete status]", result);
+      if (result.status === "needs_first_factor") {
+        setError("Подтвердите email перед входом.");
+      } else if (result.status === "needs_new_password") {
+        setError(
+          <>
+            Требуется смена пароля.{" "}
+            <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
+              Сбросьте пароль
+            </a>
+            .
+          </>
+        );
+      } else {
+        setError(`Неожиданный статус входа: ${result.status}.`);
+      }
+      setLoading(false);
+    } catch (err) {
+      setError(translateClerkError(err));
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded || !signIn) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await signIn.attemptSecondFactor({ strategy: "email_code", code });
+      if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         window.location.href = "/dashboard";
       } else {
-        console.error("[login non-complete status]", result);
-        if (result.status === "needs_first_factor") {
-          setError("Подтвердите email перед входом — мы отправили вам ссылку при регистрации.");
-        } else if (result.status === "needs_second_factor") {
-          setError("Требуется двухфакторная аутентификация. Эта функция пока не поддерживается в интерфейсе.");
-        } else if (result.status === "needs_new_password") {
-          setError(
-            <>
-              Требуется смена пароля.{" "}
-              <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
-                Сбросьте пароль
-              </a>
-              .
-            </>
-          );
-        } else {
-          setError(`Неожиданный статус входа: ${result.status}. Обратитесь в поддержку.`);
-        }
+        setError(`Не удалось завершить вход: ${result.status}.`);
         setLoading(false);
       }
     } catch (err) {
@@ -101,6 +132,59 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  if (needsCode) {
+    return (
+      <Card className="glass-dark border-white/10 text-white overflow-hidden animate-fade-in shadow-2xl shadow-neon/5">
+        <CardHeader className="space-y-4 pt-10 px-8">
+          <div className="flex items-center gap-3 text-neon">
+            <ShieldCheck className="w-8 h-8" />
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+          <div className="space-y-2">
+            <CardTitle className="text-4xl font-black tracking-tighter uppercase leading-none">
+              Проверка <br /><span className="text-neon">по email</span>
+            </CardTitle>
+            <CardDescription className="text-neutral-400 font-medium">
+              Мы отправили код на <strong>{email}</strong>. Введите его, чтобы завершить вход.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="px-8 pt-4 pb-10">
+          <form onSubmit={handleVerifyCode} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="code" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Код из письма</Label>
+              <Input
+                id="code"
+                type="text"
+                inputMode="numeric"
+                placeholder="123456"
+                className="bg-white/5 border-white/10 rounded-2xl py-6 text-center tracking-[0.5em] text-xl font-black focus:border-neon/50 focus:ring-neon/20 transition-all"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                required
+                disabled={loading}
+                autoFocus
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
+              disabled={loading || code.length !== 6}
+            >
+              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Подтвердить и войти"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="glass-dark border-white/10 text-white overflow-hidden animate-fade-in shadow-2xl shadow-neon/5">
