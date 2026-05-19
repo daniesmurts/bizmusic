@@ -39,6 +39,7 @@ jobs:
             NEXT_PUBLIC_CLERK_SIGN_UP_URL=/register
             NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
             NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
