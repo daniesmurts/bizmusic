@@ -30,17 +30,25 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
     const url = new URL(req.url);
     const target = `${CLERK_FAPI}/${path.join("/")}${url.search}`;
 
-    // Forward headers, stripping ones that don't apply to the upstream
-    const headers = new Headers(req.headers);
-    headers.delete("host");
-    headers.delete("content-length"); // fetch sets this itself
-
-    // Don't set Clerk-Proxy-Url: we're not running in Clerk's official proxy
-    // mode (their verification fails because YC can't reach frontend-api.clerk.services).
-    // Forwarding to the custom domain works fine as a transparent reverse proxy.
-    headers.set("X-Forwarded-Host", url.host);
-    const forwardedFor = req.headers.get("x-forwarded-for") ?? "";
-    if (forwardedFor) headers.set("X-Forwarded-For", forwardedFor);
+    // Build a clean header set forwarding only the headers Clerk actually cares
+    // about — leaking our own x-forwarded-host / x-forwarded-proto makes Clerk's
+    // edge worker think the request came in for "bizmuzik.ru" and return
+    // "Invalid host" because no Clerk instance maps to that domain.
+    const headers = new Headers();
+    const forwardable = [
+      "accept",
+      "accept-language",
+      "authorization",
+      "content-type",
+      "cookie",
+      "origin",
+      "referer",
+      "user-agent",
+    ];
+    for (const name of forwardable) {
+      const v = req.headers.get(name);
+      if (v) headers.set(name, v);
+    }
 
     const init: RequestInit = {
       method: req.method,
