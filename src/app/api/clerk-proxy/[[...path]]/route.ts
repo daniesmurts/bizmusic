@@ -67,7 +67,14 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
 
     // Stream response back. Preserve Set-Cookie (Clerk sets the session cookie here).
     const responseHeaders = new Headers();
-    const proxyPrefix = `${url.origin}/api/clerk-proxy`;
+    // url.origin is unreliable here — YC serverless containers see the request
+    // as http://0.0.0.0:8080. Use the public app URL or the forwarded host.
+    const publicOrigin =
+      process.env.NEXT_PUBLIC_APP_URL ??
+      (req.headers.get("x-forwarded-host")
+        ? `https://${req.headers.get("x-forwarded-host")}`
+        : url.origin);
+    const proxyPrefix = `${publicOrigin}/api/clerk-proxy`;
     upstream.headers.forEach((value, key) => {
       const k = key.toLowerCase();
       // 'content-encoding' must not be forwarded because fetch already decoded the body
