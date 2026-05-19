@@ -18,9 +18,11 @@ import { NextRequest } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// Use Clerk's Frontend API host as the upstream. With proxy mode enabled in the
-// Clerk Dashboard, this is the canonical destination regardless of your domain.
-const CLERK_FAPI = "https://frontend-api.clerk.services";
+// Forward to the user's Clerk custom domain. From Yandex Cloud's network this
+// is reachable (only Russian mobile carriers block it), so the server-side hop
+// works. Mobile clients only ever see bizmuzik.ru, bypassing the carrier block.
+// Override with CLERK_FAPI_UPSTREAM env var if needed.
+const CLERK_FAPI = process.env.CLERK_FAPI_UPSTREAM ?? "https://clerk.bizmuzik.ru";
 
 async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] }> }) {
   try {
