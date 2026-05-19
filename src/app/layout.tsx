@@ -125,7 +125,7 @@ export default function RootLayout({
       // Both props are marked @internal in Clerk's types but supported at runtime.
       {...({
         __internal_clerkJSUrl: "/clerk-js/clerk.browser.js",
-        proxyUrl: "/api/__clerk_proxy",
+        proxyUrl: "/api/clerk-proxy",
       } as Record<string, unknown>)}
     >
     <html lang="ru" suppressHydrationWarning>

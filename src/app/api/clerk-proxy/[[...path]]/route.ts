@@ -8,7 +8,7 @@
  *
  * Setup required in Clerk Dashboard:
  * - Configure → Domains → switch to "Use proxy" mode
- * - Set Proxy URL: https://bizmuzik.ru/api/__clerk_proxy
+ * - Set Proxy URL: https://bizmuzik.ru/api/clerk-proxy
  *
  * The ClerkProvider in layout.tsx must also be told to use this URL via proxyUrl.
  */
@@ -33,7 +33,7 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
   headers.delete("content-length"); // fetch sets this itself
 
   // Tell Clerk that traffic arrived via a proxy — required when proxy mode is on.
-  headers.set("Clerk-Proxy-Url", `${url.origin}/api/__clerk_proxy`);
+  headers.set("Clerk-Proxy-Url", `${url.origin}/api/clerk-proxy`);
   headers.set("X-Forwarded-Host", url.host);
   const forwardedFor = req.headers.get("x-forwarded-for") ?? "";
   if (forwardedFor) headers.set("X-Forwarded-For", forwardedFor);
