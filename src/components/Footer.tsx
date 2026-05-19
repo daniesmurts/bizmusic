@@ -21,6 +21,7 @@ export function Footer({ variant = "default" }: FooterProps) {
             <Link href="/knowledge" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Справка</Link>
             <Link href="/about" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Контакты</Link>
             <Link href="/become-affiliate" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Партнёрам</Link>
+            <a href="https://status.bizmuzik.ru" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neon transition-colors">Статус</a>
           </div>
         </div>
       </footer>
@@ -111,6 +112,7 @@ export function Footer({ variant = "default" }: FooterProps) {
                 { name: "База знаний", href: "/knowledge" },
                 { name: "Записаться на демо", href: "/demo" },
                 { name: "Стать партнёром", href: "/partner/register" },
+                { name: "Статус сервиса", href: "https://status.bizmuzik.ru" },
               ].map((link) => (
                 <Link key={link.name} href={link.href} className="text-sm font-bold text-neutral-500 hover:text-neon transition-colors uppercase tracking-widest text-[11px]">
                   {link.name}
