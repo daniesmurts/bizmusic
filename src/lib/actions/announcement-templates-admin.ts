@@ -4,15 +4,12 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { announcementTemplates, users } from "@/db/schema";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export type AnnouncementTemplateRow = typeof announcementTemplates.$inferSelect;
 
 async function requireAdminUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     throw new Error("Unauthorized");

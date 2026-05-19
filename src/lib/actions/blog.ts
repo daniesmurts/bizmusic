@@ -4,13 +4,12 @@ import { db } from "@/db";
 import { blogPosts, blogCategories, blogPostTags, users } from "@/db/schema";
 import { eq, asc, desc, and, ilike, or, sql, SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 // Redundant types removed as Drizzle handles inference
 
 async function checkAdmin() {
-  const { createClient } = await import("@/utils/supabase/server");
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) return { isAdmin: false, error: "Unauthorized" };
 
@@ -23,7 +22,7 @@ async function checkAdmin() {
     return { isAdmin: false, error: "Forbidden: Admin access required" };
   }
 
-  return { isAdmin: true, user, supabase };
+  return { isAdmin: true, user };
 }
 
 export interface BlogPost {
@@ -289,8 +288,8 @@ export async function getBlogCategoriesAction() {
  */
 export async function createBlogPostAction(data: BlogPostInput) {
   try {
-    const { isAdmin, error: adminError, supabase } = await checkAdmin();
-    if (!isAdmin || !supabase) return { success: false, error: adminError };
+    const { isAdmin, error: adminError } = await checkAdmin();
+    if (!isAdmin) return { success: false, error: adminError };
 
     const [post] = await db.insert(blogPosts).values({
       title: data.title,
@@ -342,8 +341,8 @@ export async function updateBlogPostAction(
   data: Partial<BlogPostInput>
 ) {
   try {
-    const { isAdmin, error: adminError, supabase } = await checkAdmin();
-    if (!isAdmin || !supabase) return { success: false, error: adminError };
+    const { isAdmin, error: adminError } = await checkAdmin();
+    if (!isAdmin) return { success: false, error: adminError };
 
     const updateData: Partial<typeof blogPosts.$inferInsert> = {};
     if (data.title !== undefined) updateData.title = data.title;
@@ -397,8 +396,8 @@ export async function updateBlogPostAction(
  */
 export async function deleteBlogPostAction(postId: string) {
   try {
-    const { isAdmin, error: adminError, supabase } = await checkAdmin();
-    if (!isAdmin || !supabase) return { success: false, error: adminError };
+    const { isAdmin, error: adminError } = await checkAdmin();
+    if (!isAdmin) return { success: false, error: adminError };
 
     await db.delete(blogPosts).where(eq(blogPosts.id, postId));
 

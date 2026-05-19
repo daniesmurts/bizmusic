@@ -4,11 +4,10 @@ import { db } from "@/db";
 import { albums, tracks, artists, users } from "@/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 async function checkAdmin() {
-  const { createClient } = await import("@/utils/supabase/server");
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) return { isAdmin: false as const, error: "Unauthorized" };
 

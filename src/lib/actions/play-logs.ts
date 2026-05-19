@@ -4,15 +4,14 @@ import { db } from "@/db";
 import { playLogs, businesses, users } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import type { AdminPlayLog } from "@/types/admin";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 /**
  * Log a track play event
  */
 export async function logPlayAction(trackId: string, businessId?: string, locationId?: string) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please log in to play music" };
@@ -70,9 +69,7 @@ export async function logPlayAction(trackId: string, businessId?: string, locati
  */
 export async function getPlayLogsAction(limit: number = 50) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized" };

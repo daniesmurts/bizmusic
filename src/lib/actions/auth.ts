@@ -1,36 +1,13 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
-
-export async function resetPasswordAction(password: string) {
-  try {
-    const supabase = await createClient();
-    
-    // Check if the user has a valid session
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !user) {
-      return { 
-        success: false, 
-        error: "Сессия не найдена или истекла. Пожалуйста, запросите новую ссылку." 
-      };
-    }
-
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
-    
-    if (error) {
-      return { success: false, error: error.message };
-    }
-    
-    return { success: true };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
-    console.error("Reset password error:", error);
-    return {
-      success: false,
-      error: message,
-    };
-  }
+/**
+ * Password reset is handled by Clerk's built-in flows.
+ * This stub preserves the action signature for backward compatibility
+ * but instructs the user to use Clerk's password reset flow instead.
+ */
+export async function resetPasswordAction(_password: string) {
+  return {
+    success: false,
+    error: "Смена пароля выполняется через Clerk. Воспользуйтесь ссылкой «Забыли пароль» на странице входа.",
+  };
 }

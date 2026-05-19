@@ -4,12 +4,11 @@ import { db } from "@/db";
 import { waveSettings, tracks, trackSkips } from "@/db/schema";
 import { eq, and, not, sql, inArray } from "drizzle-orm";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
 async function canUseBusinessWave(businessId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return false;
 
   const scope = await resolveAccessScope(user.id);

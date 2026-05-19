@@ -1,64 +1,190 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { useSignIn } from "@clerk/nextjs/legacy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
-import { translateAuthError } from "@/utils/auth-errors";
+import { AlertCircle, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+
+function translateClerkError(err: unknown): React.ReactNode {
+  if (typeof window !== "undefined") console.error("[login error]", err);
+
+  const first = (err as { errors?: { code?: string; message?: string; longMessage?: string }[] })?.errors?.[0];
+  const code = first?.code ?? "";
+  const msg = first?.message ?? String(err);
+
+  if (code === "form_password_incorrect" || msg.includes("Invalid credentials") || msg.includes("invalid_credentials") || code === "form_identifier_not_found_for_account") {
+    return (
+      <>
+        Неверный email или пароль.{" "}
+        <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
+          Сбросьте пароль
+        </a>
+        , если вы не помните его.
+      </>
+    );
+  }
+  if (code === "form_identifier_not_found" || msg.includes("not found") || msg.includes("no user"))
+    return "Пользователь с таким email не найден.";
+  if (msg.includes("too many requests") || msg.includes("rate_limit"))
+    return "Слишком много попыток. Попробуйте позже.";
+  if (code === "session_exists")
+    return "Вы уже вошли в систему. Обновите страницу.";
+  if (code === "form_password_pwned" || msg.includes("data breach") || msg.includes("pwned")) {
+    return (
+      <>
+        Ваш пароль был найден в утечке данных. В целях безопасности{" "}
+        <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
+          сбросьте пароль
+        </a>
+        .
+      </>
+    );
+  }
+  return first?.longMessage ?? first?.message ?? "Произошла ошибка при входе. Попробуйте снова.";
+}
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const supabase = createClient();
+  const [error, setError] = useState<React.ReactNode | null>(null);
+  const [needsCode, setNeedsCode] = useState(false);
+  const [code, setCode] = useState("");
+  const { signIn, setActive, isLoaded } = useSignIn();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError(null);
 
-    const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const result = await signIn.create({ identifier: email, password });
 
-    if (loginError) {
-      console.error("Login Error Details:", {
-        message: loginError.message,
-        status: loginError.status,
-        name: loginError.name
-      });
-
-      setError(translateAuthError(loginError.message));
-      setLoading(false);
-      return;
-    }
-
-    // Route based on role: partners have a completely separate dashboard
-    let destination = "/dashboard";
-    if (authData.user) {
-      const { data: profile } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", authData.user.id)
-        .single();
-
-      if (profile?.role === "PARTNER" || authData.user.user_metadata?.is_partner === true) {
-        destination = "/dashboard/affiliate";
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        window.location.href = "/dashboard";
+        return;
       }
-    }
 
-    // Force a hard navigation so cookies are correctly sent to the Next.js server components
-    window.location.href = destination;
+      if (result.status === "needs_second_factor") {
+        // Find the email_code second factor and send the code
+        const emailFactor = result.supportedSecondFactors?.find((f) => f.strategy === "email_code");
+        if (emailFactor && "emailAddressId" in emailFactor) {
+          await signIn.prepareSecondFactor({
+            strategy: "email_code",
+            emailAddressId: (emailFactor as { emailAddressId: string }).emailAddressId,
+          });
+          setNeedsCode(true);
+          setLoading(false);
+          return;
+        }
+        setError("Требуется двухфакторная аутентификация, но метод не поддерживается. Обратитесь в поддержку.");
+        setLoading(false);
+        return;
+      }
+
+      console.error("[login non-complete status]", result);
+      if (result.status === "needs_first_factor") {
+        setError("Подтвердите email перед входом.");
+      } else if (result.status === "needs_new_password") {
+        setError(
+          <>
+            Требуется смена пароля.{" "}
+            <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
+              Сбросьте пароль
+            </a>
+            .
+          </>
+        );
+      } else {
+        setError(`Неожиданный статус входа: ${result.status}.`);
+      }
+      setLoading(false);
+    } catch (err) {
+      setError(translateClerkError(err));
+      setLoading(false);
+    }
   };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded || !signIn) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await signIn.attemptSecondFactor({ strategy: "email_code", code });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        window.location.href = "/dashboard";
+      } else {
+        setError(`Не удалось завершить вход: ${result.status}.`);
+        setLoading(false);
+      }
+    } catch (err) {
+      setError(translateClerkError(err));
+      setLoading(false);
+    }
+  };
+
+  if (needsCode) {
+    return (
+      <Card className="glass-dark border-white/10 text-white overflow-hidden animate-fade-in shadow-2xl shadow-neon/5">
+        <CardHeader className="space-y-4 pt-10 px-8">
+          <div className="flex items-center gap-3 text-neon">
+            <ShieldCheck className="w-8 h-8" />
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+          <div className="space-y-2">
+            <CardTitle className="text-4xl font-black tracking-tighter uppercase leading-none">
+              Проверка <br /><span className="text-neon">по email</span>
+            </CardTitle>
+            <CardDescription className="text-neutral-400 font-medium">
+              Мы отправили код на <strong>{email}</strong>. Введите его, чтобы завершить вход.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="px-8 pt-4 pb-10">
+          <form onSubmit={handleVerifyCode} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="code" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Код из письма</Label>
+              <Input
+                id="code"
+                type="text"
+                inputMode="numeric"
+                placeholder="123456"
+                className="bg-white/5 border-white/10 rounded-2xl py-6 text-center tracking-[0.5em] text-xl font-black focus:border-neon/50 focus:ring-neon/20 transition-all"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                required
+                disabled={loading}
+                autoFocus
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
+              disabled={loading || code.length !== 6}
+            >
+              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Подтвердить и войти"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="glass-dark border-white/10 text-white overflow-hidden animate-fade-in shadow-2xl shadow-neon/5">
@@ -80,7 +206,7 @@ export default function Login() {
               <span className="leading-relaxed break-words">{error}</span>
             </div>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="email" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Email</Label>
             <Input
@@ -98,7 +224,7 @@ export default function Login() {
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-neutral-500">Пароль</Label>
-              <Link href="/forgot-password" data-id="forgot-password-link" className="text-xs font-black uppercase tracking-widest text-neon/60 hover:text-neon transition-colors font-black">
+              <Link href="/forgot-password" className="text-xs font-black uppercase tracking-widest text-neon/60 hover:text-neon transition-colors">
                 Забыли?
               </Link>
             </div>
@@ -119,25 +245,17 @@ export default function Login() {
                 className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neon transition-colors p-3 rounded-xl hover:bg-white/5 z-10 touch-manipulation"
                 disabled={loading}
               >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-            disabled={loading}
+            disabled={loading || !isLoaded}
           >
-            {loading ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              "Войти в кабинет"
-            )}
+            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Войти в кабинет"}
           </Button>
         </form>
       </CardContent>

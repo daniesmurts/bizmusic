@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { businesses, trackReactions, tracks, users } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 
 export type TrackReactionType = "LIKE" | "DISLIKE";
 
@@ -13,8 +13,7 @@ interface ReactionContext {
 }
 
 async function getReactionContext(): Promise<{ success: true; data: ReactionContext } | { success: false; error: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return { success: false, error: "Необходимо войти в систему" };

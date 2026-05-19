@@ -11,7 +11,7 @@ import {
   getFilePublicUrl,
   parseStorageObjectRef,
 } from "@/lib/supabase-storage";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { revalidatePath } from "next/cache";
 
 export interface TrackInput {
@@ -50,8 +50,7 @@ export async function generateUploadUrlAction(
   contentType: string
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return { success: false, error: "Unauthorized" };
     const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id), columns: { role: true } });
     if (!dbUser || dbUser.role !== "ADMIN") return { success: false, error: "Forbidden" };
@@ -82,8 +81,7 @@ export async function generateUploadUrlAction(
  */
 export async function createTrackAction(data: TrackInput) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return { success: false, error: "Unauthorized" };
     const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id), columns: { role: true } });
     if (!dbUser || dbUser.role !== "ADMIN") return { success: false, error: "Forbidden" };
@@ -132,8 +130,7 @@ export async function updateTrackAction(
   data: Partial<TrackInput>
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return { success: false, error: "Unauthorized" };
     const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id), columns: { role: true } });
     if (!dbUser || dbUser.role !== "ADMIN") return { success: false, error: "Forbidden" };
@@ -184,8 +181,7 @@ export async function updateTrackAction(
  */
 export async function deleteTrackAction(trackId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return { success: false, error: "Unauthorized" };
     const dbUser = await db.query.users.findFirst({ where: eq(users.id, user.id), columns: { role: true } });
     if (!dbUser || dbUser.role !== "ADMIN") return { success: false, error: "Forbidden" };
@@ -243,8 +239,7 @@ export async function getTracksAction(filters?: {
   isAnnouncement?: boolean;
 }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     
     const conditions: SQL[] = [];
 
@@ -452,8 +447,7 @@ export async function getFeaturedTracksAction() {
  */
 export async function getTrackByIdAction(trackId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     
     let isRestricted = true;
     if (user) {
@@ -548,8 +542,7 @@ export async function getAdminTracksAction(filters?: {
   pageSize?: number;
 }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     
     if (!user) {
       return { success: false, error: "Unauthorized" };

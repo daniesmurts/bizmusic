@@ -4,14 +4,13 @@ import { db } from "@/db";
 import { waveSettings, voiceAnnouncements, tracks } from "@/db/schema";
 import type { AnnouncementScheduleConfig } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 import { revalidatePath } from "next/cache";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
 
 async function resolveBusinessScope() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
   const scope = await resolveAccessScope(user.id);

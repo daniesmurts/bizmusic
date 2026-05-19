@@ -2,15 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { useSignUp } from "@clerk/nextjs/legacy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, Phone, ShieldCheck, UserCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { translateAuthError } from "@/utils/auth-errors";
+
+function translateClerkError(err: unknown): string {
+  const msg = (err as { errors?: { message?: string; code?: string }[] })?.errors?.[0];
+  if (!msg) return "Произошла ошибка при регистрации.";
+  if (msg.code === "form_identifier_exists" || msg.message?.includes("already exists"))
+    return "Пользователь с таким email уже зарегистрирован";
+  if (msg.code === "form_password_pwned" || msg.message?.includes("pwned"))
+    return "Этот пароль слишком распространён. Используйте другой.";
+  if (msg.message?.includes("least") && msg.message?.includes("character"))
+    return "Пароль должен содержать минимум 8 символов.";
+  return msg.message ?? "Произошла ошибка при регистрации.";
+}
 
 export default function Register() {
   const enablePhoneVerification = process.env.NEXT_PUBLIC_ENABLE_PHONE_VERIFICATION === "true";
@@ -29,14 +39,11 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const router = useRouter();
-  const supabase = createClient();
+  const { signUp, setActive, isLoaded } = useSignUp();
 
   const normalizePhone = (value: string) => {
     const digits = value.replace(/\D/g, "");
-    if (digits.length === 11 && digits.startsWith("8")) {
-      return `7${digits.slice(1)}`;
-    }
+    if (digits.length === 11 && digits.startsWith("8")) return `7${digits.slice(1)}`;
     return digits;
   };
 
@@ -54,7 +61,6 @@ export default function Register() {
       setPhoneVerificationMessage("Введите номер в формате +7XXXXXXXXXX");
       return;
     }
-
     setPhoneInitLoading(true);
     try {
       const response = await fetch("/api/auth/phone/init", {
@@ -67,7 +73,6 @@ export default function Register() {
         setPhoneVerificationMessage(result.error || "Не удалось инициализировать звонок");
         return;
       }
-
       setPhoneUcallerId(result.data.ucallerId);
       setPhoneVerified(false);
       setPhoneVerificationMessage("Мы звоним вам. Введите последние 4 цифры номера входящего звонка.");
@@ -83,12 +88,10 @@ export default function Register() {
       setPhoneVerificationMessage("Сначала запросите звонок для подтверждения.");
       return;
     }
-
     if (!/^\d{4}$/.test(phoneCode)) {
       setPhoneVerificationMessage("Введите 4 цифры кода.");
       return;
     }
-
     setPhoneVerifyLoading(true);
     try {
       const response = await fetch("/api/auth/phone/verify", {
@@ -97,12 +100,10 @@ export default function Register() {
         body: JSON.stringify({ ucallerId: phoneUcallerId, code: phoneCode }),
       });
       const result = await response.json();
-
       if (!response.ok || !result.success) {
         setPhoneVerificationMessage(result.error || "Не удалось проверить код");
         return;
       }
-
       if (result.data.verified) {
         setPhoneVerified(true);
         setPhoneVerificationMessage("Телефон успешно подтвержден.");
@@ -123,49 +124,39 @@ export default function Register() {
       setError("Пожалуйста, примите условия использования и политику конфиденциальности");
       return;
     }
-
     if (enablePhoneVerification && !phoneVerified) {
       setError("Подтвердите номер телефона перед регистрацией.");
       return;
     }
-
+    if (!isLoaded || !signUp) return;
     setLoading(true);
     setError(null);
 
-    const signUpMeta: Record<string, unknown> = {
-      terms_accepted: true,
-      terms_accepted_at: new Date().toISOString(),
-      phone,
-      user_type: userType,
-    };
+    try {
+      const result = await signUp.create({
+        emailAddress: email,
+        password,
+        unsafeMetadata: {
+          phone,
+          userType,
+          terms_accepted: true,
+          terms_accepted_at: new Date().toISOString(),
+        },
+      });
 
-    if (enablePhoneVerification && phoneVerified) {
-      signUpMeta.phone_verified = true;
-      signUpMeta.phone_verified_at = new Date().toISOString();
-    }
-
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: signUpMeta,
-      },
-    });
-
-    if (signUpError) {
-      setError(translateAuthError(signUpError.message));
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        window.location.href = "/dashboard";
+      } else {
+        // Email verification required — Clerk will send a confirmation email
+        await signUp.prepareEmailAddressVerification({ strategy: "email_link", redirectUrl: `${window.location.origin}/dashboard` });
+        setSuccess(true);
+      }
+    } catch (err) {
+      setError(translateClerkError(err));
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Safety: if project config accidentally auto-confirms email, do not keep user logged in right after signup.
-    if (signUpData?.session) {
-      await supabase.auth.signOut();
-    }
-
-    setSuccess(true);
-    setLoading(false);
   };
 
   if (success) {
@@ -176,12 +167,12 @@ export default function Register() {
         </div>
         <CardTitle className="text-3xl font-black mb-4 uppercase">Подтвердите Email</CardTitle>
         <CardDescription className="text-neutral-400 text-lg mb-8">
-          Мы отправили ссылку для подтверждения на <strong>{email}</strong>. 
+          Мы отправили ссылку для подтверждения на <strong>{email}</strong>.
           Пожалуйста, проверьте почту, чтобы активировать аккаунт.
         </CardDescription>
-        <Button 
+        <Button
           className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-6 rounded-full"
-          onClick={() => router.push("/login")}
+          onClick={() => window.location.href = "/login"}
         >
           Вернуться ко входу
         </Button>
@@ -209,136 +200,79 @@ export default function Register() {
               <span className="leading-relaxed break-words">{error}</span>
             </div>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="email" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="name@business.ru"
+            <Input id="email" type="email" placeholder="name@business.ru"
               className="bg-white/5 border-white/10 rounded-2xl py-6 focus:border-neon/50 focus:ring-neon/20 transition-all text-lg font-medium"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-            />
+              value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Пароль</Label>
             <div className="relative group/pass">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+              <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••"
                 className="bg-white/5 border-white/10 rounded-2xl py-6 pr-14 focus:border-neon/50 focus:ring-neon/20 transition-all text-lg font-medium w-full"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                minLength={6}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} minLength={8} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neon transition-colors p-3 rounded-xl hover:bg-white/5 z-10 touch-manipulation"
-                disabled={loading}
-              >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                disabled={loading}>
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
- 
+
           <div className="space-y-2">
             <Label htmlFor="phone" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Телефон</Label>
             <div className="relative group">
               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-neon transition-colors" />
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+7 (999) 000-00-00"
+              <Input id="phone" type="tel" placeholder="+7 (999) 000-00-00"
                 className="bg-white/5 border-white/10 rounded-2xl py-6 pl-12 focus:border-neon/50 focus:ring-neon/20 transition-all text-lg font-medium"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
-                  resetPhoneVerificationState();
-                }}
-                required
-                disabled={loading}
-              />
+                value={phone} onChange={(e) => { setPhone(e.target.value); resetPhoneVerificationState(); }} required disabled={loading} />
             </div>
           </div>
 
           {enablePhoneVerification && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-                Подтверждение телефона
-              </p>
-              {phoneVerified ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-neon">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Подтвержден
-                </span>
-              ) : (
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">Не подтвержден</span>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Подтверждение телефона</p>
+                {phoneVerified
+                  ? <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-neon"><ShieldCheck className="w-3.5 h-3.5" /> Подтвержден</span>
+                  : <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">Не подтвержден</span>}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button type="button" onClick={handleStartPhoneVerification}
+                  disabled={loading || phoneInitLoading || phoneVerifyLoading || !phone}
+                  className="sm:flex-1 h-11 rounded-xl bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 hover:bg-indigo-500/30">
+                  {phoneInitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Позвонить для кода"}
+                </Button>
+                <div className="flex gap-2 sm:flex-1">
+                  <Input inputMode="numeric" pattern="[0-9]*" placeholder="4 цифры" value={phoneCode}
+                    onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    className="h-11 text-center tracking-[0.35em] font-black rounded-xl bg-white/5 border-white/10"
+                    disabled={loading || !phoneUcallerId || phoneVerifyLoading} />
+                  <Button type="button" onClick={handleVerifyPhoneCode}
+                    disabled={loading || !phoneUcallerId || phoneCode.length !== 4 || phoneVerifyLoading}
+                    className="h-11 rounded-xl bg-neon/20 text-neon border border-neon/30 hover:bg-neon/30">
+                    {phoneVerifyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Проверить"}
+                  </Button>
+                </div>
+              </div>
+              {phoneVerificationMessage && (
+                <p className={`text-xs font-bold ${phoneVerified ? "text-neon" : "text-neutral-400"}`}>
+                  {phoneVerificationMessage}
+                </p>
               )}
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                onClick={handleStartPhoneVerification}
-                disabled={loading || phoneInitLoading || phoneVerifyLoading || !phone}
-                className="sm:flex-1 h-11 rounded-xl bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 hover:bg-indigo-500/30"
-              >
-                {phoneInitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Позвонить для кода"}
-              </Button>
-
-              <div className="flex gap-2 sm:flex-1">
-                <Input
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="4 цифры"
-                  value={phoneCode}
-                  onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  className="h-11 text-center tracking-[0.35em] font-black rounded-xl bg-white/5 border-white/10"
-                  disabled={loading || !phoneUcallerId || phoneVerifyLoading}
-                />
-                <Button
-                  type="button"
-                  onClick={handleVerifyPhoneCode}
-                  disabled={loading || !phoneUcallerId || phoneCode.length !== 4 || phoneVerifyLoading}
-                  className="h-11 rounded-xl bg-neon/20 text-neon border border-neon/30 hover:bg-neon/30"
-                >
-                  {phoneVerifyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Проверить"}
-                </Button>
-              </div>
-            </div>
-
-            {phoneVerificationMessage && (
-              <p className={`text-xs font-bold ${phoneVerified ? "text-neon" : "text-neutral-400"}`}>
-                {phoneVerificationMessage}
-              </p>
-            )}
-          </div>
           )}
- 
+
           <div className="space-y-2">
             <Label htmlFor="userType" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Кто вы?</Label>
             <div className="relative group">
               <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-neon transition-colors pointer-events-none" />
-              <select
-                id="userType"
+              <select id="userType"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:border-neon/50 focus:outline-none focus:ring-2 focus:ring-neon/20 transition-all text-lg font-medium appearance-none text-white cursor-pointer"
-                value={userType}
-                onChange={(e) => setUserType(e.target.value as "BUSINESS" | "CREATOR")}
-                disabled={loading}
-                required
-              >
+                value={userType} onChange={(e) => setUserType(e.target.value as "BUSINESS" | "CREATOR")} disabled={loading} required>
                 <option value="BUSINESS" className="bg-neutral-900 text-white">Бизнес (Кафе, Ресторан, Офис)</option>
                 <option value="CREATOR" className="bg-neutral-900 text-white">Создатель контента (YouTube, VK)</option>
               </select>
@@ -350,49 +284,32 @@ export default function Register() {
 
           <div className="flex items-start space-x-3 pt-2 relative z-10">
             <div className="pt-0.5 flex-shrink-0">
-              <Checkbox 
-                id="terms" 
-                checked={agreed}
-                onCheckedChange={(checked) => setAgreed(checked as boolean)}
-                className="w-5 h-5 border-white/20 data-[state=checked]:bg-neon data-[state=checked]:text-black border-2 touch-manipulation cursor-pointer"
-              />
+              <Checkbox id="terms" checked={agreed} onCheckedChange={(c) => setAgreed(c as boolean)}
+                className="w-5 h-5 border-white/20 data-[state=checked]:bg-neon data-[state=checked]:text-black border-2 touch-manipulation cursor-pointer" />
             </div>
-            <div className="grid gap-1.5 leading-none">
-              <label
-                htmlFor="terms"
-                className="text-xs font-bold leading-relaxed text-neutral-400 cursor-pointer select-none touch-manipulation"
-              >
-                Я соглашаюсь с{" "}
-                <Link href="/legal/public-offer" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Публичной офертой</Link>,{" "}
-                <Link href="/legal/terms" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Пользовательским соглашением</Link>,{" "}
-                <Link href="/legal/privacy" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Политикой конфиденциальности</Link>,{" "}
-                <Link href="/legal/data-processing" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Согласием на обработку персональных данных</Link>,{" "}
-                <Link href="/legal/advertising-consent" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Согласием на рекламную рассылку</Link>
-                {" "}и{" "}
-                <Link href="/legal/cookies" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Политикой использования Cookie</Link>
-              </label>
-            </div>
+            <label htmlFor="terms" className="text-xs font-bold leading-relaxed text-neutral-400 cursor-pointer select-none touch-manipulation">
+              Я соглашаюсь с{" "}
+              <Link href="/legal/public-offer" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Публичной офертой</Link>,{" "}
+              <Link href="/legal/terms" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Пользовательским соглашением</Link>,{" "}
+              <Link href="/legal/privacy" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Политикой конфиденциальности</Link>,{" "}
+              <Link href="/legal/data-processing" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Согласием на обработку персональных данных</Link>,{" "}
+              <Link href="/legal/advertising-consent" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Согласием на рекламную рассылку</Link>
+              {" "}и{" "}
+              <Link href="/legal/cookies" target="_blank" className="text-neon hover:underline underline-offset-4 font-black">Политикой использования Cookie</Link>
+            </label>
           </div>
 
-          <Button 
-            type="submit" 
+          <Button type="submit"
             className="w-full bg-neon text-black hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-            disabled={loading || !agreed || (enablePhoneVerification && !phoneVerified)}
-          >
-            {loading ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              "Зарегистрироваться"
-            )}
+            disabled={loading || !agreed || (enablePhoneVerification && !phoneVerified) || !isLoaded}>
+            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Зарегистрироваться"}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="bg-white/5 border-t border-white/5 px-8 py-6 justify-center">
         <p className="text-neutral-400 text-sm font-bold">
           Уже есть аккаунт?{" "}
-          <Link href="/login" className="text-neon hover:underline underline-offset-4 font-black">
-            Войти
-          </Link>
+          <Link href="/login" className="text-neon hover:underline underline-offset-4 font-black">Войти</Link>
         </p>
       </CardFooter>
     </Card>

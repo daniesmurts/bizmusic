@@ -3,7 +3,7 @@
 import { db, resilient } from "@/db";
 import { businesses, locations, licenses, playlistTracks, tracks, playlists, users } from "@/db/schema";
 import { eq, desc, sql, or, inArray } from "drizzle-orm";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
 function formatDurationRu(totalSeconds: number) {
@@ -58,8 +58,7 @@ async function enrichPlaylistsWithStats(
 
 export async function getDashboardDataAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Not authenticated" };
@@ -235,8 +234,7 @@ export async function getDashboardDataAction() {
 
 export async function getBusinessDetailsAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) return { success: false, error: "Not authenticated" };
 

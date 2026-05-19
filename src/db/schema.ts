@@ -52,8 +52,9 @@ export const supportDeliveryStatusEnum = pgEnum("support_delivery_status", ["PEN
 // Users Table
 export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  clerkId: text("clerkId").unique(),
   email: text("email").notNull().unique(),
-  passwordHash: text("passwordHash").default("SUPABASE_AUTH"),
+  passwordHash: text("passwordHash").default("CLERK_AUTH"),
   role: roleEnum("role").default("BUSINESS_OWNER").notNull(),
   userType: userTypeEnum("userType").default("BUSINESS").notNull(),
   phone: text("phone"),

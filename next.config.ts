@@ -33,20 +33,18 @@ const nextConfig: NextConfig = {
           key: "Content-Security-Policy",
           value: [
             "default-src 'self'",
-            // 'strict-dynamic' causes modern browsers to ignore 'unsafe-inline' (kept for
-            // legacy browser fallback only). Next.js App Router requires 'unsafe-inline' for
-            // hydration scripts; full nonce enforcement requires middleware-level nonce injection.
-            // 'unsafe-eval' is only needed in dev for HMR.
-            `script-src 'self' 'strict-dynamic' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://mc.yandex.com`,
-            // 'unsafe-inline' for styles is required by Tailwind CSS class-based animations and
-            // React's style prop. External stylesheets are loaded from 'self'.
+            // 'unsafe-inline' required by Next.js App Router hydration scripts.
+            // 'unsafe-eval' required by webpack HMR in dev. No nonce enforcement — remove
+            // 'strict-dynamic' since it overrides 'self' in modern browsers without a nonce.
+            `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://mc.yandex.com https://challenges.cloudflare.com https://*.clerk.accounts.dev https://clerk.bizmuzik.ru`,
             "style-src 'self' 'unsafe-inline'",
-            // Allow images from Supabase storage, data URIs, and Yandex Metrika pixel/cookie-sync
-            "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob: https://mc.yandex.ru https://mc.yandex.com",
+            // Clerk UI components load images (profile pictures, avatars)
+            "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob: https://mc.yandex.ru https://mc.yandex.com https://img.clerk.com",
             "font-src 'self' data:",
-            // API calls to Supabase, T-Bank, Yandex (both .ru and .com Metrika endpoints)
-            "connect-src 'self' https://waootzqqtjyungakvoua.supabase.co https://securepay.tinkoff.ru https://suggestions.dadata.ru https://api.opencagedata.com wss://waootzqqtjyungakvoua.supabase.co blob: https://mc.yandex.ru https://mc.yandex.com",
-            // Audio streaming from Supabase storage
+            // Clerk FAPI + Supabase + payment + geocoding APIs + Yandex WebSocket
+            "connect-src 'self' https://waootzqqtjyungakvoua.supabase.co https://securepay.tinkoff.ru https://suggestions.dadata.ru https://api.opencagedata.com wss://waootzqqtjyungakvoua.supabase.co blob: https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.com wss://mc.yandex.ru https://*.clerk.accounts.dev https://clerk.bizmuzik.ru",
+            // Clerk creates web workers from blob URLs for its internal SDK
+            "worker-src 'self' blob:",
             "media-src 'self' https://waootzqqtjyungakvoua.supabase.co blob:",
             "frame-ancestors 'none'",
             "base-uri 'self'",

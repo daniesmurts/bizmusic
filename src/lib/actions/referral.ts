@@ -1,14 +1,13 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { getAuthUser } from "@/lib/auth/get-user";
 import { db, resilient } from "@/db";
 import { referralAgents } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function getReferralDataAction() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { success: false, error: "Not authenticated" };
@@ -28,7 +27,7 @@ export async function getReferralDataAction() {
       success: true,
       data: {
         referralCode: agent.referralCode,
-        fullName: agent.fullName || user.user_metadata?.full_name || "Ваш менеджер",
+        fullName: agent.fullName || "Ваш менеджер",
       },
     };
   } catch (error) {
