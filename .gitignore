@@ -53,3 +53,6 @@ scratch/
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Clerk JS bundle is copied from node_modules at build time (scripts/copy-clerk-js.mjs)
+/public/clerk-js/

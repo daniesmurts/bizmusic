@@ -118,7 +118,12 @@ export default function RootLayout({
   };
 
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      // Self-host clerk-js so Russian mobile carriers (which block Clerk's CDN)
+      // can still load the auth UI. See scripts/copy-clerk-js.mjs.
+      // The prop is marked @internal in Clerk's types but supported at runtime.
+      {...({ __internal_clerkJSUrl: "/clerk-js/clerk.browser.js" } as Record<string, unknown>)}
+    >
     <html lang="ru" suppressHydrationWarning>
       <head>
         <script
