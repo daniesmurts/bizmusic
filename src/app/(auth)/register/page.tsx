@@ -39,7 +39,7 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const { signUp, isLoaded } = useSignUp();
+  const { signUp, setActive, isLoaded } = useSignUp();
 
   const normalizePhone = (value: string) => {
     const digits = value.replace(/\D/g, "");
@@ -145,6 +145,7 @@ export default function Register() {
       });
 
       if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
         window.location.href = "/dashboard";
       } else {
         // Email verification required — Clerk will send a confirmation email

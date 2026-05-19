@@ -37,7 +37,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<React.ReactNode | null>(null);
-  const { signIn, isLoaded } = useSignIn();
+  const { signIn, setActive, isLoaded } = useSignIn();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +52,9 @@ export default function Login() {
       });
 
       if (result.status === "complete") {
-        // Hard navigation so server components re-render with the new session
+        // Activate the session before redirecting — otherwise the cookies
+        // aren't set yet and the dashboard load thinks we're unauthenticated.
+        await setActive({ session: result.createdSessionId });
         window.location.href = "/dashboard";
       } else {
         setError("Требуется дополнительная проверка. Обратитесь в поддержку.");

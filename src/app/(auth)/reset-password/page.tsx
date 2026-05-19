@@ -35,7 +35,7 @@ function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") || "/dashboard";
-  const { signIn, isLoaded } = useSignIn();
+  const { signIn, setActive, isLoaded } = useSignIn();
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,8 +61,9 @@ function ResetPasswordContent() {
       });
 
       if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
         setSuccess(true);
-        setTimeout(() => router.push(nextPath), 2500);
+        setTimeout(() => { window.location.href = nextPath; }, 2500);
       } else {
         setError("Не удалось сбросить пароль. Попробуйте ещё раз.");
       }
