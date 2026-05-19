@@ -121,11 +121,13 @@ export default function RootLayout({
     <ClerkProvider
       // Self-host clerk-js + proxy Clerk's API through our origin so Russian
       // mobile carriers (which block Clerk's CDN and custom domain) can reach
-      // the auth flow. See scripts/copy-clerk-js.mjs and api/__clerk_proxy.
+      // the auth flow. See scripts/copy-clerk-js.mjs and api/clerk-proxy.
       // Both props are marked @internal in Clerk's types but supported at runtime.
+      // proxyUrl MUST be a fully-qualified URL — clerk-js falls back to the
+      // publishable-key-encoded FAPI if it can't parse the value as absolute.
       {...({
         __internal_clerkJSUrl: "/clerk-js/clerk.browser.js",
-        proxyUrl: "/api/clerk-proxy",
+        proxyUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/clerk-proxy`,
       } as Record<string, unknown>)}
     >
     <html lang="ru" suppressHydrationWarning>
