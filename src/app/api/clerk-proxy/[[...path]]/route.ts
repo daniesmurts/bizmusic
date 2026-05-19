@@ -23,46 +23,59 @@ export const runtime = "nodejs";
 const CLERK_FAPI = "https://frontend-api.clerk.services";
 
 async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] }> }) {
-  const { path = [] } = await ctx.params;
-  const url = new URL(req.url);
-  const target = `${CLERK_FAPI}/${path.join("/")}${url.search}`;
+  try {
+    const { path = [] } = await ctx.params;
+    const url = new URL(req.url);
+    const target = `${CLERK_FAPI}/${path.join("/")}${url.search}`;
 
-  // Forward headers, stripping ones that don't apply to the upstream
-  const headers = new Headers(req.headers);
-  headers.delete("host");
-  headers.delete("content-length"); // fetch sets this itself
+    // Forward headers, stripping ones that don't apply to the upstream
+    const headers = new Headers(req.headers);
+    headers.delete("host");
+    headers.delete("content-length"); // fetch sets this itself
 
-  // Tell Clerk that traffic arrived via a proxy — required when proxy mode is on.
-  headers.set("Clerk-Proxy-Url", `${url.origin}/api/clerk-proxy`);
-  headers.set("X-Forwarded-Host", url.host);
-  const forwardedFor = req.headers.get("x-forwarded-for") ?? "";
-  if (forwardedFor) headers.set("X-Forwarded-For", forwardedFor);
+    // Tell Clerk that traffic arrived via a proxy — required when proxy mode is on.
+    headers.set("Clerk-Proxy-Url", `${url.origin}/api/clerk-proxy`);
+    headers.set("X-Forwarded-Host", url.host);
+    const forwardedFor = req.headers.get("x-forwarded-for") ?? "";
+    if (forwardedFor) headers.set("X-Forwarded-For", forwardedFor);
 
-  const init: RequestInit = {
-    method: req.method,
-    headers,
-    redirect: "manual",
-  };
+    const init: RequestInit = {
+      method: req.method,
+      headers,
+      redirect: "manual",
+    };
 
-  // Only attach a body for methods that have one
-  if (!["GET", "HEAD"].includes(req.method)) {
-    init.body = await req.arrayBuffer();
+    // Only attach a body for methods that have one
+    if (!["GET", "HEAD"].includes(req.method)) {
+      init.body = await req.arrayBuffer();
+    }
+
+    console.log(`[clerk-proxy] ${req.method} ${target}`);
+    const upstream = await fetch(target, init);
+    console.log(`[clerk-proxy] upstream ${upstream.status}`);
+
+    // Stream response back. Preserve Set-Cookie (Clerk sets the session cookie here).
+    const responseHeaders = new Headers();
+    upstream.headers.forEach((value, key) => {
+      // 'content-encoding' must not be forwarded because fetch already decoded the body
+      if (key.toLowerCase() === "content-encoding") return;
+      responseHeaders.append(key, value);
+    });
+
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: responseHeaders,
+    });
+  } catch (err) {
+    console.error("[clerk-proxy] error:", err);
+    return new Response(
+      JSON.stringify({
+        error: "proxy_error",
+        message: err instanceof Error ? err.message : String(err),
+      }),
+      { status: 502, headers: { "content-type": "application/json" } },
+    );
   }
-
-  const upstream = await fetch(target, init);
-
-  // Stream response back. Preserve Set-Cookie (Clerk sets the session cookie here).
-  const responseHeaders = new Headers();
-  upstream.headers.forEach((value, key) => {
-    // 'content-encoding' must not be forwarded because fetch already decoded the body
-    if (key.toLowerCase() === "content-encoding") return;
-    responseHeaders.append(key, value);
-  });
-
-  return new Response(upstream.body, {
-    status: upstream.status,
-    headers: responseHeaders,
-  });
 }
 
 export const GET = proxy;
