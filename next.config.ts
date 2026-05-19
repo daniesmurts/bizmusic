@@ -41,8 +41,10 @@ const nextConfig: NextConfig = {
             // Clerk UI components load images (profile pictures, avatars)
             "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob: https://mc.yandex.ru https://mc.yandex.com https://img.clerk.com",
             "font-src 'self' data:",
-            // Clerk FAPI + Supabase + payment + geocoding APIs
-            "connect-src 'self' https://waootzqqtjyungakvoua.supabase.co https://securepay.tinkoff.ru https://suggestions.dadata.ru https://api.opencagedata.com wss://waootzqqtjyungakvoua.supabase.co blob: https://mc.yandex.ru https://mc.yandex.com https://*.clerk.accounts.dev https://clerk.bizmuzik.ru",
+            // Clerk FAPI + Supabase + payment + geocoding APIs + Yandex WebSocket
+            "connect-src 'self' https://waootzqqtjyungakvoua.supabase.co https://securepay.tinkoff.ru https://suggestions.dadata.ru https://api.opencagedata.com wss://waootzqqtjyungakvoua.supabase.co blob: https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.com wss://mc.yandex.ru https://*.clerk.accounts.dev https://clerk.bizmuzik.ru",
+            // Clerk creates web workers from blob URLs for its internal SDK
+            "worker-src 'self' blob:",
             "media-src 'self' https://waootzqqtjyungakvoua.supabase.co blob:",
             "frame-ancestors 'none'",
             "base-uri 'self'",

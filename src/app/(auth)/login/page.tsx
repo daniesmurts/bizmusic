@@ -76,7 +76,24 @@ export default function Login() {
         await setActive({ session: result.createdSessionId });
         window.location.href = "/dashboard";
       } else {
-        setError("Требуется дополнительная проверка. Обратитесь в поддержку.");
+        console.error("[login non-complete status]", result);
+        if (result.status === "needs_first_factor") {
+          setError("Подтвердите email перед входом — мы отправили вам ссылку при регистрации.");
+        } else if (result.status === "needs_second_factor") {
+          setError("Требуется двухфакторная аутентификация. Эта функция пока не поддерживается в интерфейсе.");
+        } else if (result.status === "needs_new_password") {
+          setError(
+            <>
+              Требуется смена пароля.{" "}
+              <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
+                Сбросьте пароль
+              </a>
+              .
+            </>
+          );
+        } else {
+          setError(`Неожиданный статус входа: ${result.status}. Обратитесь в поддержку.`);
+        }
         setLoading(false);
       }
     } catch (err) {
