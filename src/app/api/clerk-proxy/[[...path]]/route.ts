@@ -53,7 +53,11 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
     const init: RequestInit = {
       method: req.method,
       headers,
-      redirect: "manual",
+      // Follow redirects server-side so the browser always sees a final 200.
+      // clerk-js loads /npm/* via dynamic import which doesn't reliably follow
+      // 307s across the response stream, and Russian carriers can drop
+      // requests that bounce more than once.
+      redirect: "follow",
     };
 
     // Only attach a body for methods that have one
