@@ -125,6 +125,16 @@ export default function RootLayout({
       // Both props are marked @internal in Clerk's types but supported at runtime.
       // proxyUrl MUST be a fully-qualified URL — clerk-js falls back to the
       // publishable-key-encoded FAPI if it can't parse the value as absolute.
+      //
+      // prefetchUI: false — Clerk v7 splits into two bundles: clerk.browser.js
+      // (auth SDK, self-hosted above) and @clerk/ui (UI components, CDN-only).
+      // The UI bundle CDN path goes through clerk.bizmuzik.ru/npm/... which is
+      // a FAPI endpoint, not a CDN, so it returns JSON instead of JavaScript.
+      // After 15 s the load times out, the catch block fires, clerk.load() is
+      // never called, and isLoaded stays false forever — the permanent spinner.
+      // We use custom login/register pages and never render Clerk's own UI
+      // components (<SignIn/>, <UserButton/>), so disabling the UI bundle is safe.
+      prefetchUI={false}
       {...({
         __internal_clerkJSUrl: "/clerk-js/clerk.browser.js",
         proxyUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/clerk-proxy`,
