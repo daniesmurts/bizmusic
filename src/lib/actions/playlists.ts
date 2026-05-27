@@ -5,6 +5,7 @@ import { playlists, playlistTracks, tracks, businesses, users, type ScheduleConf
 import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { rewriteStorageUrl } from "@/lib/storage-proxy";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
@@ -156,15 +157,17 @@ export async function getPlaylistByIdAction(playlistId: string) {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
         
-        const fallbackUrl = (isFullUrl || !supabaseUrl)
-          ? track.fileUrl 
-          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
+        const fallbackUrl = rewriteStorageUrl(
+          (isFullUrl || !supabaseUrl)
+            ? track.fileUrl
+            : getFilePublicUrl(fileRef.fileName, fileRef.folder),
+        );
 
         let streamUrl: string | undefined = undefined;
         try {
-          if (!isFullUrl && supabaseUrl) {
-            streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
-          }
+          // Always try to get a signed URL — works regardless of whether the stored
+          // fileUrl is a full URL or a path (parseStorageObjectRef extracts the path).
+          streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
         } catch (err) {
           console.error(`Failed to sign URL for playlist track ${track.id}:`, err);
         }

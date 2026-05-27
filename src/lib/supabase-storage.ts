@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from '@supabase/supabase-js';
 import { parseStorageObjectRef, type StorageObjectRef } from "@/lib/storage-object-ref";
+import { rewriteStorageUrl } from "@/lib/storage-proxy";
 
 // Lazy admin client — delay initialization until first use so that importing this
 // module at build time (Next.js page-data collection) doesn't throw when
@@ -110,8 +111,8 @@ export function getFilePublicUrl(fileName: string, folder: string = 'tracks'): s
   const { data: { publicUrl } } = supabaseAdmin.storage
     .from(BUCKET_NAME)
     .getPublicUrl(path);
-  
-  return publicUrl;
+
+  return rewriteStorageUrl(publicUrl);
 }
 
 // ---------------------------------------------------------------------------
@@ -179,7 +180,7 @@ export async function getDownloadSignedUrl(
         expiresAt: Date.now() + (expiresIn - 120) * 1000,
       });
 
-      return data.signedUrl;
+      return rewriteStorageUrl(data.signedUrl);
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       const isFetchError = lastError.message.includes('fetch failed') ||

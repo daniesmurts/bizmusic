@@ -8,6 +8,7 @@ import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 import { revalidatePath } from "next/cache";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { rewriteStorageUrl } from "@/lib/storage-proxy";
 
 async function resolveBusinessScope() {
   const user = await getAuthUser();
@@ -142,17 +143,17 @@ export async function getSchedulableAnnouncementsAction() {
         const isFullUrl = a.track.fileUrl.startsWith("http");
         const fileRef = parseStorageObjectRef(a.track.fileUrl, "announcements");
 
-        const fallbackUrl = isFullUrl
-          ? a.track.fileUrl
-          : supabaseUrl
-            ? getFilePublicUrl(fileRef.fileName, fileRef.folder)
-            : `/uploads/${fileRef.fileName}`;
+        const fallbackUrl = rewriteStorageUrl(
+          isFullUrl
+            ? a.track.fileUrl
+            : supabaseUrl
+              ? getFilePublicUrl(fileRef.fileName, fileRef.folder)
+              : `/uploads/${fileRef.fileName}`,
+        );
 
         let streamUrl: string | undefined;
         try {
-          if (!isFullUrl && supabaseUrl) {
-            streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
-          }
+          streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
         } catch {
           // Fallback to public URL
         }

@@ -11,6 +11,7 @@ import {
   getFilePublicUrl,
   parseStorageObjectRef,
 } from "@/lib/supabase-storage";
+import { rewriteStorageUrl } from "@/lib/storage-proxy";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { revalidatePath } from "next/cache";
 
@@ -328,9 +329,11 @@ export async function getTracksAction(filters?: {
       tracksWithCount.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
-        const fallbackUrl = (isFullUrl || !supabaseUrl)
-          ? track.fileUrl 
-          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
+        const fallbackUrl = rewriteStorageUrl(
+          (isFullUrl || !supabaseUrl)
+            ? track.fileUrl
+            : getFilePublicUrl(fileRef.fileName, fileRef.folder),
+        );
 
         try {
           const streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
@@ -399,9 +402,11 @@ export async function getFeaturedTracksAction() {
       featuredTracks.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
-        const fallbackUrl = (isFullUrl || !supabaseUrl)
-          ? track.fileUrl 
-          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
+        const fallbackUrl = rewriteStorageUrl(
+          (isFullUrl || !supabaseUrl)
+            ? track.fileUrl
+            : getFilePublicUrl(fileRef.fileName, fileRef.folder),
+        );
           
         try {
           const streamUrl = await getDownloadSignedUrl(
@@ -501,9 +506,11 @@ export async function getTrackByIdAction(trackId: string) {
     }
 
     const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
-    const fallbackUrl = (isFullUrl || !supabaseUrl)
-      ? track.fileUrl 
-      : getFilePublicUrl(fileRef.fileName, fileRef.folder);
+    const fallbackUrl = rewriteStorageUrl(
+      (isFullUrl || !supabaseUrl)
+        ? track.fileUrl
+        : getFilePublicUrl(fileRef.fileName, fileRef.folder),
+    );
 
     let streamUrl: string | undefined = undefined;
     try {
