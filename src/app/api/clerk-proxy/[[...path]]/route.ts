@@ -79,6 +79,11 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
         ? `https://${req.headers.get("x-forwarded-host")}`
         : url.origin);
     const proxyPrefix = `${publicOrigin}/api/clerk-proxy`;
+    // The hostname we want cookies to live on (e.g. "bizmuzik.ru")
+    const proxyHostname = (() => { try { return new URL(publicOrigin).hostname; } catch { return ""; } })();
+    // The upstream hostname Clerk puts in Domain= (e.g. "clerk.bizmuzik.ru")
+    const upstreamHostname = (() => { try { return new URL(CLERK_FAPI).hostname; } catch { return ""; } })();
+
     upstream.headers.forEach((value, key) => {
       const k = key.toLowerCase();
       // 'content-encoding' must not be forwarded because fetch already decoded the body
@@ -96,6 +101,22 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
         } catch {
           // fall through and forward as-is
         }
+      }
+      // Rewrite Set-Cookie Domain so the browser accepts the cookie.
+      // Clerk sets Domain=clerk.bizmuzik.ru but the response arrives from
+      // bizmuzik.ru (our proxy) — the browser rejects cookies whose Domain
+      // doesn't match the response host. Without the __client cookie on
+      // subsequent requests, Clerk returns 401 on every FAPI call.
+      if (k === "set-cookie" && proxyHostname && upstreamHostname) {
+        // Replace Domain=<clerk-upstream-host> → Domain=<proxy-host>
+        // Also strip Domain entirely if it equals the upstream host so that
+        // the browser defaults to the current response host (same effect).
+        const rewritten = value.replace(
+          /\bDomain=[^;,\s]*/gi,
+          `Domain=${proxyHostname}`,
+        );
+        responseHeaders.append(key, rewritten);
+        return;
       }
       responseHeaders.append(key, value);
     });
