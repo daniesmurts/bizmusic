@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { waveSettings, tracks, trackSkips } from "@/db/schema";
 import { eq, and, not, sql, inArray } from "drizzle-orm";
 import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { rewriteStorageUrl } from "@/lib/storage-proxy";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
@@ -150,15 +151,15 @@ export async function generateWaveBatchAction(businessId: string, excludeTrackId
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
         
-        const fallbackUrl = isFullUrl
-          ? track.fileUrl 
-          : (supabaseUrl ? getFilePublicUrl(fileRef.fileName, fileRef.folder) : `/uploads/${fileRef.fileName}`);
+        const fallbackUrl = rewriteStorageUrl(
+          isFullUrl
+            ? track.fileUrl
+            : (supabaseUrl ? getFilePublicUrl(fileRef.fileName, fileRef.folder) : `/uploads/${fileRef.fileName}`),
+        );
 
         let streamUrl: string | undefined = undefined;
         try {
-          if (!isFullUrl && supabaseUrl) {
-            streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
-          }
+          streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
         } catch (err) {
           console.error(`Failed to sign URL for wave track ${track.id}:`, err);
         }

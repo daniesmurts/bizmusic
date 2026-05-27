@@ -23,6 +23,7 @@ import {
 } from "@/lib/supabase-storage";
 import { resolveAccessScope } from "@/lib/auth/scope";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { rewriteStorageUrl } from "@/lib/storage-proxy";
 
 type AccessModel = "FREE" | "PAID";
 type SourceType = "UPLOAD" | "TTS";
@@ -73,9 +74,11 @@ async function resolveTrackUrls(track: typeof tracks.$inferSelect) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const isFullUrl = track.fileUrl.startsWith("http");
   const fileRef = parseStorageObjectRef(track.fileUrl, "announcements");
-  const fallbackUrl = isFullUrl || !supabaseUrl
-    ? track.fileUrl
-    : getFilePublicUrl(fileRef.fileName, fileRef.folder);
+  const fallbackUrl = rewriteStorageUrl(
+    isFullUrl || !supabaseUrl
+      ? track.fileUrl
+      : getFilePublicUrl(fileRef.fileName, fileRef.folder),
+  );
 
   try {
     const streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
