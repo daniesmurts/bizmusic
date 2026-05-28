@@ -12,28 +12,30 @@ if (!process.env.DATABASE_URL) {
   console.error("[DB] ❌ DATABASE_URL is not set. All database queries will fail.");
 }
 
-// Connection routing:
-//   Dev  → session pooler / direct (port 5432) — stable, keepAlive-friendly
-//   Prod → transaction pooler (port 6543) — scales with serverless concurrency
+// Connection routing: always use the transaction pooler (port 6543) regardless
+// of environment. Previously dev was routed to the session pooler (5432), but
+// session mode has a hard cap of 15 concurrent connections shared across ALL
+// clients. When connections time out (slow Russia→AWS network) they hold their
+// session-mode slot until pgBouncer times them out server-side. After a few
+// page loads with ETIMEDOUT, the 15-slot pool fills with zombies and every
+// subsequent query gets EMAXCONNSESSION. Transaction mode releases the server
+// connection after every transaction, so zombie accumulation is impossible.
 //
-// PgBouncer transaction mode (6543) closes connections after every transaction.
-// In dev this causes "Connection terminated unexpectedly" on idle pool connections
-// because the pool recycles a connection that PgBouncer already closed server-side.
-// Routing dev to port 5432 (session pooler) avoids this entirely.
+// Trade-off: pg's keepAlive pings will be rejected by pgBouncer (it closed the
+// underlying server connection). We handle this by disabling keepAlive and using
+// a very short idleTimeoutMillis so pg evicts idle pool slots before pgBouncer
+// does — preventing "Connection terminated unexpectedly" on recycled connections.
 function getConnectionString(): string | undefined {
   const url = process.env.DATABASE_URL;
-  const isDev = process.env.NODE_ENV === "development";
   const isSupabase = url && (url.includes("supabase.co") || url.includes("supabase.com"));
 
-  if (isSupabase) {
-    if (isDev && url!.includes(":6543")) {
-      console.log("[DB] Dev: switching from transaction pooler (6543) to session pooler (5432)");
-      return url!.replace(":6543", ":5432");
+  if (isSupabase && url!.includes(":5432")) {
+    // Ensure we always use the transaction pooler in all environments.
+    const upgraded = url!.replace(":5432", ":6543");
+    if (!upgraded.includes("pgbouncer=true")) {
+      return upgraded.includes("?") ? `${upgraded}&pgbouncer=true` : `${upgraded}?pgbouncer=true`;
     }
-    if (!isDev && url!.includes(":5432")) {
-      console.log("[DB] Prod: switching from port 5432 to transaction pooler (6543)");
-      return url!.replace(":5432", ":6543");
-    }
+    return upgraded;
   }
   return url;
 }
@@ -43,22 +45,25 @@ const isDev = process.env.NODE_ENV === "development";
 const poolConfig = {
   connectionString: getConnectionString(),
   ssl: { rejectUnauthorized: false },
-  // Dev: keep the pool small so fewer connections go stale between requests.
-  // 9 parallel queries can queue behind 3 connections rather than opening 9
-  // simultaneous TLS handshakes that Supabase rate-limits / drops.
-  max: isDev ? 3 : 20,
-  // keepAlive prevents Supabase from silently closing idle connections
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 10_000,
-  // Evict idle connections before Supabase's ~30 s server-side idle timeout.
-  // Dev uses a shorter window because idle time between requests is unpredictable.
-  idleTimeoutMillis: isDev ? 10_000 : 20_000,
-  // 5 s is plenty; 30 s means a stalled connection hangs the user for half a minute.
-  connectionTimeoutMillis: 5_000,
+  // Transaction pooler (pgBouncer): keep the pool small. pgBouncer multiplexes
+  // many app connections onto a smaller number of real server connections, so a
+  // large pg pool just creates extra TLS handshake overhead.
+  max: isDev ? 3 : 10,
+  // keepAlive MUST be disabled for pgBouncer transaction mode. pgBouncer closes
+  // the underlying server connection after every transaction — keepAlive pings on
+  // an already-closed connection produce "Connection terminated unexpectedly".
+  keepAlive: false,
+  // Release idle pool slots quickly. pgBouncer can close the server connection at
+  // any moment; an idle pg client holding a slot that pgBouncer already freed will
+  // error on the next query. Short idle timeout means pg evicts the slot first.
+  idleTimeoutMillis: isDev ? 5_000 : 10_000,
+  // Allow enough time for a high-latency connection (Russia → AWS Frankfurt).
+  // 10 s is a reasonable upper bound; fail-fast would trigger too often on slow nets.
+  connectionTimeoutMillis: isDev ? 10_000 : 8_000,
   allowExitOnIdle: true,
-  // Kill runaway queries after 10 s — prevents a single slow query from blocking
-  // a pool connection and starving all concurrent dashboard users.
-  options: "-c statement_timeout=10000",
+  // NOTE: "-c statement_timeout=..." does NOT work through pgBouncer transaction
+  // mode — pgBouncer strips SET commands. Rely on connectionTimeoutMillis above
+  // and on the application-level query timeout in the resilient() wrapper instead.
 };
 
 declare global {
@@ -131,13 +136,23 @@ export const db = new Proxy({} as NodePgDatabase<typeof schema>, {
 function isConnectionError(err: unknown): boolean {
   const m = String((err as any)?.message ?? "").toLowerCase();
   const c = String((err as any)?.cause?.message ?? "").toLowerCase();
+  const code = String((err as any)?.code ?? "");
+  const causeCode = String((err as any)?.cause?.code ?? "");
   return (
     m.includes("connection terminated") ||
     c.includes("connection terminated") ||
     m.includes("connection reset") ||
     c.includes("connection reset") ||
-    (err as any)?.code === "57P01" ||
-    (err as any)?.cause?.code === "57P01"
+    m.includes("connection timeout") ||
+    c.includes("connection timeout") ||
+    m.includes("etimedout") ||
+    c.includes("etimedout") ||
+    m.includes("econnreset") ||
+    c.includes("econnreset") ||
+    // pgBouncer session-limit error — switch to different connection
+    m.includes("emaxconnsession") ||
+    code === "57P01" ||     // admin_shutdown
+    causeCode === "57P01"
   );
 }
 
