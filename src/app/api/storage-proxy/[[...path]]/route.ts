@@ -40,10 +40,11 @@ async function proxy(
     );
   }
 
+  let target = "(unknown)";
   try {
     const { path = [] } = await ctx.params;
     const url = new URL(req.url);
-    const target = `${SUPABASE_URL}/${path.join("/")}${url.search}`;
+    target = `${SUPABASE_URL}/${path.join("/")}${url.search}`;
 
     // Forward headers Supabase Storage cares about.
     // Range + If-Range are critical for audio seeking — without them, the browser
@@ -64,7 +65,7 @@ async function proxy(
       if (v) headers.set(name, v);
     }
 
-    console.log(`[storage-proxy] ${req.method} ${target}`);
+    console.log(`[storage-proxy] → ${req.method} ${target}`);
     const upstream = await fetch(target, {
       method: req.method,
       headers,
@@ -114,13 +115,24 @@ async function proxy(
       headers: responseHeaders,
     });
   } catch (err) {
-    console.error("[storage-proxy] error:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    const cause =
+      err instanceof Error && err.cause
+        ? String((err.cause as Error).message ?? err.cause)
+        : undefined;
+    console.error("[storage-proxy] error fetching", target, "→", message, cause ? `(cause: ${cause})` : "");
     return new Response(
-      JSON.stringify({
-        error: "proxy_error",
-        message: err instanceof Error ? err.message : String(err),
-      }),
-      { status: 502, headers: { "content-type": "application/json" } },
+      JSON.stringify({ error: "proxy_error", message, cause, target }),
+      {
+        status: 502,
+        headers: {
+          "content-type": "application/json",
+          // Expose the raw error in response headers so it's visible in the
+          // Network tab even when the browser treats the body as audio.
+          "x-proxy-error": message.slice(0, 200),
+          ...(cause ? { "x-proxy-cause": cause.slice(0, 200) } : {}),
+        },
+      },
     );
   }
 }
