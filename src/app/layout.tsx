@@ -137,7 +137,14 @@ export default function RootLayout({
       prefetchUI={false}
       {...({
         __internal_clerkJSUrl: "/clerk-js/clerk.browser.js",
-        proxyUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/clerk-proxy`,
+        // proxyUrl routes all Clerk FAPI traffic through our origin to bypass
+        // Russian mobile carrier blocks on clerk.bizmuzik.ru. Only needed in
+        // production — in development Clerk's dev FAPI (*.clerk.accounts.dev)
+        // already allows localhost, and the production proxy (clerk.bizmuzik.ru)
+        // rejects requests whose Origin doesn't match bizmuzik.ru.
+        ...(process.env.NODE_ENV === "production"
+          ? { proxyUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/clerk-proxy` }
+          : {}),
       } as Record<string, unknown>)}
     >
     <html lang="ru" suppressHydrationWarning>
