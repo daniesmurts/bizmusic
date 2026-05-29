@@ -33,6 +33,25 @@ const SUPABASE_URL =
 // Without it the gateway returns 400 regardless of the token in the URL.
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
+// Yandex Cloud Serverless Containers reject any response body larger than 3.5 MiB
+// (3,670,016 bytes) with "JobResponseTooLong" → the platform returns 502. Audio
+// files here are 4–8 MB, so a full-file relay always exceeds the cap. We never
+// emit more than MAX_CHUNK bytes per response by clamping the upstream Range; the
+// browser's <audio> element issues follow-up range requests for the rest. 3 MiB
+// leaves comfortable headroom under the 3.5 MiB platform limit.
+const MAX_CHUNK = 3 * 1024 * 1024; // 3 MiB
+
+// Parse a single "bytes=start-end" Range header. Returns start (default 0) and
+// the requested end (undefined = open-ended "to end of file").
+function parseRange(value: string | null): { start: number; end?: number } {
+  if (!value) return { start: 0 };
+  const m = /^bytes=(\d+)-(\d*)$/.exec(value.trim());
+  if (!m) return { start: 0 };
+  const start = parseInt(m[1], 10);
+  const end = m[2] ? parseInt(m[2], 10) : undefined;
+  return { start: Number.isFinite(start) ? start : 0, end };
+}
+
 async function proxy(
   req: NextRequest,
   ctx: { params: Promise<{ path?: string[] }> },
@@ -62,11 +81,29 @@ async function proxy(
       "if-none-match",
       "if-modified-since",
       "if-range",
-      "range",           // Byte-range requests for audio seeking
     ];
     for (const name of forwardable) {
       const v = req.headers.get(name);
       if (v) headers.set(name, v);
+    }
+
+    // Range clamping — the heart of the YC 3.5 MiB fix.
+    // For GET we ALWAYS send a bounded range so the upstream 206 body can never
+    // exceed MAX_CHUNK. The browser keeps requesting later ranges as it plays/seeks.
+    //   - Client sent "bytes=START-"      → fetch START .. START+MAX_CHUNK-1
+    //   - Client sent "bytes=START-END"   → fetch START .. min(END, START+MAX_CHUNK-1)
+    //   - Client sent no Range (e.g. <img>) → fetch 0 .. MAX_CHUNK-1; small files come
+    //     back whole in one 206 (browsers treat a complete 206 as the full resource).
+    // HEAD carries no body, so we leave its range untouched to report true metadata.
+    let didClampRange = false;
+    if (req.method === "GET") {
+      const { start, end } = parseRange(req.headers.get("range"));
+      const cappedEnd = Math.min(end ?? Infinity, start + MAX_CHUNK - 1);
+      headers.set("range", `bytes=${start}-${cappedEnd}`);
+      didClampRange = true;
+    } else {
+      const r = req.headers.get("range");
+      if (r) headers.set("range", r);
     }
 
     // Supabase requires the project anon key on every storage request.
@@ -117,6 +154,13 @@ async function proxy(
     for (const name of passThroughHeaders) {
       const v = upstream.headers.get(name);
       if (v) responseHeaders.set(name, v);
+    }
+
+    // Supabase's edge sometimes omits Accept-Ranges. When we've served a bounded
+    // chunk the browser MUST know it can request the rest, or playback stalls after
+    // the first 3 MiB. Advertise range support explicitly.
+    if (didClampRange) {
+      responseHeaders.set("accept-ranges", "bytes");
     }
 
     // Cache audio aggressively. Signed URLs expire on Supabase's end (currently 1 h);
