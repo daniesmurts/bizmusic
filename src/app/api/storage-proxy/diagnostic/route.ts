@@ -26,6 +26,18 @@ const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL ??
   "";
 
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
+// Auth headers required by Supabase on every storage request
+function supabaseHeaders() {
+  const h: Record<string, string> = {};
+  if (SUPABASE_ANON_KEY) {
+    h["apikey"] = SUPABASE_ANON_KEY;
+    h["authorization"] = `Bearer ${SUPABASE_ANON_KEY}`;
+  }
+  return h;
+}
+
 export async function GET() {
   const results: Record<string, unknown> = {};
 
@@ -37,6 +49,9 @@ export async function GET() {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL
       ? `set (${process.env.NEXT_PUBLIC_SUPABASE_URL.slice(0, 30)}...)`
       : "not set",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: SUPABASE_ANON_KEY
+      ? `set (${SUPABASE_ANON_KEY.slice(0, 20)}...)`
+      : "NOT SET — proxy will get 400 on all Supabase requests",
     resolved_SUPABASE_URL: SUPABASE_URL
       ? `${SUPABASE_URL.slice(0, 40)}...`
       : "(empty — proxy will always 502)",
@@ -56,8 +71,9 @@ export async function GET() {
     const t0 = Date.now();
     const res = await fetch(healthTarget, {
       method: "HEAD",
+      headers: supabaseHeaders(),
       redirect: "follow",
-      signal: AbortSignal.timeout(10_000), // 10 s
+      signal: AbortSignal.timeout(10_000),
     });
     results.head = {
       target: healthTarget,
@@ -85,7 +101,8 @@ export async function GET() {
     const t0 = Date.now();
     const res = await fetch(redirectTarget, {
       method: "HEAD",
-      redirect: "manual", // Don't follow — capture the redirect target
+      headers: supabaseHeaders(),
+      redirect: "manual",
       signal: AbortSignal.timeout(10_000),
     });
     results.redirect = {
@@ -113,8 +130,8 @@ export async function GET() {
     const t0 = Date.now();
     const res = await fetch(publicObjectTarget, {
       method: "HEAD",
+      headers: { ...supabaseHeaders(), range: "bytes=0-1023" },
       redirect: "follow",
-      headers: { range: "bytes=0-1023" },
       signal: AbortSignal.timeout(15_000),
     });
     results.objectFetch = {
