@@ -227,6 +227,43 @@ export async function GET() {
     }
   }
 
+  // --- Step 6: full-file drain (open-ended range, drain ENTIRE body, 30s cap) -
+  //     The browser's audio element requests bytes=0- (the whole file). This
+  //     measures whether fetching+draining all 4.8MB server-side is fast. If this
+  //     is quick, the 502 is from CLIENT-side streaming backpressure holding the
+  //     container open past YC's 60s limit, not from the container↔Supabase link.
+  {
+    const t0 = Date.now();
+    try {
+      const res = await fetch(rawSignedUrl, {
+        method: "GET",
+        headers: proxyHeaders({ range: "bytes=0-" }),
+        redirect: "follow",
+        signal: AbortSignal.timeout(30_000),
+      });
+      let total = 0;
+      const reader = res.body?.getReader();
+      if (reader) {
+        // drain fully; the 30s AbortSignal is the backstop
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          total += value?.length ?? 0;
+        }
+      }
+      const ms = Date.now() - t0;
+      results.fullDrain = {
+        status: res.status,
+        ms,
+        bytesDrained: total,
+        throughputKBps: ms > 0 ? Math.round(total / 1024 / (ms / 1000)) : null,
+      };
+    } catch (err) {
+      results.fullDrain = { ms: Date.now() - t0, thrown: true, ...describeError(err) };
+    }
+  }
+
   // --- Verdict ----------------------------------------------------------------
   const sf = results.signedFetchFollow as Record<string, unknown> | undefined;
   if (sf && "thrown" in sf) {
@@ -234,9 +271,21 @@ export async function GET() {
       `FAIL: signed-URL fetch ${sf.error}. This hang/throw IS the proxy 502. ` +
       `redirectProbe=${JSON.stringify(results.redirectProbe)}`;
   } else if (sf && sf.ok) {
-    results.verdict =
-      "OK: container fetched the signed URL fine. If the browser still 502s, the " +
-      "difference is request-specific — compare the Network tab request headers.";
+    const fd = results.fullDrain as Record<string, unknown> | undefined;
+    if (fd && "thrown" in fd) {
+      results.verdict =
+        `Container fetched 1KB fine but FULL-FILE drain failed: ${fd.error}. ` +
+        "The container↔Supabase link can't sustain a full download.";
+    } else if (fd) {
+      results.verdict =
+        `Container fetched the full ${fd.bytesDrained}B in ${fd.ms}ms ` +
+        `(${fd.throughputKBps} KB/s). Server path is healthy. The browser 502 is ` +
+        "client-side streaming backpressure holding the container past YC's 60s " +
+        "limit on slow connections — fix in the proxy (buffer + bounded timeout, " +
+        "or redirect the browser straight to the signed URL).";
+    } else {
+      results.verdict = "OK: container fetched the signed URL fine.";
+    }
   } else if (sf) {
     results.verdict = `Supabase returned HTTP ${sf.status}. See signedFetchFollow.errorBody.`;
   } else {
