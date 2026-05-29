@@ -72,12 +72,13 @@ async function proxy(
     // Supabase requires the project anon key on every storage request.
     // Signed URL tokens authenticate the specific file, but the apikey header
     // identifies the project — without it Supabase returns 400.
+    //
+    // Do NOT also set Authorization: Bearer here. For signed URL downloads the
+    // token in the URL query string IS the auth. Adding an Authorization header
+    // with the anon key can conflict with the signed token on private buckets,
+    // causing Supabase to reject the request with 400/403.
     if (SUPABASE_ANON_KEY) {
       headers.set("apikey", SUPABASE_ANON_KEY);
-      // Only set Authorization if the client didn't already send one
-      if (!headers.has("authorization")) {
-        headers.set("authorization", `Bearer ${SUPABASE_ANON_KEY}`);
-      }
     }
 
     console.log(`[storage-proxy] → ${req.method} ${target}`);
@@ -88,9 +89,10 @@ async function proxy(
       // CDN/R2 — following on the server preserves Range header semantics better
       // than letting the browser chase the redirect to a blocked host.
       redirect: "follow",
-      // 30 s hard timeout — prevents a slow/hung Supabase connection from
-      // waiting until YC's 60 s container limit silently kills the request.
-      signal: AbortSignal.timeout(30_000),
+      // No AbortSignal timeout here — audio files are 3–8 MB and stream at
+      // whatever speed the YC↔Supabase link allows. A 30 s timeout would abort
+      // mid-stream on slower connections. The YC container's 60 s execution
+      // timeout is the backstop; browsers will retry or show a playback error.
     });
     console.log(`[storage-proxy] upstream ${upstream.status}`);
 
