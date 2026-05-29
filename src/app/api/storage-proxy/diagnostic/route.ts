@@ -1,20 +1,22 @@
 /**
  * Diagnostic endpoint for debugging the storage proxy.
  *
- * Hit this URL from the browser or curl to understand exactly why the proxy
- * is returning 502 on audio:
- *
  *   https://bizmuzik.ru/api/storage-proxy/diagnostic
  *
- * Unlike a generic health check, this replicates EXACTLY what the proxy does:
- *   1. Use the admin client (service role key) to list a real track in the bucket.
- *   2. Create a real signed URL for that track (same call the app makes).
- *   3. Fetch the raw Supabase signed URL server-side with ONLY the apikey header
- *      (no Authorization: Bearer — matching the proxy) and a Range header,
- *      capturing the status, headers, and any thrown error/cause.
+ * Replicates EXACTLY what the proxy does, but with a hard per-step timeout so the
+ * whole request returns BEFORE the YC container's 60s execution limit kills it.
+ * The previous version hung and the container returned JobExecutionTimeoutExceeded,
+ * which told us one of the server-side fetches hangs forever — that hang IS the
+ * audio 502. This version pins down WHICH step hangs and how long each one takes.
  *
- * This route is intentionally admin-only in production — no file bytes or signed
- * tokens are exposed, only connectivity metadata.
+ * Steps (each independently timed + bounded):
+ *   1. list a real track via the admin client (service role key)
+ *   2. createSignedUrl for it
+ *   3. redirectProbe   — redirect:manual, no body → reveals CDN redirect target
+ *   4. signedFetchFollow — redirect:follow + Range, read first chunk (what proxy does)
+ *   5. healthBaseline  — tiny /storage/v1/health fetch for comparison
+ *
+ * No file bytes or signed tokens are exposed — only connectivity metadata.
  */
 
 import { NextResponse } from "next/server";
@@ -57,175 +59,192 @@ function describeError(err: unknown) {
   };
 }
 
+// Bound any promise so a hang surfaces as a result instead of eating the 60s budget.
+async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`step timed out after ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([p, timeout]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
 export async function GET() {
   const results: Record<string, unknown> = {};
 
-  // 1. Environment check
   results.env = {
-    resolved_SUPABASE_URL: SUPABASE_URL
-      ? `${SUPABASE_URL.slice(0, 40)}...`
-      : "(empty — proxy will always 502)",
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: SUPABASE_ANON_KEY
-      ? `set (${SUPABASE_ANON_KEY.slice(0, 12)}...)`
-      : "NOT SET — proxy will 400 on every request",
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
-      ? "set"
-      : "NOT SET — cannot create signed URLs",
+    resolved_SUPABASE_URL: SUPABASE_URL ? `${SUPABASE_URL.slice(0, 40)}...` : "(empty)",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: SUPABASE_ANON_KEY ? "set" : "NOT SET",
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "NOT SET",
     NODE_ENV: process.env.NODE_ENV,
   };
 
   if (!SUPABASE_URL) {
-    return NextResponse.json(
-      { ...results, verdict: "FAIL: SUPABASE_URL is empty." },
-      { status: 500 },
-    );
+    return NextResponse.json({ ...results, verdict: "FAIL: SUPABASE_URL empty." }, { status: 500 });
   }
 
-  // 2. List a real track via the admin client
-  let trackPath: string | undefined;
-  try {
-    const { data, error } = await supabaseAdmin.storage
-      .from(BUCKET)
-      .list("tracks", { limit: 1, offset: 0 });
-    if (error) throw new Error(error.message);
-    const first = data?.[0];
-    if (!first) throw new Error("bucket 'tracks/' folder is empty");
-    trackPath = `tracks/${first.name}`;
-    results.list = { ok: true, sampleObject: first.name, count: data.length };
-  } catch (err) {
-    results.list = { ok: false, ...describeError(err) };
-    return NextResponse.json(
-      { ...results, verdict: "FAIL: could not list a real track to test with." },
-      { status: 200 },
-    );
-  }
-
-  // 3. Create a real signed URL (the raw Supabase URL, not the proxy-rewritten one)
-  let rawSignedUrl: string | undefined;
-  try {
-    const { data, error } = await supabaseAdmin.storage
-      .from(BUCKET)
-      .createSignedUrl(trackPath, 3600);
-    if (error) throw new Error(error.message);
-    rawSignedUrl = data.signedUrl;
-    // data.signedUrl may be a relative path (/storage/v1/object/sign/...) depending
-    // on supabase-js version — normalize to an absolute URL against SUPABASE_URL.
-    if (rawSignedUrl.startsWith("/")) {
-      rawSignedUrl = `${SUPABASE_URL}${rawSignedUrl}`;
-    }
-    results.signedUrl = {
-      ok: true,
-      // Show the path + presence of token, never the full token.
-      path: new URL(rawSignedUrl).pathname,
-      hasToken: new URL(rawSignedUrl).searchParams.has("token"),
-    };
-  } catch (err) {
-    results.signedUrl = { ok: false, ...describeError(err) };
-    return NextResponse.json(
-      { ...results, verdict: "FAIL: createSignedUrl threw." },
-      { status: 200 },
-    );
-  }
-
-  // 4. THE REAL TEST — fetch the raw signed URL exactly as the proxy does:
-  //    apikey header only, redirect: follow, Range header, NO abort timeout.
-  try {
+  // --- Step 5 first (cheap baseline): tiny health fetch, 8s cap ---------------
+  {
     const t0 = Date.now();
-    const res = await fetch(rawSignedUrl, {
-      method: "GET",
-      headers: proxyHeaders({ range: "bytes=0-1023" }),
-      redirect: "follow",
-    });
-    // Read just the first chunk so we know bytes actually flow.
-    let firstBytes = 0;
     try {
-      const reader = res.body?.getReader();
-      if (reader) {
-        const { value } = await reader.read();
-        firstBytes = value?.length ?? 0;
-        await reader.cancel();
-      }
-    } catch {
-      /* body read failure captured below via firstBytes = 0 */
+      const res = await fetch(`${SUPABASE_URL}/storage/v1/health`, {
+        method: "GET",
+        headers: proxyHeaders(),
+        redirect: "follow",
+        signal: AbortSignal.timeout(8_000),
+      });
+      results.healthBaseline = { status: res.status, ms: Date.now() - t0 };
+    } catch (err) {
+      results.healthBaseline = { ms: Date.now() - t0, ...describeError(err) };
     }
-    results.signedFetch = {
-      target: new URL(rawSignedUrl).pathname,
-      status: res.status,
-      ok: res.ok,
-      latencyMs: Date.now() - t0,
-      contentType: res.headers.get("content-type"),
-      contentLength: res.headers.get("content-length"),
-      contentRange: res.headers.get("content-range"),
-      acceptRanges: res.headers.get("accept-ranges"),
-      firstBytesRead: firstBytes,
-      // If Supabase returned an error, its body is JSON — surface it.
-      bodyHint:
-        res.headers.get("content-type")?.includes("json") && firstBytes === 0
-          ? "(error body — re-fetch without range to read)"
-          : undefined,
-    };
+  }
 
-    // If non-2xx, fetch again without range to read the JSON error body.
-    if (!res.ok) {
+  // --- Step 1: list a real track (8s cap) -------------------------------------
+  let trackPath: string | undefined;
+  {
+    const t0 = Date.now();
+    try {
+      const { data, error } = await withTimeout(
+        supabaseAdmin.storage.from(BUCKET).list("tracks", { limit: 1, offset: 0 }),
+        8_000,
+      );
+      if (error) throw new Error(error.message);
+      const first = data?.[0];
+      if (!first) throw new Error("'tracks/' folder is empty");
+      trackPath = `tracks/${first.name}`;
+      results.list = { ok: true, sampleObject: first.name, ms: Date.now() - t0 };
+    } catch (err) {
+      results.list = { ok: false, ms: Date.now() - t0, ...describeError(err) };
+      return NextResponse.json(
+        { ...results, verdict: "FAIL at list step. See list.error / list.ms." },
+        { status: 200, headers: { "cache-control": "no-store" } },
+      );
+    }
+  }
+
+  // --- Step 2: createSignedUrl (8s cap) ---------------------------------------
+  let rawSignedUrl: string | undefined;
+  {
+    const t0 = Date.now();
+    try {
+      const { data, error } = await withTimeout(
+        supabaseAdmin.storage.from(BUCKET).createSignedUrl(trackPath, 3600),
+        8_000,
+      );
+      if (error) throw new Error(error.message);
+      rawSignedUrl = data.signedUrl.startsWith("/")
+        ? `${SUPABASE_URL}${data.signedUrl}`
+        : data.signedUrl;
+      results.signedUrl = {
+        ok: true,
+        ms: Date.now() - t0,
+        path: new URL(rawSignedUrl).pathname,
+        hasToken: new URL(rawSignedUrl).searchParams.has("token"),
+      };
+    } catch (err) {
+      results.signedUrl = { ok: false, ms: Date.now() - t0, ...describeError(err) };
+      return NextResponse.json(
+        { ...results, verdict: "FAIL at createSignedUrl step." },
+        { status: 200, headers: { "cache-control": "no-store" } },
+      );
+    }
+  }
+
+  // --- Step 3: redirect probe (manual, no body, 10s cap) ----------------------
+  {
+    const t0 = Date.now();
+    try {
+      const res = await fetch(rawSignedUrl, {
+        method: "GET",
+        headers: proxyHeaders(),
+        redirect: "manual",
+        signal: AbortSignal.timeout(10_000),
+      });
+      const location = res.headers.get("location");
+      results.redirectProbe = {
+        status: res.status,
+        ms: Date.now() - t0,
+        redirects: !!location,
+        locationHost: location ? safeHost(location) : null,
+      };
+    } catch (err) {
+      results.redirectProbe = { ms: Date.now() - t0, thrown: true, ...describeError(err) };
+    }
+  }
+
+  // --- Step 4: the real test — follow + Range + read first chunk (18s cap) ----
+  {
+    const t0 = Date.now();
+    try {
+      const res = await fetch(rawSignedUrl, {
+        method: "GET",
+        headers: proxyHeaders({ range: "bytes=0-1023" }),
+        redirect: "follow",
+        signal: AbortSignal.timeout(18_000),
+      });
+      let firstBytes = 0;
       try {
-        const errRes = await fetch(rawSignedUrl, {
-          method: "GET",
-          headers: proxyHeaders(),
-          redirect: "follow",
-        });
-        const text = await errRes.text();
-        (results.signedFetch as Record<string, unknown>).errorBody = text.slice(0, 500);
+        const reader = res.body?.getReader();
+        if (reader) {
+          const { value } = await withTimeout(reader.read(), 6_000);
+          firstBytes = value?.length ?? 0;
+          await reader.cancel();
+        }
       } catch (e) {
-        (results.signedFetch as Record<string, unknown>).errorBodyReadFailed =
-          describeError(e);
+        (results as Record<string, unknown>).bodyReadError = describeError(e);
       }
+      results.signedFetchFollow = {
+        status: res.status,
+        ok: res.ok,
+        ms: Date.now() - t0,
+        contentType: res.headers.get("content-type"),
+        contentLength: res.headers.get("content-length"),
+        contentRange: res.headers.get("content-range"),
+        acceptRanges: res.headers.get("accept-ranges"),
+        servedBy: res.headers.get("server"),
+        firstBytesRead: firstBytes,
+      };
+      if (!res.ok) {
+        try {
+          const errRes = await fetch(rawSignedUrl, {
+            method: "GET",
+            headers: proxyHeaders(),
+            redirect: "follow",
+            signal: AbortSignal.timeout(10_000),
+          });
+          (results.signedFetchFollow as Record<string, unknown>).errorBody = (
+            await errRes.text()
+          ).slice(0, 500);
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch (err) {
+      results.signedFetchFollow = { ms: Date.now() - t0, thrown: true, ...describeError(err) };
     }
-  } catch (err) {
-    results.signedFetch = {
-      target: new URL(rawSignedUrl).pathname,
-      thrown: true,
-      ...describeError(err),
-    };
   }
 
-  // 4b. Redirect probe — does the signed URL redirect to a CDN host? The proxy
-  //     uses redirect:"follow"; if Supabase 302s to a host the container can't
-  //     reach, fetch() throws and the proxy 502s. This reveals the redirect target.
-  try {
-    const res = await fetch(rawSignedUrl, {
-      method: "GET",
-      headers: proxyHeaders(),
-      redirect: "manual",
-    });
-    const location = res.headers.get("location");
-    results.redirectProbe = {
-      status: res.status,
-      redirects: !!location,
-      // Show only the host of the redirect target, never the token-bearing path.
-      locationHost: location ? safeHost(location) : null,
-    };
-  } catch (err) {
-    results.redirectProbe = { thrown: true, ...describeError(err) };
-  }
-
-  // 5. Verdict
-  const sf = results.signedFetch as Record<string, unknown> | undefined;
+  // --- Verdict ----------------------------------------------------------------
+  const sf = results.signedFetchFollow as Record<string, unknown> | undefined;
   if (sf && "thrown" in sf) {
     results.verdict =
-      "FAIL: the fetch THREW (network-level). This is exactly why the proxy 502s. " +
-      "Cause: " + (sf.errorCause ?? sf.error);
+      `FAIL: signed-URL fetch ${sf.error}. This hang/throw IS the proxy 502. ` +
+      `redirectProbe=${JSON.stringify(results.redirectProbe)}`;
   } else if (sf && sf.ok) {
     results.verdict =
-      "OK: signed URL fetched successfully from the container. If the browser still " +
-      "502s, the difference is request-specific (headers/range) — compare Network tab.";
+      "OK: container fetched the signed URL fine. If the browser still 502s, the " +
+      "difference is request-specific — compare the Network tab request headers.";
   } else if (sf) {
-    results.verdict = `FAIL: Supabase returned HTTP ${sf.status}. See errorBody for the reason.`;
+    results.verdict = `Supabase returned HTTP ${sf.status}. See signedFetchFollow.errorBody.`;
   } else {
-    results.verdict = "UNKNOWN: signedFetch did not run.";
+    results.verdict = "UNKNOWN.";
   }
 
   return NextResponse.json(results, {
     status: 200,
-    headers: { "cache-control": "no-store", "x-diagnostic": "storage-proxy-e2e" },
+    headers: { "cache-control": "no-store", "x-diagnostic": "storage-proxy-e2e-v2" },
   });
 }
