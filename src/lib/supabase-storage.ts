@@ -106,13 +106,20 @@ export async function uploadFileBuffer(
  * @param folder - The folder in the bucket (default: tracks)
  * @returns Public URL for the file
  */
-export function getFilePublicUrl(fileName: string, folder: string = 'tracks'): string {
+export function getFilePublicUrl(
+  fileName: string,
+  folder: string = 'tracks',
+  options: { proxy?: boolean } = {},
+): string {
+  const { proxy = true } = options;
   const path = `${folder}/${fileName}`;
   const { data: { publicUrl } } = supabaseAdmin.storage
     .from(BUCKET_NAME)
     .getPublicUrl(path);
 
-  return rewriteStorageUrl(publicUrl);
+  // proxy:false returns the raw supabase.co URL — used for full-file downloads,
+  // which cannot pass through the serverless proxy (3.5 MiB response cap).
+  return proxy ? rewriteStorageUrl(publicUrl) : publicUrl;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,12 +159,24 @@ function _pruneCache() {
 export async function getDownloadSignedUrl(
   fileName: string,
   folder: string = 'tracks',
-  expiresIn: number = 86400
+  expiresIn: number = 86400,
+  options: { proxy?: boolean } = {},
 ): Promise<string> {
+  // proxy:true (default) → route through /api/storage-proxy to dodge carrier blocks
+  //   (used for streaming, where <audio> does range requests and the proxy chunks).
+  // proxy:false → raw supabase.co signed URL (used for full-file downloads, which
+  //   cannot pass through the serverless proxy's 3.5 MiB response cap).
+  // The cache always stores the RAW signed URL; the proxy decision is applied on
+  // return so both cache-hit and cache-miss paths agree (previously they didn't:
+  // a cache hit returned the raw URL while a miss returned the proxied URL, so
+  // cached tracks intermittently served the carrier-blocked host).
+  const { proxy = true } = options;
+  const present = (raw: string) => (proxy ? rewriteStorageUrl(raw) : raw);
+
   const cacheKey = `${folder}/${fileName}`;
   const cached = _signedUrlCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.url;
+    return present(cached.url);
   }
 
   const maxRetries = 2;
@@ -173,14 +192,14 @@ export async function getDownloadSignedUrl(
         throw new Error(`Failed to create download URL: ${error.message}`);
       }
 
-      // Cache the URL, evict 120 s before actual expiry
+      // Cache the RAW URL, evict 120 s before actual expiry
       _pruneCache();
       _signedUrlCache.set(cacheKey, {
         url: data.signedUrl,
         expiresAt: Date.now() + (expiresIn - 120) * 1000,
       });
 
-      return rewriteStorageUrl(data.signedUrl);
+      return present(data.signedUrl);
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       const isFetchError = lastError.message.includes('fetch failed') ||
