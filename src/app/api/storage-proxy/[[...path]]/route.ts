@@ -29,6 +29,10 @@ const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL ??
   "";
 
+// Supabase requires the anon key on every storage request — even signed URLs.
+// Without it the gateway returns 400 regardless of the token in the URL.
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
 async function proxy(
   req: NextRequest,
   ctx: { params: Promise<{ path?: string[] }> },
@@ -65,6 +69,17 @@ async function proxy(
       if (v) headers.set(name, v);
     }
 
+    // Supabase requires the project anon key on every storage request.
+    // Signed URL tokens authenticate the specific file, but the apikey header
+    // identifies the project — without it Supabase returns 400.
+    if (SUPABASE_ANON_KEY) {
+      headers.set("apikey", SUPABASE_ANON_KEY);
+      // Only set Authorization if the client didn't already send one
+      if (!headers.has("authorization")) {
+        headers.set("authorization", `Bearer ${SUPABASE_ANON_KEY}`);
+      }
+    }
+
     console.log(`[storage-proxy] → ${req.method} ${target}`);
     const upstream = await fetch(target, {
       method: req.method,
@@ -73,6 +88,9 @@ async function proxy(
       // CDN/R2 — following on the server preserves Range header semantics better
       // than letting the browser chase the redirect to a blocked host.
       redirect: "follow",
+      // 30 s hard timeout — prevents a slow/hung Supabase connection from
+      // waiting until YC's 60 s container limit silently kills the request.
+      signal: AbortSignal.timeout(30_000),
     });
     console.log(`[storage-proxy] upstream ${upstream.status}`);
 
