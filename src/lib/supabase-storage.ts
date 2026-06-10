@@ -3,6 +3,21 @@ import "server-only";
 import { createClient } from '@supabase/supabase-js';
 import { parseStorageObjectRef, type StorageObjectRef } from "@/lib/storage-object-ref";
 import { rewriteStorageUrl } from "@/lib/storage-proxy";
+import {
+  S3_ENABLED,
+  s3Delete,
+  s3List,
+  s3PresignGet,
+  s3PresignPut,
+  s3PublicUrl,
+  s3PutObject,
+} from "@/lib/s3-storage";
+
+// Storage backend switch. When the S3_* env vars are set (Yandex Object Storage),
+// every operation routes there and the storage proxy is bypassed entirely. Until
+// then production keeps using Supabase Storage. See src/lib/s3-storage.ts.
+// NOTE: the public function signatures below are identical in both modes, so no
+// call site anywhere in the app needs to change.
 
 // Lazy admin client — delay initialization until first use so that importing this
 // module at build time (Next.js page-data collection) doesn't throw when
@@ -47,6 +62,12 @@ export async function getUploadSignedUrl(
   // `fileType` is currently unused in the upload flow but kept for future validation/logic.
   void fileType;
   const path = `${folder}/${fileName}`;
+
+  if (S3_ENABLED) {
+    const uploadUrl = await s3PresignPut(path, 3600);
+    return { uploadUrl, publicUrl: s3PublicUrl(path), objectPath: path };
+  }
+
   const { data, error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
     .createSignedUploadUrl(path);
@@ -82,6 +103,12 @@ export async function uploadFileBuffer(
   contentType: string = 'audio/mpeg'
 ): Promise<string> {
   const path = `${folder}/${fileName}`;
+
+  if (S3_ENABLED) {
+    await s3PutObject(path, buffer, contentType);
+    return s3PublicUrl(path);
+  }
+
   const { error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
     .upload(path, buffer, {
@@ -113,6 +140,13 @@ export function getFilePublicUrl(
 ): string {
   const { proxy = true } = options;
   const path = `${folder}/${fileName}`;
+
+  // S3/Object Storage is served directly to the browser — no proxy rewrite, the
+  // `proxy` option is irrelevant because there is no carrier block to dodge.
+  if (S3_ENABLED) {
+    return s3PublicUrl(path);
+  }
+
   const { data: { publicUrl } } = supabaseAdmin.storage
     .from(BUCKET_NAME)
     .getPublicUrl(path);
@@ -171,12 +205,25 @@ export async function getDownloadSignedUrl(
   // a cache hit returned the raw URL while a miss returned the proxied URL, so
   // cached tracks intermittently served the carrier-blocked host).
   const { proxy = true } = options;
-  const present = (raw: string) => (proxy ? rewriteStorageUrl(raw) : raw);
+  // On S3/Object Storage there is no carrier block, so presigned URLs are served
+  // directly and never rewritten through the proxy — `present` is a no-op there.
+  const present = (raw: string) =>
+    proxy && !S3_ENABLED ? rewriteStorageUrl(raw) : raw;
 
   const cacheKey = `${folder}/${fileName}`;
   const cached = _signedUrlCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return present(cached.url);
+  }
+
+  if (S3_ENABLED) {
+    const url = await s3PresignGet(cacheKey, expiresIn);
+    _pruneCache();
+    _signedUrlCache.set(cacheKey, {
+      url,
+      expiresAt: Date.now() + (expiresIn - 120) * 1000,
+    });
+    return url;
   }
 
   const maxRetries = 2;
@@ -230,9 +277,17 @@ export function invalidateSignedUrlCache(fileName: string, folder: string = 'tra
  * @param fileName - The name of the file to delete
  */
 export async function deleteFile(fileName: string, folder: string = 'tracks'): Promise<void> {
+  const path = `${folder}/${fileName}`;
+  invalidateSignedUrlCache(fileName, folder);
+
+  if (S3_ENABLED) {
+    await s3Delete([path]);
+    return;
+  }
+
   const { error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
-    .remove([`${folder}/${fileName}`]);
+    .remove([path]);
 
   if (error) {
     throw new Error(`Failed to delete file: ${error.message}`);
@@ -245,6 +300,10 @@ export async function deleteFile(fileName: string, folder: string = 'tracks'): P
  * @returns List of file names
  */
 export async function listTrackFiles(prefix: string = 'tracks/'): Promise<string[]> {
+  if (S3_ENABLED) {
+    return s3List(prefix);
+  }
+
   const { data, error } = await supabaseAdmin.storage
     .from(BUCKET_NAME)
     .list(prefix, {

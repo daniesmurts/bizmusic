@@ -7,11 +7,9 @@ import { generateLicensePDF } from "@/lib/license-generator";
 import { generateAgreementPDF } from "@/lib/agreement-generator";
 import { mergePdfBuffers } from "@/lib/document-bundle";
 import { syncUserAndLegalAcceptance } from "@/lib/legal-acceptance";
-import { supabaseAdmin } from "@/lib/supabase-storage";
+import { uploadFileBuffer } from "@/lib/supabase-storage";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth/get-user";
-
-const BUCKET_NAME = 'bizmusic-assets';
 
 interface BundleInput {
   legalName: string;
@@ -127,26 +125,15 @@ export async function generateLicenseAction(businessId: string) {
       verificationUrl,
     });
 
-    // 5. Upload to Supabase (with 30s timeout)
-    const fileName = `licenses/${licenseId}.pdf`;
+    // 5. Upload to object storage (with 30s timeout). Routes through the storage
+    //    backend switch (Supabase today, Yandex Object Storage once S3_* is set).
     const uploadTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Upload timed out after 30 seconds")), 30_000)
     );
-    const { error: uploadError } = await Promise.race([
-      supabaseAdmin.storage
-        .from(BUCKET_NAME)
-        .upload(fileName, pdfBuffer, { contentType: 'application/pdf', upsert: true }),
+    const publicUrl = await Promise.race([
+      uploadFileBuffer(pdfBuffer, `${licenseId}.pdf`, "licenses", "application/pdf"),
       uploadTimeout,
     ]);
-
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
-    }
-
-    // 6. Get public URL
-    const { data: { publicUrl } } = supabaseAdmin.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(fileName);
 
     // 7. Mark generation ready
     const [license] = await db.update(licenses)
@@ -220,21 +207,12 @@ export async function retryLicenseGenerationAction(licenseId: string) {
       verificationUrl,
     });
 
-    const fileName = `licenses/${license.id}.pdf`;
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from(BUCKET_NAME)
-      .upload(fileName, pdfBuffer, {
-        contentType: 'application/pdf',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
-    }
-
-    const { data: { publicUrl } } = supabaseAdmin.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(fileName);
+    const publicUrl = await uploadFileBuffer(
+      pdfBuffer,
+      `${license.id}.pdf`,
+      "licenses",
+      "application/pdf",
+    );
 
     const [updated] = await db.update(licenses)
       .set({
@@ -520,23 +498,15 @@ export async function submitContractAction(formData: ContractFormData) {
       verificationUrl,
     });
 
-    // Upload PDF to Supabase storage (with 30s timeout)
-    const fileName = `licenses/${licenseId}.pdf`;
+    // Upload PDF to object storage (with 30s timeout). Routes through the storage
+    // backend switch (Supabase today, Yandex Object Storage once S3_* is set).
     const uploadTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Upload timed out after 30 seconds")), 30_000)
     );
-    const { error: uploadError } = await Promise.race([
-      supabaseAdmin.storage
-        .from(BUCKET_NAME)
-        .upload(fileName, pdfBuffer, { contentType: "application/pdf", upsert: true }),
+    const publicUrl = await Promise.race([
+      uploadFileBuffer(pdfBuffer, `${licenseId}.pdf`, "licenses", "application/pdf"),
       uploadTimeout,
     ]);
-
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
-    }
-
-    const { data: { publicUrl } } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(fileName);
 
     await db.update(licenses)
       .set({
