@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadImagesAndLicenses",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::bizmuzik/blog/*",
+        "arn:aws:s3:::bizmuzik/covers/*",
+        "arn:aws:s3:::bizmuzik/licenses/*"
+      ]
+    }
+  ]
+}
