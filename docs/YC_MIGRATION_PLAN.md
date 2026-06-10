@@ -26,18 +26,43 @@
 ## Фаза 1 — Object Storage (хранилище файлов)
 
 ### 1.1 Инфраструктура (YC Console / CLI)
-- [ ] Создать бакет `bizmuzik-assets` (то же имя или новое) в YC Object Storage.
-- [ ] Решить модель доступа:
-  - **Аудио/PDF** — приватные объекты, отдаём по presigned URL (как сейчас signed URL).
-  - **Обложки/публичные картинки** — можно сделать публичное чтение бакета (proxy не нужен).
-- [ ] Создать сервисный аккаунт + статический ключ доступа (Access Key / Secret Key)
-      с ролью `storage.editor` на бакет.
-- [ ] Эндпоинт: `https://storage.yandexcloud.net`, region `ru-central1`.
+- [x] Создан бакет `bizmuzik` в YC Object Storage.
+- [x] Создан сервисный аккаунт со **статическим ключом доступа** и ролью
+      `storage.editor` на бакет. Проверено сквозным тестом
+      (`node scripts/verify-s3.mjs`): upload → list → presign GET → delete ✅.
+- [x] Эндпоинт: `https://storage.yandexcloud.net`, region `ru-central1`.
+
+**Модель доступа (РЕШЕНО):**
+- **Приватные** (через presigned GET): `tracks/`, `announcements/` — это
+  лицензируемое аудио, не должно качаться анонимно.
+- **Публичное чтение** (unsigned URL): `blog/`, `covers/` (обложки) и
+  `licenses/` (PDF — открываются на публичной странице проверки `/verify/[id]`
+  по неугадываемому UUID, по дизайну инспекторской проверки).
+- Применяется bucket policy ниже. **Изменений в коде не требуется.**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadImagesAndLicenses",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::bizmuzik/blog/*",
+        "arn:aws:s3:::bizmuzik/covers/*",
+        "arn:aws:s3:::bizmuzik/licenses/*"
+      ]
+    }
+  ]
+}
+```
 
 ### 1.2 Перенос данных
 - [ ] Установить `s3cmd` или `rclone`, настроить два remote: Supabase S3 и YC S3.
-- [ ] `rclone sync supabase:bizmusic-assets yc:bizmuzik-assets` (сохранить структуру
-      папок: `tracks/`, `blog/`, `announcements/`, `licenses/` и т.д.).
+- [ ] `rclone sync supabase:bizmusic-assets yc:bizmuzik` (сохранить структуру
+      папок: `tracks/`, `blog/`, `covers/`, `announcements/`, `licenses/` и т.д.).
 - [ ] Проверить количество и размер объектов на обеих сторонах.
 
 ### 1.3 Изменения в коде — ✅ СКАФФОЛД ГОТОВ
