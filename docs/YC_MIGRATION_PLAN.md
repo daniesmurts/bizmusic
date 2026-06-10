@@ -32,7 +32,23 @@
       (`node scripts/verify-s3.mjs`): upload → list → presign GET → delete ✅.
 - [x] Эндпоинт: `https://storage.yandexcloud.net`, region `ru-central1`.
 
-**Модель доступа (РЕШЕНО):**
+**Модель доступа (ОБНОВЛЕНО — полностью приватный бакет + presigned):**
+Анонимный публичный доступ в YC оказался ненадёжным (реальный объект `blog/`
+возвращал 403 даже с bucket policy `Principal:*`). Решение: **бакет полностью
+приватный**, всё отдаётся через presigned URL, подписанные сервисным аккаунтом
+(проверено — presigned GET = 200). Bucket policy **не нужна** — её можно удалить.
+
+- **Аудио** (`tracks/`, `announcements/`) — presigned через `getDownloadSignedUrl`
+  из Server Actions (бизнес-логика + авторизация).
+- **«Публичные» ассеты** (`blog/`, `covers/`, `licenses/`) — через роут
+  `/api/media/<key>`, который presign-ит и делает 302. URL роута стабилен (не
+  истекает) → безопасно хранить в БД (`pdfUrl`) и в OG-метатегах; истекает только
+  цель редиректа. Роут **разрешает только** эти три префикса (аудио недоступно).
+- `parseStorageObjectRef` сделан backend-agnostic: корректно извлекает ключ из
+  Supabase-URL, YC-URL, `/api/media/...`, `/api/storage-proxy/...` и голого пути,
+  поэтому re-signing работает независимо от того, что сохранено в БД.
+
+**(Историческое) Несработавшая модель — bucket policy для публичного чтения:**
 - **Приватные** (через presigned GET): `tracks/`, `announcements/` — это
   лицензируемое аудио, не должно качаться анонимно.
 - **Публичное чтение** (unsigned URL): `blog/`, `covers/` (обложки) и

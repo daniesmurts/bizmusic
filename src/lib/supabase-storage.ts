@@ -141,10 +141,13 @@ export function getFilePublicUrl(
   const { proxy = true } = options;
   const path = `${folder}/${fileName}`;
 
-  // S3/Object Storage is served directly to the browser — no proxy rewrite, the
-  // `proxy` option is irrelevant because there is no carrier block to dodge.
+  // The YC bucket is private. "Public" assets (covers, license PDFs) are served
+  // through the /api/media route, which presigns a short-lived URL and redirects.
+  // The route URL is stable (never expires), so it's safe to render in <img>,
+  // store as license pdfUrl, and use in OG meta tags. The `proxy` option is
+  // irrelevant on S3 (there is no carrier block to dodge).
   if (S3_ENABLED) {
-    return s3PublicUrl(path);
+    return `/api/media/${path}`;
   }
 
   const { data: { publicUrl } } = supabaseAdmin.storage
