@@ -2,6 +2,18 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "ServiceAccountFullAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "CanonicalUser": "ajeutc2us16dkt0tnmhe"
+      },
+      "Action": "*",
+      "Resource": [
+        "arn:aws:s3:::bizmuzik",
+        "arn:aws:s3:::bizmuzik/*"
+      ]
+    },
+    {
       "Sid": "PublicReadImagesAndLicenses",
       "Effect": "Allow",
       "Principal": "*",
