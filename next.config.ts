@@ -39,15 +39,15 @@ const nextConfig: NextConfig = {
             `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://mc.yandex.com https://challenges.cloudflare.com https://*.clerk.accounts.dev https://clerk.bizmuzik.ru`,
             "style-src 'self' 'unsafe-inline'",
             // Clerk UI components load images (profile pictures, avatars)
-            "img-src 'self' https://waootzqqtjyungakvoua.supabase.co data: blob: https://mc.yandex.ru https://mc.yandex.com https://img.clerk.com",
+            "img-src 'self' https://waootzqqtjyungakvoua.supabase.co https://storage.yandexcloud.net data: blob: https://mc.yandex.ru https://mc.yandex.com https://img.clerk.com",
             "font-src 'self' data:",
-            // Clerk FAPI + Supabase + payment + geocoding APIs + Yandex WebSocket
-            "connect-src 'self' https://waootzqqtjyungakvoua.supabase.co https://securepay.tinkoff.ru https://suggestions.dadata.ru https://api.opencagedata.com wss://waootzqqtjyungakvoua.supabase.co blob: https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.com wss://mc.yandex.ru https://*.clerk.accounts.dev https://clerk.bizmuzik.ru",
+            // Clerk FAPI + Supabase + Yandex Object Storage + payment + geocoding APIs + Yandex WebSocket
+            "connect-src 'self' https://waootzqqtjyungakvoua.supabase.co https://storage.yandexcloud.net https://securepay.tinkoff.ru https://suggestions.dadata.ru https://api.opencagedata.com wss://waootzqqtjyungakvoua.supabase.co blob: https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.com wss://mc.yandex.ru https://*.clerk.accounts.dev https://clerk.bizmuzik.ru",
             // Clerk creates web workers from blob URLs for its internal SDK
             "worker-src 'self' blob:",
-            // Audio files are now served through /api/storage-proxy (same-origin).
-            // No direct Supabase storage URLs reach the browser.
-            "media-src 'self' blob:",
+            // Audio: tracks are served as presigned Yandex Object Storage URLs
+            // (storage.yandexcloud.net); covers/PDFs redirect there via /api/media.
+            "media-src 'self' blob: https://storage.yandexcloud.net",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "form-action 'self'",
@@ -63,6 +63,12 @@ const nextConfig: NextConfig = {
         hostname: 'waootzqqtjyungakvoua.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.yandexcloud.net',
+        port: '',
+        pathname: '/bizmuzik/**',
       },
     ],
   },
