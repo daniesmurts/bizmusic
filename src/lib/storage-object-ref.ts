@@ -62,6 +62,25 @@ export function parseStorageObjectRef(
     .replace(/^\/+/, "")
     .replace(/[?#].*$/, "");
 
+  // Backend-agnostic normalization so re-signing works regardless of how the URL
+  // was stored (Supabase URL, YC Object Storage URL, our /api/media route, or a
+  // bare path):
+  //   - strip our own media route prefix:   api/media/<key>  → <key>
+  //   - strip a relative storage-proxy path: api/storage-proxy/storage/v1/... → <key>
+  //   - strip a leading bucket segment:      <bucket>/<key>   → <key>
+  //     (YC public URLs are https://storage.yandexcloud.net/<bucket>/<key>)
+  pathCandidate = pathCandidate
+    .replace(/^api\/media\//, "")
+    .replace(/^api\/storage-proxy\//, "");
+  // Re-run the Supabase prefix stripper in case we just exposed a storage/v1/... path.
+  pathCandidate = stripSupabaseStoragePrefix(pathCandidate).replace(/^\/+/, "");
+  for (const candidateBucket of [bucketName, process.env.S3_BUCKET].filter(Boolean) as string[]) {
+    if (pathCandidate.startsWith(`${candidateBucket}/`)) {
+      pathCandidate = pathCandidate.slice(candidateBucket.length + 1);
+      break;
+    }
+  }
+
   const objectPath = pathCandidate.includes("/")
     ? pathCandidate
     : `${defaultFolder}/${pathCandidate}`;
