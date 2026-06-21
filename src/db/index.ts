@@ -1,6 +1,7 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
+import { YANDEX_ROOT_CA } from "./yandex-ca";
 
 // For scripts and dev environment
 if (process.env.NODE_ENV !== "production") {
@@ -12,59 +13,66 @@ if (!process.env.DATABASE_URL) {
   console.error("[DB] ❌ DATABASE_URL is not set. All database queries will fail.");
 }
 
-// Connection routing: always use the transaction pooler (port 6543) regardless
-// of environment. Previously dev was routed to the session pooler (5432), but
-// session mode has a hard cap of 15 concurrent connections shared across ALL
-// clients. When connections time out (slow Russia→AWS network) they hold their
-// session-mode slot until pgBouncer times them out server-side. After a few
-// page loads with ETIMEDOUT, the 15-slot pool fills with zombies and every
-// subsequent query gets EMAXCONNSESSION. Transaction mode releases the server
-// connection after every transaction, so zombie accumulation is impossible.
-//
-// Trade-off: pg's keepAlive pings will be rejected by pgBouncer (it closed the
-// underlying server connection). We handle this by disabling keepAlive and using
-// a very short idleTimeoutMillis so pg evicts idle pool slots before pgBouncer
-// does — preventing "Connection terminated unexpectedly" on recycled connections.
-function getConnectionString(): string | undefined {
-  const url = process.env.DATABASE_URL;
-  const isSupabase = url && (url.includes("supabase.co") || url.includes("supabase.com"));
+// Backend detection. The pool tuning and TLS differ between Supabase (AWS,
+// pgBouncer transaction pooler) and Yandex Managed PostgreSQL (RF, Odyssey
+// pooler). Detection is purely from DATABASE_URL, so switching backend is just
+// an env-var change — no code change needed at cutover.
+const _rawUrl = process.env.DATABASE_URL;
+const isSupabase = !!_rawUrl && (_rawUrl.includes("supabase.co") || _rawUrl.includes("supabase.com"));
+const isYandex = !!_rawUrl && _rawUrl.includes("yandexcloud.net");
 
-  if (isSupabase && url!.includes(":5432")) {
-    // Ensure we always use the transaction pooler in all environments.
-    const upgraded = url!.replace(":5432", ":6543");
+// Supabase only: force the transaction pooler (port 6543) and pgbouncer=true.
+// Session mode (5432) has a hard 15-connection cap that fills with zombies on a
+// slow Russia→AWS link. YC URLs are returned unchanged.
+function getConnectionString(): string | undefined {
+  if (isSupabase && _rawUrl!.includes(":5432")) {
+    const upgraded = _rawUrl!.replace(":5432", ":6543");
     if (!upgraded.includes("pgbouncer=true")) {
       return upgraded.includes("?") ? `${upgraded}&pgbouncer=true` : `${upgraded}?pgbouncer=true`;
     }
     return upgraded;
   }
-  return url;
+  return _rawUrl;
+}
+
+// TLS: verify against the Yandex root CA for YC Managed PostgreSQL
+// (rejectUnauthorized: true). Supabase keeps the permissive setting (its chain
+// isn't pinned here).
+function getSsl() {
+  if (isYandex) {
+    return { ca: YANDEX_ROOT_CA, rejectUnauthorized: true };
+  }
+  return { rejectUnauthorized: false };
 }
 
 const isDev = process.env.NODE_ENV === "development";
 
-const poolConfig = {
-  connectionString: getConnectionString(),
-  ssl: { rejectUnauthorized: false },
-  // Transaction pooler (pgBouncer): keep the pool small. pgBouncer multiplexes
-  // many app connections onto a smaller number of real server connections, so a
-  // large pg pool just creates extra TLS handshake overhead.
-  max: isDev ? 3 : 10,
-  // keepAlive MUST be disabled for pgBouncer transaction mode. pgBouncer closes
-  // the underlying server connection after every transaction — keepAlive pings on
-  // an already-closed connection produce "Connection terminated unexpectedly".
-  keepAlive: false,
-  // Release idle pool slots quickly. pgBouncer can close the server connection at
-  // any moment; an idle pg client holding a slot that pgBouncer already freed will
-  // error on the next query. Short idle timeout means pg evicts the slot first.
-  idleTimeoutMillis: isDev ? 5_000 : 10_000,
-  // Allow enough time for a high-latency connection (Russia → AWS Frankfurt).
-  // 10 s is a reasonable upper bound; fail-fast would trigger too often on slow nets.
-  connectionTimeoutMillis: isDev ? 10_000 : 8_000,
-  allowExitOnIdle: true,
-  // NOTE: "-c statement_timeout=..." does NOT work through pgBouncer transaction
-  // mode — pgBouncer strips SET commands. Rely on connectionTimeoutMillis above
-  // and on the application-level query timeout in the resilient() wrapper instead.
-};
+// Supabase (pgBouncer transaction mode): small pool, keepAlive OFF, short idle —
+// pgBouncer closes the server connection after every transaction, so keepAlive
+// pings and long-lived idle slots produce "Connection terminated unexpectedly".
+//
+// Yandex Managed PostgreSQL: a normal pooled connection — keepAlive ON, larger
+// pool, normal idle timeout. YC's Odyssey pooler tolerates keepAlive, and the
+// RF→RF latency is low so no zombie accumulation.
+const poolConfig = isSupabase
+  ? {
+      connectionString: getConnectionString(),
+      ssl: getSsl(),
+      max: isDev ? 3 : 10,
+      keepAlive: false,
+      idleTimeoutMillis: isDev ? 5_000 : 10_000,
+      connectionTimeoutMillis: isDev ? 10_000 : 8_000,
+      allowExitOnIdle: true,
+    }
+  : {
+      connectionString: getConnectionString(),
+      ssl: getSsl(),
+      max: isDev ? 5 : 10,
+      keepAlive: true,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
+      allowExitOnIdle: true,
+    };
 
 declare global {
   // eslint-disable-next-line no-var
