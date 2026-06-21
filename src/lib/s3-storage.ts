@@ -34,13 +34,16 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const ENDPOINT = process.env.S3_ENDPOINT ?? "https://storage.yandexcloud.net";
-const REGION = process.env.S3_REGION ?? "ru-central1";
+// Use `||` (not `??`) for optional vars: the deploy workflow passes
+// S3_ENDPOINT/S3_REGION/S3_PUBLIC_BASE_URL as "" when their secrets are unset,
+// and an empty string must fall back to the default (?? would keep the "").
+const ENDPOINT = process.env.S3_ENDPOINT || "https://storage.yandexcloud.net";
+const REGION = process.env.S3_REGION || "ru-central1";
 const BUCKET = process.env.S3_BUCKET ?? "";
 const ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID ?? "";
 const SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY ?? "";
 const PUBLIC_BASE_URL =
-  process.env.S3_PUBLIC_BASE_URL ??
+  process.env.S3_PUBLIC_BASE_URL ||
   `${ENDPOINT.replace(/\/+$/, "")}/${BUCKET}`;
 
 /**
