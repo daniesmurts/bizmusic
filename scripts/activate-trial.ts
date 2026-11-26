@@ -7,7 +7,7 @@
  * No card is attached (rebillId stays null), so the billing cron never charges
  * or expires it; switch it off by hand when the trial ends.
  */
-import { loadTargetDb } from "./lib/target-db";
+import { explainDbError, loadTargetDb } from "./lib/target-db";
 
 async function main() {
   const email = process.argv[2]?.trim().toLowerCase();
@@ -51,6 +51,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error(explainDbError(err));
   process.exit(1);
 });

@@ -7,7 +7,7 @@
  * Prompts for the password without echoing it, so it never lands in shell history.
  */
 import * as readline from "readline";
-import { loadTargetDb } from "./lib/target-db";
+import { explainDbError, loadTargetDb } from "./lib/target-db";
 
 const ROLES = ["ADMIN", "BUSINESS_OWNER"] as const;
 type Role = (typeof ROLES)[number];
@@ -104,6 +104,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error(explainDbError(err));
   process.exit(1);
 });
