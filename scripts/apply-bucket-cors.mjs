@@ -30,7 +30,8 @@ const CORSConfiguration = {
   CORSRules: [
     {
       AllowedOrigins: ["*"],
-      AllowedMethods: ["GET", "HEAD"],
+      // PUT: admin uploads go straight from the browser via presigned URLs.
+      AllowedMethods: ["GET", "HEAD", "PUT"],
       AllowedHeaders: ["*"],
       ExposeHeaders: ["Content-Range", "Accept-Ranges", "Content-Length", "Content-Type", "ETag"],
       MaxAgeSeconds: 3600,

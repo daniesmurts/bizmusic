@@ -9,7 +9,7 @@ import {
   getBusinessAiEntitlementState,
   getAiEntitlementStatus,
 } from "@/lib/ai-entitlements";
-import { refineAnnouncementText } from "@/lib/groq-ai";
+import { refineAnnouncementText } from "@/lib/deepseek-ai";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
 export interface GenerateAiAssistInput {
@@ -57,14 +57,14 @@ export async function generateAiAssistAction(input: GenerateAiAssistInput) {
       return { success: false, error: entitlement.denialReason || "Лимит помощи ИИ исчерпан." };
     }
 
-    // 1. Call Groq to refine text
+    // 1. Call DeepSeek to refine text
     const refinedText = await refineAnnouncementText(input.userDraft, input.locale || "ru-RU");
 
     // 2. Consume AI assist credit in transaction
     await db.transaction(async (tx) => {
       await consumeAiAssistCredit(tx, {
         businessId: business.id,
-        provider: "groq",
+        provider: "deepseek",
         charsCount: refinedText.length,
       });
     });

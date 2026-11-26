@@ -3,17 +3,9 @@ import { db } from "@/db";
 import { leads, leadActivities } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { extractLeadIdFromEmail, cleanEmailBody } from "@/lib/email-helpers";
-import fs from "fs";
-import path from "path";
-
+// Container filesystem is ephemeral — log to stdout (Cloud Logging).
 function logToFile(msg: string) {
-  try {
-    const logPath = path.join(process.cwd(), "scratch", "email_debug.log");
-    const dir = path.dirname(logPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const time = new Date().toISOString();
-    fs.appendFileSync(logPath, `[${time}] [INBOUND] ${msg}\n`);
-  } catch (e) {}
+  console.log(`[email/inbound] ${msg}`);
 }
 
 export async function POST(req: NextRequest) {

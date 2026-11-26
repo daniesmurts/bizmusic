@@ -1,11 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { del, keys } from "idb-keyval";
 
-// Slim user shape replacing the Supabase User type — keeps existing call sites working
 export interface AuthUser {
   id: string;
   email?: string | null;
@@ -16,6 +14,7 @@ type AuthContextType = {
   role: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,33 +32,27 @@ async function clearAudioCache() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { userId, isLoaded, signOut: clerkSignOut } = useClerkAuth();
-  const { user: clerkUser } = useUser();
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const lastUserIdRef = useRef<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store", credentials: "same-origin" });
+      const data = (await res.json()) as { user: AuthUser | null; role: string | null };
+      setUser(data.user);
+      setRole(data.role);
+    } catch {
+      // Offline (PWA): keep whatever we had.
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!isLoaded) return;
-
-    if (userId && userId !== lastUserIdRef.current) {
-      lastUserIdRef.current = userId;
-      const clerkRole = clerkUser?.publicMetadata?.role as string | undefined;
-      if (clerkRole) {
-        setRole(clerkRole);
-      } else {
-        fetch("/api/user/role")
-          .then((r) => r.json())
-          .then((d) => setRole(d.role ?? null))
-          .catch(() => setRole(null));
-      }
-    }
-
-    if (!userId) {
-      lastUserIdRef.current = null;
-      setRole(null);
-    }
-  }, [userId, isLoaded, clerkUser]);
+    void refresh();
+  }, [refresh]);
 
   const signOut = async () => {
     await clearAudioCache();
@@ -68,19 +61,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
-    await clerkSignOut();
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    setUser(null);
+    setRole(null);
     router.push("/");
+    router.refresh();
   };
 
-  const user: AuthUser | null = userId
-    ? {
-        id: userId,
-        email: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
-      }
-    : null;
-
   return (
-    <AuthContext.Provider value={{ user, role, loading: !isLoaded, signOut }}>
+    <AuthContext.Provider value={{ user, role, loading, signOut, refresh }}>
       {children}
     </AuthContext.Provider>
   );

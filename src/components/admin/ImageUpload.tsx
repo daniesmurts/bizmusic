@@ -56,7 +56,7 @@ export const ImageUpload = ({ onUploadComplete, onUploadingChange, defaultValue,
 
       const { uploadUrl, publicUrl } = await metaResponse.json();
 
-      // Step 2: Upload direct to S3/Supabase
+      // Step 2: Upload direct to Object Storage
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl);

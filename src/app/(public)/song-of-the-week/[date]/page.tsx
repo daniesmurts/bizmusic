@@ -2,7 +2,7 @@ import { getSongOfTheWeekByDate } from "@/lib/actions/song-of-the-week";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { ArrowRight, Download, Music, Shield, ArrowLeft } from "lucide-react";
-import { getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { getFilePublicUrl, parseStorageObjectRef } from "@/lib/storage";
 import { buildTrackDownloadUrl } from "@/lib/track-download-url";
 
 export const runtime = "nodejs";

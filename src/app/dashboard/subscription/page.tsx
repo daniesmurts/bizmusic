@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SubscriptionPage() {
   // Fetch prices from admin-managed settings
-  // Wrap in resilient() to handle transient "Connection terminated unexpectedly" errors from Supabase pooler
+  // Wrap in resilient() to retry transient connection errors
   let settingsRows = await resilient(() => db.select().from(platformSettings).limit(1));
   
   if (settingsRows.length === 0) {

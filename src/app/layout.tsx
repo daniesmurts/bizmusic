@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Player } from "@/components/Player";
 import { Toaster } from "sonner";
@@ -118,35 +117,6 @@ export default function RootLayout({
   };
 
   return (
-    <ClerkProvider
-      // Self-host clerk-js + proxy Clerk's API through our origin so Russian
-      // mobile carriers (which block Clerk's CDN and custom domain) can reach
-      // the auth flow. See scripts/copy-clerk-js.mjs and api/clerk-proxy.
-      // Both props are marked @internal in Clerk's types but supported at runtime.
-      // proxyUrl MUST be a fully-qualified URL — clerk-js falls back to the
-      // publishable-key-encoded FAPI if it can't parse the value as absolute.
-      //
-      // prefetchUI: false — Clerk v7 splits into two bundles: clerk.browser.js
-      // (auth SDK, self-hosted above) and @clerk/ui (UI components, CDN-only).
-      // The UI bundle CDN path goes through clerk.bizmuzik.ru/npm/... which is
-      // a FAPI endpoint, not a CDN, so it returns JSON instead of JavaScript.
-      // After 15 s the load times out, the catch block fires, clerk.load() is
-      // never called, and isLoaded stays false forever — the permanent spinner.
-      // We use custom login/register pages and never render Clerk's own UI
-      // components (<SignIn/>, <UserButton/>), so disabling the UI bundle is safe.
-      prefetchUI={false}
-      {...({
-        __internal_clerkJSUrl: "/clerk-js/clerk.browser.js",
-        // proxyUrl routes all Clerk FAPI traffic through our origin to bypass
-        // Russian mobile carrier blocks on clerk.bizmuzik.ru. Only needed in
-        // production — in development Clerk's dev FAPI (*.clerk.accounts.dev)
-        // already allows localhost, and the production proxy (clerk.bizmuzik.ru)
-        // rejects requests whose Origin doesn't match bizmuzik.ru.
-        ...(process.env.NODE_ENV === "production"
-          ? { proxyUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/clerk-proxy` }
-          : {}),
-      } as Record<string, unknown>)}
-    >
     <html lang="ru" suppressHydrationWarning>
       <head>
         <script
@@ -176,6 +146,5 @@ export default function RootLayout({
         </Providers>
       </body>
     </html>
-    </ClerkProvider>
   );
 }

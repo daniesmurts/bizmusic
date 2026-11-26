@@ -2,10 +2,11 @@
 
 import { db } from "@/db";
 import { businesses, locations, users } from "@/db/schema";
-import { clerkClient } from "@clerk/nextjs/server";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth/get-user";
+import { issueLinkToken } from "@/lib/auth/tokens";
+import { sendInviteEmail } from "@/lib/auth/emails";
 
 async function getOwnerBusinessId(): Promise<string> {
   const user = await getAuthUser();
@@ -90,7 +91,7 @@ export async function inviteBranchManagerAction(locationId: string, email: strin
 
     const location = await db.query.locations.findFirst({
       where: and(eq(locations.id, locationId), eq(locations.businessId, businessId)),
-      columns: { id: true },
+      columns: { id: true, name: true },
     });
 
     if (!location) {
@@ -113,28 +114,22 @@ export async function inviteBranchManagerAction(locationId: string, email: strin
       };
     }
 
-    // Pre-create the DB record so the manager has access as soon as they sign in
+    // No password yet — the manager sets one via the invite link.
     const [newDbUser] = await db.insert(users).values({
       email: normalizedEmail,
-      passwordHash: "CLERK_AUTH",
+      passwordHash: null,
       role: "STAFF",
       assignedLocationId: locationId,
-      updatedAt: new Date(),
     }).returning({ id: users.id });
 
-    // Send Clerk invitation — when user accepts, they sign up and the clerkId
-    // gets linked via the getAuthUser() email-match flow on first login
-    const client = await clerkClient();
-    try {
-      await client.invitations.createInvitation({
-        emailAddress: normalizedEmail,
-        publicMetadata: { role: "STAFF", assignedLocationId: locationId },
-        redirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://bizmuzik.ru"}/dashboard`,
-        ignoreExisting: true,
-      });
-    } catch (inviteErr) {
-      console.error("[inviteBranchManager] Clerk invite failed:", inviteErr);
-      // Don't fail — the DB record is created, admin can resend later
+    const token = await issueLinkToken(newDbUser.id, "INVITE", 7 * 24 * 60 * 60 * 1000);
+    const sent = await sendInviteEmail(normalizedEmail, token, location.name);
+    if (!sent.success) {
+      console.error("[inviteBranchManager] invite email failed:", sent.error);
+      return {
+        success: false as const,
+        error: "Менеджер создан, но письмо с приглашением не отправилось. Попробуйте позже.",
+      };
     }
 
     revalidatePath("/dashboard/branches");
@@ -154,7 +149,7 @@ export async function deactivateManagerAction(managerId: string) {
 
     const manager = await db.query.users.findFirst({
       where: and(eq(users.id, managerId), eq(users.role, "STAFF")),
-      columns: { id: true, assignedLocationId: true, clerkId: true },
+      columns: { id: true, assignedLocationId: true },
     });
 
     if (!manager?.assignedLocationId) {
@@ -170,18 +165,11 @@ export async function deactivateManagerAction(managerId: string) {
       return { success: false as const, error: "Нет доступа к этому менеджеру" };
     }
 
-    // Ban the Clerk user so they cannot sign in
-    if (manager.clerkId) {
-      const client = await clerkClient();
-      try {
-        await client.users.banUser(manager.clerkId);
-      } catch (err) {
-        console.error("[deactivateManager] Clerk ban failed:", err);
-        return { success: false as const, error: "Не удалось заблокировать пользователя" };
-      }
-    }
-
-    await db.update(users).set({ assignedLocationId: null }).where(eq(users.id, managerId));
+    // Disable login and revoke existing sessions.
+    await db
+      .update(users)
+      .set({ assignedLocationId: null, disabledAt: new Date(), sessionVersion: sql`${users.sessionVersion} + 1` })
+      .where(eq(users.id, managerId));
 
     revalidatePath("/dashboard/branches");
     return { success: true as const };

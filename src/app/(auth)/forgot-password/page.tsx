@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSignIn } from "@clerk/nextjs/legacy";
+import { requestPasswordResetAction, resetPasswordAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,19 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 
 /**
- * Two-step password reset — kept on a SINGLE page so the `signIn` object
- * never leaves React memory. Splitting across two routes caused "Signed out"
- * because the pending sign-in attempt (held in the __client cookie) didn't
- * survive the full-page navigation when the proxy cookie-domain wasn't
- * perfectly configured.
- *
- * Step 1: enter email  → signIn.create({ strategy: "reset_password_email_code" })
- * Step 2: enter code + new password → signIn.attemptFirstFactor(...)
+ * Two-step password reset on one page: request a 6-digit code by email,
+ * then submit code + new password. Success signs the user in.
  */
 export default function ForgotPassword() {
-  const router = useRouter();
-  const { signIn, setActive, isLoaded } = useSignIn();
-
   // "email" | "code"
   const [step, setStep] = useState<"email" | "code">("email");
 
@@ -45,18 +35,14 @@ export default function ForgotPassword() {
   /* ── Step 1: request reset code ── */
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError(null);
     try {
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: email,
-      });
-      setStep("code");
-    } catch (err) {
-      const msg = (err as { errors?: { message?: string }[] })?.errors?.[0]?.message;
-      setError(msg ?? "Не удалось отправить письмо. Проверьте email и попробуйте снова.");
+      const result = await requestPasswordResetAction(email);
+      if (result.success) setStep("code");
+      else setError(result.error);
+    } catch {
+      setError("Нет соединения с сервером. Проверьте интернет и попробуйте снова.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +51,6 @@ export default function ForgotPassword() {
   /* ── Step 2: verify code + set new password ── */
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
 
     if (password !== confirmPassword) {
       setError("Пароли не совпадают");
@@ -79,25 +64,15 @@ export default function ForgotPassword() {
     setLoading(true);
     setError(null);
     try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: "reset_password_email_code",
-        code,
-        password,
-      });
-
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
+      const result = await resetPasswordAction({ email, code, password });
+      if (result.success) {
         setDone(true);
         setTimeout(() => { window.location.href = "/dashboard"; }, 2500);
       } else {
-        setError("Не удалось сбросить пароль. Попробуйте ещё раз.");
+        setError(result.error);
       }
-    } catch (err) {
-      const msg = (err as { errors?: { message?: string }[] })?.errors?.[0]?.message;
-      if (msg?.includes("expired") || msg?.includes("invalid"))
-        setError("Код устарел или неверен. Нажмите «Запросить снова» ниже.");
-      else
-        setError(msg ?? "Ошибка при обновлении пароля.");
+    } catch {
+      setError("Нет соединения с сервером. Проверьте интернет и попробуйте снова.");
     } finally {
       setLoading(false);
     }
@@ -133,7 +108,7 @@ export default function ForgotPassword() {
               Новый <br /><span className="text-neon">пароль</span>
             </CardTitle>
             <CardDescription className="text-neutral-400 font-medium">
-              Введите код из письма и установите новый пароль.
+              Если аккаунт с этим email существует, мы отправили на него код. Введите его и установите новый пароль.
             </CardDescription>
           </div>
         </CardHeader>
@@ -183,7 +158,7 @@ export default function ForgotPassword() {
 
             <Button type="submit"
               className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-              disabled={loading || !isLoaded}>
+              disabled={loading}>
               {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Обновить пароль"}
             </Button>
 
@@ -235,7 +210,7 @@ export default function ForgotPassword() {
           </div>
           <Button type="submit"
             className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-            disabled={loading || !isLoaded}>
+            disabled={loading}>
             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Получить код"}
           </Button>
         </form>

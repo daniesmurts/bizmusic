@@ -8,7 +8,7 @@ import {
   users,
 } from "@/db/schema";
 import { count, desc, eq } from "drizzle-orm";
-import { getDownloadSignedUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { getDownloadSignedUrl, parseStorageObjectRef } from "@/lib/storage";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { sendEmail } from "@/lib/email";
 

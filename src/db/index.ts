@@ -1,78 +1,28 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
-import { YANDEX_ROOT_CA } from "./yandex-ca";
+import { getSsl, stripSslParams } from "./ssl";
 
 // For scripts and dev environment
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config({ path: ".env.local" });
 }
 
-// Use Supabase transaction pooler (port 6543) for better connection management
 if (!process.env.DATABASE_URL) {
   console.error("[DB] ❌ DATABASE_URL is not set. All database queries will fail.");
 }
 
-// Backend detection. The pool tuning and TLS differ between Supabase (AWS,
-// pgBouncer transaction pooler) and Yandex Managed PostgreSQL (RF, Odyssey
-// pooler). Detection is purely from DATABASE_URL, so switching backend is just
-// an env-var change — no code change needed at cutover.
-const _rawUrl = process.env.DATABASE_URL;
-const isSupabase = !!_rawUrl && (_rawUrl.includes("supabase.co") || _rawUrl.includes("supabase.com"));
-const isYandex = !!_rawUrl && _rawUrl.includes("yandexcloud.net");
-
-// Supabase only: force the transaction pooler (port 6543) and pgbouncer=true.
-// Session mode (5432) has a hard 15-connection cap that fills with zombies on a
-// slow Russia→AWS link. YC URLs are returned unchanged.
-function getConnectionString(): string | undefined {
-  if (isSupabase && _rawUrl!.includes(":5432")) {
-    const upgraded = _rawUrl!.replace(":5432", ":6543");
-    if (!upgraded.includes("pgbouncer=true")) {
-      return upgraded.includes("?") ? `${upgraded}&pgbouncer=true` : `${upgraded}?pgbouncer=true`;
-    }
-    return upgraded;
-  }
-  return _rawUrl;
-}
-
-// TLS: verify against the Yandex root CA for YC Managed PostgreSQL
-// (rejectUnauthorized: true). Supabase keeps the permissive setting (its chain
-// isn't pinned here).
-function getSsl() {
-  if (isYandex) {
-    return { ca: YANDEX_ROOT_CA, rejectUnauthorized: true };
-  }
-  return { rejectUnauthorized: false };
-}
-
 const isDev = process.env.NODE_ENV === "development";
 
-// Supabase (pgBouncer transaction mode): small pool, keepAlive OFF, short idle —
-// pgBouncer closes the server connection after every transaction, so keepAlive
-// pings and long-lived idle slots produce "Connection terminated unexpectedly".
-//
-// Yandex Managed PostgreSQL: a normal pooled connection — keepAlive ON, larger
-// pool, normal idle timeout. YC's Odyssey pooler tolerates keepAlive, and the
-// RF→RF latency is low so no zombie accumulation.
-const poolConfig = isSupabase
-  ? {
-      connectionString: getConnectionString(),
-      ssl: getSsl(),
-      max: isDev ? 3 : 10,
-      keepAlive: false,
-      idleTimeoutMillis: isDev ? 5_000 : 10_000,
-      connectionTimeoutMillis: isDev ? 10_000 : 8_000,
-      allowExitOnIdle: true,
-    }
-  : {
-      connectionString: getConnectionString(),
-      ssl: getSsl(),
-      max: isDev ? 5 : 10,
-      keepAlive: true,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 10_000,
-      allowExitOnIdle: true,
-    };
+const poolConfig = {
+  connectionString: stripSslParams(process.env.DATABASE_URL),
+  ssl: getSsl(process.env.DATABASE_URL),
+  max: isDev ? 5 : 10,
+  keepAlive: true,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
+  allowExitOnIdle: true,
+};
 
 declare global {
   // eslint-disable-next-line no-var
@@ -157,8 +107,6 @@ function isConnectionError(err: unknown): boolean {
     c.includes("etimedout") ||
     m.includes("econnreset") ||
     c.includes("econnreset") ||
-    // pgBouncer session-limit error — switch to different connection
-    m.includes("emaxconnsession") ||
     code === "57P01" ||     // admin_shutdown
     causeCode === "57P01"
   );

@@ -3,7 +3,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { songOfTheWeek, trackDownloadEvents, tracks } from "@/db/schema";
-import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/storage";
 import { getAuthUser } from "@/lib/auth/get-user";
 
 export const runtime = "nodejs";
@@ -104,17 +104,13 @@ export async function GET(
     const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
     let redirectUrl = track.fileUrl;
 
-    // Downloads must NOT go through /api/storage-proxy: the serverless container
-    // caps responses at 3.5 MiB, and a browser download sends no Range header, so
-    // the proxy would truncate the file. Redirect straight to the raw Supabase URL
-    // (proxy:false). Trade-off: downloads fail on carrier-blocked mobile networks,
-    // but they deliver the complete file everywhere else. The permanent fix is the
-    // Yandex Object Storage migration (Russia-reachable, no cap, native ranges).
+    // Redirect to a presigned Object Storage URL: the serverless container caps
+    // responses at 3.5 MiB, so the file must never stream through this route.
     try {
-      redirectUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 300, { proxy: false });
+      redirectUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 300);
     } catch {
       if (!track.fileUrl.startsWith("http")) {
-        redirectUrl = getFilePublicUrl(fileRef.fileName, fileRef.folder, { proxy: false });
+        redirectUrl = getFilePublicUrl(fileRef.fileName, fileRef.folder);
       }
     }
 

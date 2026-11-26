@@ -3,8 +3,7 @@
 import { db } from "@/db";
 import { waveSettings, tracks, trackSkips } from "@/db/schema";
 import { eq, and, not, sql, inArray } from "drizzle-orm";
-import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
-import { rewriteStorageUrl } from "@/lib/storage-proxy";
+import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/storage";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
@@ -143,19 +142,15 @@ export async function generateWaveBatchAction(businessId: string, excludeTrackId
       limit: 20,
     });
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
     // Map URLs properly
     const mappedTracks = await Promise.all(
       batch.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
         
-        const fallbackUrl = rewriteStorageUrl(
-          isFullUrl
-            ? track.fileUrl
-            : (supabaseUrl ? getFilePublicUrl(fileRef.fileName, fileRef.folder) : `/uploads/${fileRef.fileName}`),
-        );
+        const fallbackUrl = isFullUrl
+          ? track.fileUrl
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
         let streamUrl: string | undefined = undefined;
         try {

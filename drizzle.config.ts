@@ -1,34 +1,32 @@
 import type { Config } from "drizzle-kit";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
-import { YANDEX_ROOT_CA } from "./src/db/yandex-ca";
+import { getSsl, stripSslParams } from "./src/db/ssl";
 
-// Load both .env and .env.local if they exist
-if (fs.existsSync(".env")) dotenv.config({ path: ".env" });
-if (fs.existsSync(".env.local")) dotenv.config({ path: ".env.local" });
+// dotenv never overrides, so the first file wins: .env.local takes precedence (same as Next.js).
+if (fs.existsSync(".env.local")) dotenv.config({ path: ".env.local", quiet: true });
+if (fs.existsSync(".env")) dotenv.config({ path: ".env", quiet: true });
 
-const databaseUrl = process.env.DRIZZLE_DATABASE_URL ?? process.env.DATABASE_URL;
+const databaseUrl = process.env.DRIZZLE_DATABASE_URL || process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error("DATABASE_URL or DRIZZLE_DATABASE_URL is not set");
 }
 
-const isYandex = databaseUrl.includes("yandexcloud.net");
+// The schema baseline is for a fresh Yandex Managed PostgreSQL database only.
+if (/supabase\.(co|com)/.test(databaseUrl)) {
+  throw new Error(
+    "Refusing to run against Supabase. Set DATABASE_URL (and DRIZZLE_DATABASE_URL, if used) " +
+      "in .env.local to the Yandex cluster: postgresql://bizmuzik:…@c-<cluster_id>.rw.mdb.yandexcloud.net:6432/bizmuzik",
+  );
+}
 
 export default {
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    // Supabase: force the transaction pooler. YC and others: use the URL as-is.
-    url: databaseUrl.includes("supabase.co") && databaseUrl.includes(":5432")
-      ? databaseUrl.replace(":5432", ":6543")
-      : databaseUrl,
-    // YC Managed PostgreSQL: verify against the Yandex root CA.
-    ssl: isYandex
-      ? { ca: YANDEX_ROOT_CA, rejectUnauthorized: true }
-      : process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: true }
-        : { rejectUnauthorized: false },
+    url: stripSslParams(databaseUrl)!,
+    ssl: getSsl(databaseUrl),
   },
 } satisfies Config;

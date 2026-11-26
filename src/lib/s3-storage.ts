@@ -1,19 +1,8 @@
 import "server-only";
 
 /**
- * Yandex Object Storage (S3-compatible) backend.
- *
- * This is the migration target that replaces Supabase Storage. Yandex Object
- * Storage is reachable from inside the Russian Federation (no carrier block),
- * supports HTTP Range requests natively, and has no 3.5 MiB response cap — so
- * audio is served DIRECTLY to the browser and the /api/storage-proxy reverse
- * proxy is no longer needed.
- *
- * Activation is controlled purely by environment variables: when S3_BUCKET +
- * credentials are present, `S3_ENABLED` is true and src/lib/supabase-storage.ts
- * delegates all storage operations here. Until then this module is dormant and
- * production keeps using Supabase. This lets the code merge safely before the
- * bucket exists.
+ * Yandex Object Storage (S3-compatible) primitives. The bucket is private;
+ * src/lib/storage.ts builds the app-level API on top of these.
  *
  * Required env vars:
  *   S3_ENDPOINT          (default https://storage.yandexcloud.net)
@@ -21,8 +10,6 @@ import "server-only";
  *   S3_BUCKET
  *   S3_ACCESS_KEY_ID
  *   S3_SECRET_ACCESS_KEY
- *   S3_PUBLIC_BASE_URL   (optional — override for a CDN / custom domain in front
- *                         of the bucket; defaults to <endpoint>/<bucket>)
  */
 
 import {
@@ -35,21 +22,14 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Use `||` (not `??`) for optional vars: the deploy workflow passes
-// S3_ENDPOINT/S3_REGION/S3_PUBLIC_BASE_URL as "" when their secrets are unset,
+// S3_ENDPOINT/S3_REGION as "" when their secrets are unset,
 // and an empty string must fall back to the default (?? would keep the "").
 const ENDPOINT = process.env.S3_ENDPOINT || "https://storage.yandexcloud.net";
 const REGION = process.env.S3_REGION || "ru-central1";
 const BUCKET = process.env.S3_BUCKET ?? "";
 const ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID ?? "";
 const SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY ?? "";
-const PUBLIC_BASE_URL =
-  process.env.S3_PUBLIC_BASE_URL ||
-  `${ENDPOINT.replace(/\/+$/, "")}/${BUCKET}`;
-
-/**
- * True when the S3 backend is fully configured. src/lib/supabase-storage.ts
- * checks this to decide whether to route storage operations to Object Storage.
- */
+/** True when the S3 credentials are configured. */
 export const S3_ENABLED = Boolean(BUCKET && ACCESS_KEY_ID && SECRET_ACCESS_KEY);
 
 let _client: S3Client | undefined;
@@ -75,14 +55,6 @@ function client(): S3Client {
 }
 
 const normalizeKey = (objectPath: string) => objectPath.replace(/^\/+/, "");
-
-/**
- * Public (unsigned) URL for an object. Only valid for objects in a bucket with
- * public-read access (e.g. cover images). For private objects use s3PresignGet.
- */
-export function s3PublicUrl(objectPath: string): string {
-  return `${PUBLIC_BASE_URL.replace(/\/+$/, "")}/${normalizeKey(objectPath)}`;
-}
 
 /** Presigned GET URL for streaming/downloading a private object. */
 export function s3PresignGet(
@@ -132,7 +104,7 @@ export async function s3PutObject(
 
 /**
  * List object keys under a prefix, returned RELATIVE to that prefix to match
- * the existing Supabase `.list(prefix).map(f => f.name)` behaviour (basenames).
+ * what listTrackFiles() callers expect (basenames).
  */
 export async function s3List(prefix: string): Promise<string[]> {
   const Prefix = normalizeKey(prefix).replace(/\/?$/, "/");

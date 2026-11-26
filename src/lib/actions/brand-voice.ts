@@ -19,7 +19,7 @@ import {
   getUploadSignedUrl,
   MAX_FILE_SIZE,
   parseStorageObjectRef,
-} from "@/lib/supabase-storage";
+} from "@/lib/storage";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { and, desc, eq } from "drizzle-orm";
 import * as mm from "music-metadata";
@@ -281,7 +281,7 @@ export async function createBrandVoiceSampleUploadUrlAction(input: CreateBrandVo
 
   const safeFileName = generateUniqueFileName(fileName);
   const folder = `brand-voice-samples/${scope.businessId}/${model.id}`;
-  const { uploadUrl, objectPath } = await getUploadSignedUrl(safeFileName, folder, input.fileType);
+  const { uploadUrl, objectPath } = await getUploadSignedUrl(safeFileName, folder);
 
   return {
     success: true,

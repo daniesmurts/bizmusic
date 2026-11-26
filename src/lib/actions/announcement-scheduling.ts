@@ -7,8 +7,7 @@ import { eq, and } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 import { revalidatePath } from "next/cache";
-import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
-import { rewriteStorageUrl } from "@/lib/storage-proxy";
+import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/storage";
 
 async function resolveBusinessScope() {
   const user = await getAuthUser();
@@ -136,20 +135,14 @@ export async function getSchedulableAnnouncementsAction() {
       orderBy: (va, { desc }) => [desc(va.createdAt)],
     });
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
     const mapped = await Promise.all(
       announcements.map(async (a) => {
         const isFullUrl = a.track.fileUrl.startsWith("http");
         const fileRef = parseStorageObjectRef(a.track.fileUrl, "announcements");
 
-        const fallbackUrl = rewriteStorageUrl(
-          isFullUrl
-            ? a.track.fileUrl
-            : supabaseUrl
-              ? getFilePublicUrl(fileRef.fileName, fileRef.folder)
-              : `/uploads/${fileRef.fileName}`,
-        );
+        const fallbackUrl = isFullUrl
+          ? a.track.fileUrl
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
         let streamUrl: string | undefined;
         try {

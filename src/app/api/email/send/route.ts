@@ -3,21 +3,13 @@ import { db } from "@/db";
 import { leads, leadActivities, referralAgents, crmBusinesses } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth/get-user";
-import { resend } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 import { getEmailTemplate } from "@/lib/email-templates";
 import { getAgentFromAddress, getReplyToAddress, getNicheFromBusinessNiche } from "@/lib/email-helpers";
 import { getPlatformPrices, formatPriceRub } from "@/lib/pricing";
-import fs from "fs";
-import path from "path";
-
+// Container filesystem is ephemeral — log to stdout (Cloud Logging).
 function logToFile(msg: string) {
-  try {
-    const logPath = path.join(process.cwd(), "scratch", "email_debug.log");
-    const dir = path.dirname(logPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const time = new Date().toISOString();
-    fs.appendFileSync(logPath, `[${time}] [SEND] ${msg}\n`);
-  } catch (e) {}
+  console.log(`[email/send] ${msg}`);
 }
 
 export async function POST(req: NextRequest) {
@@ -94,27 +86,26 @@ export async function POST(req: NextRequest) {
       startingPrice: formatPriceRub(prices.startingPrice),
     });
 
-    // 5. Send via Resend
-    const { data: sendData, error: sendError } = await resend.emails.send({
+    // 5. Send via UniSender Go
+    const sendResult = await sendEmail({
       from: getAgentFromAddress(agent.emailAlias, agentFirstName),
-      to: [businessEmail],
+      to: businessEmail,
       replyTo: getReplyToAddress(leadId),
       subject: template.subject,
       html: template.html,
       text: template.text,
     });
 
-    if (sendError) {
-      logToFile(`RESEND ERROR: ${JSON.stringify(sendError)}`);
-      console.error("[email/send] Resend API error:", sendError);
-      return NextResponse.json({ 
-        error: "RESEND_ERROR", 
-        message: sendError.message,
-        details: sendError
+    if (!sendResult.success) {
+      logToFile(`SEND ERROR: ${sendResult.error}`);
+      return NextResponse.json({
+        error: "EMAIL_SEND_ERROR",
+        message: sendResult.error,
       }, { status: 500 });
     }
 
-    logToFile(`Resend SUCCESS: id=${sendData?.id}`);
+    const sendData = { id: sendResult.messageId };
+    logToFile(`SEND SUCCESS: id=${sendData.id}`);
 
     // 6. Log activity
     const now = new Date();

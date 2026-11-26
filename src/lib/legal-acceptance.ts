@@ -63,7 +63,7 @@ export async function syncUserAndLegalAcceptance(input: SyncLegalAcceptanceInput
     await db.insert(users).values({
       id: input.userId,
       email: input.email,
-      passwordHash: "SUPABASE_AUTH",
+      passwordHash: null,
       role: invitedRole.role,
       userType: parseUserType(input.metadata),
       phone,

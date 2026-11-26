@@ -1,8 +1,8 @@
 "use server";
 
 import crypto from "crypto";
-// Allow Sberbank's SSL (Russian National CA)
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// Sber endpoints use the Russian Trusted Root CA. Trust is added process-wide via
+// NODE_EXTRA_CA_CERTS (see Dockerfile) instead of disabling TLS verification.
 
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 

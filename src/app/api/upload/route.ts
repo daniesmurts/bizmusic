@@ -5,12 +5,12 @@ import {
   MAX_FILE_SIZE,
   getFileSizeInMB,
   getUploadSignedUrl,
-} from "@/lib/supabase-storage";
+} from "@/lib/storage";
 import { getAuthUser } from "@/lib/auth/get-user";
 
 /**
  * POST /api/upload
- * Generate a signed URL for uploading audio/image files to Supabase Storage
+ * Generate a signed URL for uploading audio/image files to Object Storage
  */
 export async function POST(request: NextRequest) {
   try {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       : type === 'announcement'
       ? 'announcements'
       : 'tracks';
-    const { uploadUrl, publicUrl } = await getUploadSignedUrl(uniqueFileName, folder, fileType);
+    const { uploadUrl, publicUrl } = await getUploadSignedUrl(uniqueFileName, folder);
 
     return NextResponse.json({
       success: true,
