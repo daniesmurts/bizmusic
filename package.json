@@ -9,7 +9,7 @@
     "lint": "eslint",
     "backfill:failed-license-docs": "tsx scripts/backfill-failed-license-docs.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx scripts/migrate.ts",
     "create-admin": "tsx scripts/create-user.ts --role=ADMIN",
     "create-user": "tsx scripts/create-user.ts",
     "activate-trial": "tsx scripts/activate-trial.ts",
