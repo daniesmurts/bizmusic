@@ -49,6 +49,9 @@ jobs:
           context: .
           push: true
           tags: ${{ env.IMAGE }}
+          # Yandex Container Registry rejects OCI image indexes with attestations.
+          provenance: false
+          sbom: false
           build-args: |
             NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
             NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
