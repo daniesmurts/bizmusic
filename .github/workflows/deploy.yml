@@ -85,6 +85,7 @@ jobs:
           FOLDER: ${{ secrets.YC_FOLDER_ID }}
           RUNTIME_SA: ${{ secrets.YC_DEPLOY_SA_ID }}
           REGISTRY: ${{ secrets.YC_REGISTRY_ID }}
+          LOCKBOX_SECRET_ID: ${{ secrets.YC_LOCKBOX_SECRET_ID }}
         run: |
           check() {
             local label="$1"; shift
@@ -94,6 +95,7 @@ jobs:
           check "container (by id)" bash -c 'yc serverless container get --id "$CONTAINER_ID" --format json | jq -r "\"name=\(.name) in_YC_FOLDER_ID=\(.folder_id == env.FOLDER)\""'
           check "runtime service account" bash -c 'yc iam service-account get --id "$RUNTIME_SA" --format json | jq -r "\"name=\(.name) in_YC_FOLDER_ID=\(.folder_id == env.FOLDER)\""'
           check "registry" bash -c 'yc container registry get --id "$REGISTRY" --format json | jq -r "\"name=\(.name) in_YC_FOLDER_ID=\(.folder_id == env.FOLDER)\""'
+          check "deployer can read Lockbox payload" bash -c 'yc lockbox payload get --id "$LOCKBOX_SECRET_ID" --format json | jq -r "\"entries=\(.entries | length)\""'
           check "containers in YC_FOLDER_ID" bash -c 'yc serverless container list --format json | jq -r "map(.name) | join(\",\")"'
 
       - name: Deploy Serverless Container revision
