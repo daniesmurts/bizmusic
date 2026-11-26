@@ -9,6 +9,9 @@ const pwaConfig = withPWA({
   disable: isDev,
   register: true,
   skipWaiting: !isDev,
+  // Source maps aren't served in production; one 404 in the precache list makes
+  // the whole service worker install fail (no offline app shell).
+  buildExcludes: [/\.map$/],
 });
 
 const nextConfig: NextConfig = {
@@ -46,6 +49,8 @@ const nextConfig: NextConfig = {
             // Audio: tracks are served as presigned Yandex Object Storage URLs
             // (storage.yandexcloud.net); covers/PDFs redirect there via /api/media.
             "media-src 'self' blob: https://storage.yandexcloud.net",
+            // Yandex Metrika (webvisor / click map) opens frames to its own domains.
+            "frame-src https://mc.yandex.ru https://mc.yandex.com",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "form-action 'self'",
