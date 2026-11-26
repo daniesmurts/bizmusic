@@ -58,7 +58,7 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="w-80 border-r border-white/5 bg-black/50 backdrop-blur-xl flex flex-col h-screen sticky top-0">
+    <aside className="w-80 shrink-0 border-r border-white/5 bg-black/50 backdrop-blur-xl flex flex-col h-screen sticky top-0">
       {/* Brand */}
       <div className="p-8 border-b border-white/5">
         <Link href="/" className="flex items-center gap-3 group">

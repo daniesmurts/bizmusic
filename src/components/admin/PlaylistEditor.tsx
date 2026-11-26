@@ -105,7 +105,7 @@ function SortableTrackItem({
         <p className="text-white font-black uppercase tracking-tight truncate">
           {track.title}
         </p>
-        <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest">
+        <p className="text-neutral-500 text-sm font-bold uppercase tracking-widest truncate">
           {track.artist}
         </p>
       </div>
@@ -280,9 +280,10 @@ export const PlaylistEditor = ({
         </Button>
       </div>
 
+      {/* min-w-0 on both columns so long titles truncate instead of widening the page. */}
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Playlist Selector */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <Label className="text-white font-black uppercase tracking-widest text-xs">
             Выберите плейлист
           </Label>
@@ -334,7 +335,7 @@ export const PlaylistEditor = ({
         </div>
 
         {/* Playlist Editor */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0">
           {selectedPlaylistId ? (
             <>
               {/* Stats */}
