@@ -1,50 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSignIn } from "@clerk/nextjs/legacy";
+import { loginAction, resendVerificationAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 
-function translateClerkError(err: unknown): React.ReactNode {
-  if (typeof window !== "undefined") console.error("[login error]", err);
+const NOTICES: Record<string, { tone: "ok" | "error"; text: string }> = {
+  verify_link_invalid: { tone: "error", text: "Ссылка подтверждения недействительна или устарела. Войдите, чтобы получить новую." },
+  partner: { tone: "ok", text: "Аккаунт партнёра создан. Подтвердите email по ссылке из письма, затем войдите." },
+};
 
-  const first = (err as { errors?: { code?: string; message?: string; longMessage?: string }[] })?.errors?.[0];
-  const code = first?.code ?? "";
-  const msg = first?.message ?? String(err);
-
-  if (code === "form_password_incorrect" || msg.includes("Invalid credentials") || msg.includes("invalid_credentials") || code === "form_identifier_not_found_for_account") {
-    return (
-      <>
-        Неверный email или пароль.{" "}
-        <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
-          Сбросьте пароль
-        </a>
-        , если вы не помните его.
-      </>
-    );
-  }
-  if (code === "form_identifier_not_found" || msg.includes("not found") || msg.includes("no user"))
-    return "Пользователь с таким email не найден.";
-  if (msg.includes("too many requests") || msg.includes("rate_limit"))
-    return "Слишком много попыток. Попробуйте позже.";
-  if (code === "session_exists")
-    return "Вы уже вошли в систему. Обновите страницу.";
-  if (code === "form_password_pwned" || msg.includes("data breach") || msg.includes("pwned")) {
-    return (
-      <>
-        Ваш пароль был найден в утечке данных. В целях безопасности{" "}
-        <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
-          сбросьте пароль
-        </a>
-        .
-      </>
-    );
-  }
-  return first?.longMessage ?? first?.message ?? "Произошла ошибка при входе. Попробуйте снова.";
+// Only same-origin relative paths, to avoid open redirects.
+function safeNext(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return null;
+  return value;
 }
 
 export default function Login() {
@@ -52,139 +25,48 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<React.ReactNode | null>(null);
-  const [needsCode, setNeedsCode] = useState(false);
-  const [code, setCode] = useState("");
-  const { signIn, setActive, isLoaded } = useSignIn();
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get("notice") ?? (params.get("registered") === "partner" ? "partner" : null);
+    if (key && NOTICES[key]) setNotice(NOTICES[key]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError(null);
+    setNeedsVerification(false);
 
     try {
-      const result = await signIn.create({ identifier: email, password });
-
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        window.location.href = "/dashboard";
+      const result = await loginAction({ email, password });
+      if (result.success) {
+        const next = safeNext(new URLSearchParams(window.location.search).get("next"));
+        window.location.href = next ?? (result.data.role === "PARTNER" ? "/dashboard/affiliate" : "/dashboard");
         return;
       }
-
-      if (result.status === "needs_second_factor") {
-        // Find the email_code second factor and send the code
-        const emailFactor = result.supportedSecondFactors?.find((f) => f.strategy === "email_code");
-        if (emailFactor && "emailAddressId" in emailFactor) {
-          await signIn.prepareSecondFactor({
-            strategy: "email_code",
-            emailAddressId: (emailFactor as { emailAddressId: string }).emailAddressId,
-          });
-          setNeedsCode(true);
-          setLoading(false);
-          return;
-        }
-        setError("Требуется двухфакторная аутентификация, но метод не поддерживается. Обратитесь в поддержку.");
-        setLoading(false);
-        return;
-      }
-
-      console.error("[login non-complete status]", result);
-      if (result.status === "needs_first_factor") {
-        setError("Подтвердите email перед входом.");
-      } else if (result.status === "needs_new_password") {
-        setError(
-          <>
-            Требуется смена пароля.{" "}
-            <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
-              Сбросьте пароль
-            </a>
-            .
-          </>
-        );
-      } else {
-        setError(`Неожиданный статус входа: ${result.status}.`);
-      }
-      setLoading(false);
-    } catch (err) {
-      setError(translateClerkError(err));
-      setLoading(false);
+      setError(result.error);
+      if (result.code === "EMAIL_NOT_VERIFIED") setNeedsVerification(true);
+    } catch {
+      setError("Нет соединения с сервером. Проверьте интернет и попробуйте снова.");
     }
+    setLoading(false);
   };
 
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isLoaded || !signIn) return;
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await signIn.attemptSecondFactor({ strategy: "email_code", code });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        window.location.href = "/dashboard";
-      } else {
-        setError(`Не удалось завершить вход: ${result.status}.`);
-        setLoading(false);
-      }
-    } catch (err) {
-      setError(translateClerkError(err));
-      setLoading(false);
+  const handleResend = async () => {
+    setResendState("sending");
+    const result = await resendVerificationAction(email).catch(() => null);
+    if (result && !result.success) {
+      setError(result.error);
+      setResendState("idle");
+      return;
     }
+    setResendState("sent");
   };
-
-  if (needsCode) {
-    return (
-      <Card className="glass-dark border-white/10 text-white overflow-hidden animate-fade-in shadow-2xl shadow-neon/5">
-        <CardHeader className="space-y-4 pt-10 px-8">
-          <div className="flex items-center gap-3 text-neon">
-            <ShieldCheck className="w-8 h-8" />
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-          <div className="space-y-2">
-            <CardTitle className="text-4xl font-black tracking-tighter uppercase leading-none">
-              Проверка <br /><span className="text-neon">по email</span>
-            </CardTitle>
-            <CardDescription className="text-neutral-400 font-medium">
-              Мы отправили код на <strong>{email}</strong>. Введите его, чтобы завершить вход.
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="px-8 pt-4 pb-10">
-          <form onSubmit={handleVerifyCode} className="space-y-6">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="code" className="text-xs font-black uppercase tracking-widest text-neutral-500 px-1">Код из письма</Label>
-              <Input
-                id="code"
-                type="text"
-                inputMode="numeric"
-                placeholder="123456"
-                className="bg-white/5 border-white/10 rounded-2xl py-6 text-center tracking-[0.5em] text-xl font-black focus:border-neon/50 focus:ring-neon/20 transition-all"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                required
-                disabled={loading}
-                autoFocus
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-              disabled={loading || code.length !== 6}
-            >
-              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Подтвердить и войти"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="glass-dark border-white/10 text-white overflow-hidden animate-fade-in shadow-2xl shadow-neon/5">
@@ -200,10 +82,45 @@ export default function Login() {
       </CardHeader>
       <CardContent className="px-8 pt-4 pb-10">
         <form onSubmit={handleLogin} className="space-y-6">
+          {notice && (
+            <div className={`${notice.tone === "ok" ? "bg-neon/10 border-neon/20 text-neon" : "bg-red-500/10 border-red-500/20 text-red-500"} border p-4 rounded-2xl flex items-start gap-3 text-sm font-bold`}>
+              {notice.tone === "ok" ? <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" /> : <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />}
+              <span className="leading-relaxed break-words">{notice.text}</span>
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-start gap-3 text-sm font-bold animate-in fade-in slide-in-from-top-2 duration-300">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <span className="leading-relaxed break-words">{error}</span>
+              <span className="leading-relaxed break-words">
+                {error}
+                {error.startsWith("Неверный email") && (
+                  <>
+                    {" "}
+                    <a href="/forgot-password" className="underline underline-offset-2 hover:text-red-300 transition-colors">
+                      Сбросьте пароль
+                    </a>
+                    , если вы не помните его.
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+
+          {needsVerification && (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-bold text-neutral-300 space-y-3">
+              {resendState === "sent" ? (
+                <p className="text-neon">Письмо отправлено на {email}. Проверьте почту и папку «Спам».</p>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendState === "sending"}
+                  className="w-full h-11 rounded-xl bg-neon/20 text-neon border border-neon/30 hover:bg-neon/30"
+                >
+                  {resendState === "sending" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Отправить письмо ещё раз"}
+                </Button>
+              )}
             </div>
           )}
 
@@ -212,6 +129,7 @@ export default function Login() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               placeholder="name@business.ru"
               className="bg-white/5 border-white/10 rounded-2xl py-6 focus:border-neon/50 focus:ring-neon/20 transition-all text-lg font-medium"
               value={email}
@@ -232,6 +150,7 @@ export default function Login() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 placeholder="••••••••"
                 className="bg-white/5 border-white/10 rounded-2xl py-6 pr-14 focus:border-neon/50 focus:ring-neon/20 transition-all text-lg font-medium w-full"
                 value={password}
@@ -242,6 +161,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
                 className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neon transition-colors p-3 rounded-xl hover:bg-white/5 z-10 touch-manipulation"
                 disabled={loading}
               >
@@ -253,7 +173,7 @@ export default function Login() {
           <Button
             type="submit"
             className="w-full bg-neon text-black hover:scale-105 font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-            disabled={loading || !isLoaded}
+            disabled={loading}
           >
             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Войти в кабинет"}
           </Button>

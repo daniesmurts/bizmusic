@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { clearSession } from "@/lib/auth/session";
 
 export async function POST() {
-  // Session management is handled by Clerk — no server-side sign-out needed.
+  await clearSession();
   return NextResponse.json({ success: true });
 }

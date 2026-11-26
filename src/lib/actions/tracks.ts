@@ -10,8 +10,7 @@ import {
   deleteFile,
   getFilePublicUrl,
   parseStorageObjectRef,
-} from "@/lib/supabase-storage";
-import { rewriteStorageUrl } from "@/lib/storage-proxy";
+} from "@/lib/storage";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { revalidatePath } from "next/cache";
 
@@ -312,28 +311,13 @@ export async function getTracksAction(filters?: {
       provider: announcementProvider
     }));
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    
-    // Check if we have any tracks that require a supabaseUrl which is missing
-    const needsConfiguration = tracksWithCount.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
-    
-    if (needsConfiguration) {
-      console.error("[Tracks] NEXT_PUBLIC_SUPABASE_URL is not set; cannot construct fallback URLs for library tracks");
-      return {
-        success: false,
-        error: "Server configuration is incomplete: NEXT_PUBLIC_SUPABASE_URL is required for storage access.",
-      };
-    }
-
     const tracksWithUrls = await Promise.all(
       tracksWithCount.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
-        const fallbackUrl = rewriteStorageUrl(
-          (isFullUrl || !supabaseUrl)
-            ? track.fileUrl
-            : getFilePublicUrl(fileRef.fileName, fileRef.folder),
-        );
+        const fallbackUrl = isFullUrl
+          ? track.fileUrl
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
         try {
           const streamUrl = await getDownloadSignedUrl(fileRef.fileName, fileRef.folder, 3600);
@@ -385,28 +369,13 @@ export async function getFeaturedTracksAction() {
       : [];
     const artistMap = new Map(artistProfiles.map(a => [a.id, a]));
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    
-    // Check if any featured tracks require a supabaseUrl which is missing
-    const needsConfiguration = featuredTracks.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
-    
-    if (needsConfiguration) {
-      console.error("[Tracks] ❌ NEXT_PUBLIC_SUPABASE_URL is not set — cannot generate audio URLs. Was it passed as --build-arg during docker build?");
-      return {
-        success: false,
-        error: "Ошибка конфигурации сервера. Свяжитесь с поддержкой.",
-      };
-    }
-
     const tracksWithUrls = await Promise.all(
       featuredTracks.map(async (track) => {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
-        const fallbackUrl = rewriteStorageUrl(
-          (isFullUrl || !supabaseUrl)
-            ? track.fileUrl
-            : getFilePublicUrl(fileRef.fileName, fileRef.folder),
-        );
+        const fallbackUrl = isFullUrl
+          ? track.fileUrl
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
           
         try {
           const streamUrl = await getDownloadSignedUrl(
@@ -495,22 +464,10 @@ export async function getTrackByIdAction(trackId: string) {
     };
 
     const isFullUrl = track.fileUrl.startsWith('http');
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-    if (!isFullUrl && !supabaseUrl) {
-      console.error(`[Tracks] NEXT_PUBLIC_SUPABASE_URL is not set; cannot construct fallback file URL for track: ${track.id}`);
-      return {
-        success: false,
-        error: "File URL is invalid and server configuration is incomplete.",
-      };
-    }
-
     const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
-    const fallbackUrl = rewriteStorageUrl(
-      (isFullUrl || !supabaseUrl)
-        ? track.fileUrl
-        : getFilePublicUrl(fileRef.fileName, fileRef.folder),
-    );
+    const fallbackUrl = isFullUrl
+      ? track.fileUrl
+      : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
     let streamUrl: string | undefined = undefined;
     try {
@@ -613,23 +570,11 @@ export async function getAdminTracksAction(filters?: {
       },
     }));
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    
-    const needsConfiguration = tracksWithCount.some(t => !t.fileUrl.startsWith('http')) && !supabaseUrl;
-    
-    if (needsConfiguration) {
-      console.error("[Admin Tracks] NEXT_PUBLIC_SUPABASE_URL is not set");
-      return {
-        success: false,
-        error: "Server configuration is incomplete",
-      };
-    }
-
     const tracksWithUrls = tracksWithCount.map((track) => {
       const isFullUrl = track.fileUrl.startsWith('http');
       const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
-      const fallbackUrl = (isFullUrl || !supabaseUrl)
-        ? track.fileUrl 
+      const fallbackUrl = isFullUrl
+        ? track.fileUrl
         : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
       return { ...track, fileUrl: fallbackUrl };

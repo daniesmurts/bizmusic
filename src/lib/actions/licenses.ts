@@ -7,7 +7,7 @@ import { generateLicensePDF } from "@/lib/license-generator";
 import { generateAgreementPDF } from "@/lib/agreement-generator";
 import { mergePdfBuffers } from "@/lib/document-bundle";
 import { syncUserAndLegalAcceptance } from "@/lib/legal-acceptance";
-import { uploadFileBuffer, getFilePublicUrl } from "@/lib/supabase-storage";
+import { uploadFileBuffer, getFilePublicUrl } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth/get-user";
 
@@ -125,8 +125,7 @@ export async function generateLicenseAction(businessId: string) {
       verificationUrl,
     });
 
-    // 5. Upload to object storage (with 30s timeout). Routes through the storage
-    //    backend switch (Supabase today, Yandex Object Storage once S3_* is set).
+    // 5. Upload to object storage (with 30s timeout).
     const uploadTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Upload timed out after 30 seconds")), 30_000)
     );
@@ -134,10 +133,8 @@ export async function generateLicenseAction(businessId: string) {
       uploadFileBuffer(pdfBuffer, `${licenseId}.pdf`, "licenses", "application/pdf"),
       uploadTimeout,
     ]);
-    // Stored URL: on S3 this is the stable /api/media route (presigns on read);
-    // on Supabase it's the raw public URL (unchanged behaviour). proxy:false so
-    // the Supabase path doesn't route PDFs through the storage proxy.
-    const publicUrl = getFilePublicUrl(`${licenseId}.pdf`, "licenses", { proxy: false });
+    // Stable /api/media URL (presigns on read), safe to store in the DB.
+    const publicUrl = getFilePublicUrl(`${licenseId}.pdf`, "licenses");
 
     // 7. Mark generation ready
     const [license] = await db.update(licenses)
@@ -217,7 +214,7 @@ export async function retryLicenseGenerationAction(licenseId: string) {
       "licenses",
       "application/pdf",
     );
-    const publicUrl = getFilePublicUrl(`${license.id}.pdf`, "licenses", { proxy: false });
+    const publicUrl = getFilePublicUrl(`${license.id}.pdf`, "licenses");
 
     const [updated] = await db.update(licenses)
       .set({
@@ -503,8 +500,7 @@ export async function submitContractAction(formData: ContractFormData) {
       verificationUrl,
     });
 
-    // Upload PDF to object storage (with 30s timeout). Routes through the storage
-    // backend switch (Supabase today, Yandex Object Storage once S3_* is set).
+    // Upload PDF to object storage (with 30s timeout).
     const uploadTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Upload timed out after 30 seconds")), 30_000)
     );
@@ -512,7 +508,7 @@ export async function submitContractAction(formData: ContractFormData) {
       uploadFileBuffer(pdfBuffer, `${licenseId}.pdf`, "licenses", "application/pdf"),
       uploadTimeout,
     ]);
-    const publicUrl = getFilePublicUrl(`${licenseId}.pdf`, "licenses", { proxy: false });
+    const publicUrl = getFilePublicUrl(`${licenseId}.pdf`, "licenses");
 
     await db.update(licenses)
       .set({

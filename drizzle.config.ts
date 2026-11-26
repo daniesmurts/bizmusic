@@ -1,15 +1,25 @@
 import type { Config } from "drizzle-kit";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
+import { getSsl, stripSslParams } from "./src/db/ssl";
 
-// Load both .env and .env.local if they exist
-if (fs.existsSync(".env")) dotenv.config({ path: ".env" });
-if (fs.existsSync(".env.local")) dotenv.config({ path: ".env.local" });
+// drizzle-kit loads .env by itself before this file runs, so .env.local must
+// override to take precedence (same order as Next.js).
+if (fs.existsSync(".env.local")) dotenv.config({ path: ".env.local", override: true, quiet: true });
+if (fs.existsSync(".env")) dotenv.config({ path: ".env", quiet: true });
 
-const databaseUrl = process.env.DRIZZLE_DATABASE_URL ?? process.env.DATABASE_URL;
+// Yandex Managed PostgreSQL has a single port (6432), so migrations use the app's DATABASE_URL.
+const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error("DATABASE_URL or DRIZZLE_DATABASE_URL is not set");
+  throw new Error("DATABASE_URL is not set");
+}
+
+// The schema baseline is for a fresh Yandex Managed PostgreSQL database only.
+if (/supabase\.(co|com)/.test(databaseUrl)) {
+  throw new Error(
+    "Refusing to run against Supabase. Set DATABASE_URL in .env.local to the Yandex cluster: postgresql://bizmuzik:…@c-<cluster_id>.rw.mdb.yandexcloud.net:6432/bizmuzik",
+  );
 }
 
 export default {
@@ -17,9 +27,7 @@ export default {
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: databaseUrl.includes("supabase.co") && databaseUrl.includes(":5432") 
-      ? databaseUrl.replace(":5432", ":6543") 
-      : databaseUrl,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
+    url: stripSslParams(databaseUrl)!,
+    ssl: getSsl(databaseUrl),
   },
 } satisfies Config;

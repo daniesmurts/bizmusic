@@ -1,49 +1,41 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import "server-only";
+
+import { cache } from "react";
+import { cookies } from "next/headers";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { SESSION_COOKIE, verifySession, type SessionRole } from "./session-token";
 
 export interface AuthUser {
   id: string;
 }
 
+export interface SessionUser extends AuthUser {
+  email: string;
+  role: SessionRole;
+}
+
 /**
- * Returns the internal DB user {id} for the current Clerk session.
- *
- * First login flow: if no DB row matches the Clerk userId yet, we look up
- * the user by email and link the Clerk account to the existing record.
- * This handles existing Supabase users migrating to Clerk transparently.
+ * Resolves the signed-in user for this request. Unlike src/proxy.ts (signature
+ * only), this also checks the DB so disabled accounts and revoked sessions
+ * (sessionVersion bump) are rejected immediately.
  */
-export async function getAuthUser(): Promise<AuthUser | null> {
-  const { userId: clerkId } = await auth();
-  if (!clerkId) return null;
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const payload = await verifySession(token);
+  if (!payload) return null;
 
-  // Fast path — clerkId already linked
-  const linked = await db.query.users.findFirst({
-    where: eq(users.clerkId, clerkId),
-    columns: { id: true },
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, payload.sub),
+    columns: { id: true, email: true, role: true, sessionVersion: true, disabledAt: true },
   });
-  if (linked) return { id: linked.id };
+  if (!user || user.disabledAt || user.sessionVersion !== payload.sv) return null;
 
-  // First-login path — link by email to existing Supabase-era record
-  try {
-    const client = await clerkClient();
-    const clerkUser = await client.users.getUser(clerkId);
-    const email = clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase();
-    if (!email) return null;
+  return { id: user.id, email: user.email, role: user.role };
+});
 
-    const existing = await db.query.users.findFirst({
-      where: eq(users.email, email),
-      columns: { id: true },
-    });
-
-    if (existing) {
-      await db.update(users).set({ clerkId }).where(eq(users.id, existing.id));
-      return { id: existing.id };
-    }
-  } catch (err) {
-    console.error("[getAuthUser] first-login link failed:", err);
-  }
-
-  return null;
+export async function getAuthUser(): Promise<AuthUser | null> {
+  const user = await getSessionUser();
+  return user ? { id: user.id } : null;
 }

@@ -4,8 +4,7 @@ import { db } from "@/db";
 import { playlists, playlistTracks, tracks, businesses, users, type ScheduleConfig } from "@/db/schema";
 import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/supabase-storage";
-import { rewriteStorageUrl } from "@/lib/storage-proxy";
+import { getDownloadSignedUrl, getFilePublicUrl, parseStorageObjectRef } from "@/lib/storage";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { resolveAccessScope } from "@/lib/auth/scope";
 
@@ -148,8 +147,6 @@ export async function getPlaylistByIdAction(playlistId: string) {
       };
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
     // Sign all track URLs securely
     const mappedTracks = await Promise.all(
       playlist.tracks.map(async (t) => {
@@ -157,11 +154,9 @@ export async function getPlaylistByIdAction(playlistId: string) {
         const isFullUrl = track.fileUrl.startsWith('http');
         const fileRef = parseStorageObjectRef(track.fileUrl, "tracks");
         
-        const fallbackUrl = rewriteStorageUrl(
-          (isFullUrl || !supabaseUrl)
-            ? track.fileUrl
-            : getFilePublicUrl(fileRef.fileName, fileRef.folder),
-        );
+        const fallbackUrl = isFullUrl
+          ? track.fileUrl
+          : getFilePublicUrl(fileRef.fileName, fileRef.folder);
 
         let streamUrl: string | undefined = undefined;
         try {

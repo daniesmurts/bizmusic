@@ -10,10 +10,14 @@ export async function register() {
     
     const required = [
       "DATABASE_URL",
-      "SUPABASE_SERVICE_ROLE_KEY",
+      "AUTH_SECRET",
+      "S3_BUCKET",
+      "S3_ACCESS_KEY_ID",
+      "S3_SECRET_ACCESS_KEY",
     ];
 
     const optionalSupport = [
+      "UNISENDER_GO_API_KEY",
       "TELEGRAM_BOT_TOKEN",
       "TELEGRAM_SUPPORT_CHAT_ID",
       "BITRIX24_WEBHOOK_URL",
@@ -31,8 +35,7 @@ export async function register() {
 
     // Warn about NEXT_PUBLIC_* vars that should have been baked at build time
     const buildTimeVars = [
-      "NEXT_PUBLIC_SUPABASE_URL",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_APP_URL",
     ];
 
     const missingBuild = buildTimeVars.filter((key) => !process.env[key]);

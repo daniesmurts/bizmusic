@@ -9,7 +9,7 @@ import { db } from "@/db";
 import { voiceActors, voiceSamples, brandVoiceModels } from "@/db/schema";
 import { verifyBrandVoiceUploadSessionToken } from "@/lib/brand-voice-upload-token";
 import { and, eq } from "drizzle-orm";
-import { generateUniqueFileName, getUploadSignedUrl, MAX_FILE_SIZE } from "@/lib/supabase-storage";
+import { generateUniqueFileName, getUploadSignedUrl, MAX_FILE_SIZE } from "@/lib/storage";
 
 const ALLOWED_MIME_TYPES = [
   "audio/mpeg",
@@ -86,7 +86,7 @@ export async function createPublicVoiceSampleUploadUrlAction(input: PublicSample
 
   const safeFileName = generateUniqueFileName(fileName);
   const folder = `brand-voice-samples/${actor.businessId}/${model.id}`;
-  const { uploadUrl, objectPath } = await getUploadSignedUrl(safeFileName, folder, input.fileType);
+  const { uploadUrl, objectPath } = await getUploadSignedUrl(safeFileName, folder);
 
   return {
     success: true,

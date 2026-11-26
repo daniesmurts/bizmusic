@@ -27,7 +27,7 @@ export interface AiEntitlementStatus {
 
 interface ConsumeAiCreditParams {
   businessId: string;
-  provider: "groq";
+  provider: "deepseek";
   charsCount: number;
   now?: Date;
 }

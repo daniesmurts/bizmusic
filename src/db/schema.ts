@@ -52,9 +52,13 @@ export const supportDeliveryStatusEnum = pgEnum("support_delivery_status", ["PEN
 // Users Table
 export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  clerkId: text("clerkId").unique(),
   email: text("email").notNull().unique(),
-  passwordHash: text("passwordHash").default("CLERK_AUTH"),
+  // null = no password yet (invited staff must set one via invite link)
+  passwordHash: text("passwordHash"),
+  emailVerifiedAt: timestamp("emailVerifiedAt"),
+  disabledAt: timestamp("disabledAt"),
+  // Bumped on password change / deactivation to invalidate existing sessions.
+  sessionVersion: integer("sessionVersion").default(0).notNull(),
   role: roleEnum("role").default("BUSINESS_OWNER").notNull(),
   userType: userTypeEnum("userType").default("BUSINESS").notNull(),
   phone: text("phone"),
@@ -65,7 +69,36 @@ export const users = pgTable("users", {
   referralCodeUsed: text("referralCodeUsed"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$defaultFn(() => new Date()).$onUpdateFn(() => new Date()),
-});
+}, (t) => ({
+  assignedLocationIdx: index("idx_users_assigned_location").on(t.assignedLocationId),
+  referredByAgentIdx: index("users_referred_by_agent_id_idx").on(t.referredByAgentId),
+}));
+
+export const authTokenTypeEnum = pgEnum("auth_token_type", ["EMAIL_VERIFY", "PASSWORD_RESET", "INVITE"]);
+
+// One-time tokens/codes. Only the SHA-256 hash is stored.
+export const authTokens = pgTable("auth_tokens", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("userId").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  type: authTokenTypeEnum("type").notNull(),
+  tokenHash: text("tokenHash").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  userTypeIdx: index("auth_tokens_user_type_idx").on(t.userId, t.type),
+  tokenHashIdx: index("auth_tokens_token_hash_idx").on(t.tokenHash),
+}));
+
+// Failed logins / code requests, for DB-backed rate limiting across container instances.
+export const authAttempts = pgTable("auth_attempts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  key: text("key").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  keyCreatedIdx: index("auth_attempts_key_created_idx").on(t.key, t.createdAt),
+}));
 
 export const legalAcceptanceEvents = pgTable("legal_acceptance_events", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

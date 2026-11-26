@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { tracks, voiceAnnouncements, businesses, announcementJingles, brandVoiceModels } from "@/db/schema";
 import { generateSpeech, TTSRequest, isProviderConfigured } from "@/lib/tts";
-import { uploadFileBuffer, generateUniqueFileName, deleteFile, parseStorageObjectRef } from "@/lib/supabase-storage";
+import { uploadFileBuffer, generateUniqueFileName, deleteFile, parseStorageObjectRef } from "@/lib/storage";
 import {
   createAnnouncementDeleteScope,
   isAnnouncementOwnedByBusiness,
@@ -218,7 +218,7 @@ export async function generateVoiceAnnouncementAction(input: CreateAnnouncementI
     const metadata = await mm.parseBuffer(finalAudioBuffer, "audio/mpeg");
     const duration = Math.round(metadata.format.duration || 0);
 
-    // 3. Upload to Supabase Storage
+    // 3. Upload to Object Storage
     const fileName = generateUniqueFileName(`${input.title.replace(/\s+/g, '_')}.mp3`);
     const publicUrl = await uploadFileBuffer(finalAudioBuffer, fileName, "announcements");
 

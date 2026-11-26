@@ -10,8 +10,7 @@ const SESSION_TTL_SECONDS = 12 * 60 * 60;
 function getSecret(): string {
   const secret =
     process.env.BRAND_VOICE_UPLOAD_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.AUTH_SECRET;
 
   if (!secret) {
     throw new Error("BRAND_VOICE_UPLOAD_SECRET is not configured");

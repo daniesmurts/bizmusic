@@ -2,25 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSignUp } from "@clerk/nextjs/legacy";
+import { registerAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, Phone, ShieldCheck, UserCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-
-function translateClerkError(err: unknown): string {
-  const msg = (err as { errors?: { message?: string; code?: string }[] })?.errors?.[0];
-  if (!msg) return "Произошла ошибка при регистрации.";
-  if (msg.code === "form_identifier_exists" || msg.message?.includes("already exists"))
-    return "Пользователь с таким email уже зарегистрирован";
-  if (msg.code === "form_password_pwned" || msg.message?.includes("pwned"))
-    return "Этот пароль слишком распространён. Используйте другой.";
-  if (msg.message?.includes("least") && msg.message?.includes("character"))
-    return "Пароль должен содержать минимум 8 символов.";
-  return msg.message ?? "Произошла ошибка при регистрации.";
-}
 
 export default function Register() {
   const enablePhoneVerification = process.env.NEXT_PUBLIC_ENABLE_PHONE_VERIFICATION === "true";
@@ -39,7 +27,6 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const { signUp, setActive, isLoaded } = useSignUp();
 
   const normalizePhone = (value: string) => {
     const digits = value.replace(/\D/g, "");
@@ -128,32 +115,18 @@ export default function Register() {
       setError("Подтвердите номер телефона перед регистрацией.");
       return;
     }
-    if (!isLoaded || !signUp) return;
     setLoading(true);
     setError(null);
 
     try {
-      const result = await signUp.create({
-        emailAddress: email,
-        password,
-        unsafeMetadata: {
-          phone,
-          userType,
-          terms_accepted: true,
-          terms_accepted_at: new Date().toISOString(),
-        },
-      });
-
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        window.location.href = "/dashboard";
-      } else {
-        // Email verification required — Clerk will send a confirmation email
-        await signUp.prepareEmailAddressVerification({ strategy: "email_link", redirectUrl: `${window.location.origin}/dashboard` });
+      const result = await registerAction({ email, password, phone, userType, agreed });
+      if (result.success) {
         setSuccess(true);
+      } else {
+        setError(result.error);
       }
-    } catch (err) {
-      setError(translateClerkError(err));
+    } catch {
+      setError("Нет соединения с сервером. Проверьте интернет и попробуйте снова.");
     } finally {
       setLoading(false);
     }
@@ -301,7 +274,7 @@ export default function Register() {
 
           <Button type="submit"
             className="w-full bg-neon text-black hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed font-black uppercase py-7 text-lg rounded-2xl shadow-lg shadow-neon/20 transition-all"
-            disabled={loading || !agreed || (enablePhoneVerification && !phoneVerified) || !isLoaded}>
+            disabled={loading || !agreed || (enablePhoneVerification && !phoneVerified) }>
             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Зарегистрироваться"}
           </Button>
         </form>

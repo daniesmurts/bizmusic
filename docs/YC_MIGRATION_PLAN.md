@@ -154,31 +154,47 @@ S3_SECRET_ACCESS_KEY=...
 - [ ] Скачать корневой сертификат YC (`CA.pem`) для TLS-подключения.
 
 ### 2.2 Перенос схемы и данных
-- [ ] Применить миграции Drizzle к новой БД: `drizzle/0000…0008*.sql`
-      (через `drizzle-kit migrate` с новым `DATABASE_URL`).
-- [ ] Дамп данных из Supabase: `pg_dump --no-owner --no-acl --data-only` (или
-      полный дамп со схемой, если проще), порт 5432 (session pooler / direct).
-- [ ] Восстановить в YC: `pg_restore` / `psql`.
-- [ ] Сверить количество строк по ключевым таблицам (`users`, `tracks`,
-      `play_logs`, `licenses`, `businesses`, реферальные таблицы).
+Дамп из Supabase (VPN включён) и восстановление в YC. Полный дамп со схемой —
+проще всего:
+```bash
+# 1) дамп из Supabase (прямое подключение, порт 5432)
+pg_dump "postgresql://postgres:<pwd>@db.waootzqqtjyungakvoua.supabase.co:5432/postgres" \
+  --no-owner --no-acl --no-comments -Fc -f bizmusic.dump
 
-### 2.3 Изменения в коде
-- [ ] `src/db/index.ts` — пул заточен под pgBouncer (transaction mode, `keepAlive:false`,
-      короткий idle timeout). Managed PG **не** pgBouncer по умолчанию:
-  - Либо подключаться к встроенному пулеру YC (порт 6432) — тогда текущие настройки
-    ок (transaction mode).
-  - Либо прямое подключение (порт 6432/5432 хоста): вернуть `keepAlive:true`,
-    `max` больше, обычный `idleTimeoutMillis`, можно вернуть `statement_timeout`.
-- [ ] Добавить TLS: `ssl: { ca: fs.readFileSync(...CA.pem), rejectUnauthorized: true }`
-      вместо `rejectUnauthorized:false` (теперь сертификат известен).
-- [ ] `drizzle.config.ts` — обновить строку подключения.
-- [ ] Убрать логику переключения портов 5432↔6543 (она специфична для Supabase pooler).
+# 2) восстановление в YC Managed PostgreSQL (БД bizmusic, с CA)
+PGSSLROOTCERT=certs/yandex-rootCA.crt pg_restore \
+  --no-owner --no-acl --clean --if-exists \
+  -d "postgresql://<user>:<pwd>@<host>.mdb.yandexcloud.net:6432/bizmusic?sslmode=verify-full" \
+  bizmusic.dump
+```
+- [ ] Альтернатива схемы: вместо дампа схемы — `drizzle-kit migrate` с
+      `DRIZZLE_DATABASE_URL`=YC, затем `pg_dump --data-only`.
+- [ ] Сверить число строк по ключевым таблицам (`users`, `tracks`, `play_logs`,
+      `licenses`, `businesses`, реферальные таблицы):
+      `psql <url> -c "select 'users', count(*) from users union all select 'tracks', count(*) from tracks ..."`
 
-### 2.4 Переменные окружения
+### 2.3 Изменения в коде — ✅ СКАФФОЛД ГОТОВ
+Бэкенд БД определяется по `DATABASE_URL` (как и для storage) — переключение
+без изменения кода.
+- ✅ `src/db/index.ts` — `isSupabase`/`isYandex` по URL. Для YC: `keepAlive:true`,
+      обычный `idleTimeoutMillis` (30s), пул побольше; порты/`pgbouncer=true`
+      больше не навязываются. TLS: `ssl:{ ca: YANDEX_ROOT_CA, rejectUnauthorized:true }`.
+      Для Supabase — прежняя тонкая настройка pgBouncer без изменений.
+- ✅ `src/db/yandex-ca.ts` — корневой CA YC, инлайн-строкой (надёжно попадает в
+      standalone-сборку; runtime `fs.readFile` из `certs/` мог бы отсутствовать).
+- ✅ `drizzle.config.ts` — для YC-URL использует CA, `rejectUnauthorized:true`.
+- ✅ `certs/yandex-rootCA.crt` — исходник CA (для справки; в рантайме используется
+      инлайн-версия).
+
+### 2.4 Переменные окружения (на катовере)
+Заменить значения секретов `DATABASE_URL` / `DATABASE_DIRECT_URL` в GitHub на YC:
 ```
-DATABASE_URL=postgresql://user:pass@<host>.mdb.yandexcloud.net:6432/bizmusic?sslmode=verify-full
-DATABASE_DIRECT_URL=postgresql://user:pass@<host>:5432/bizmusic   # для миграций
+# порт 6432 — пулер Odyssey (для приложения)
+DATABASE_URL=postgresql://<user>:<pwd>@<host>.mdb.yandexcloud.net:6432/bizmusic?sslmode=verify-full
+# для миграций — тоже 6432 (или мастер-хост), CA берётся из кода
+DATABASE_DIRECT_URL=postgresql://<user>:<pwd>@<host>.mdb.yandexcloud.net:6432/bizmusic?sslmode=verify-full
 ```
+CA-сертификат **не нужен** как секрет — он вшит в код (`yandex-ca.ts`).
 
 ---
 
