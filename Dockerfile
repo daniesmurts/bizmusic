@@ -30,7 +30,8 @@ ENV NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY=$NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN node scripts/validate-env.mjs
-RUN npm run build
+# Webpack + Sentry plugin exceed Node's default heap; CI runners have 16 GB.
+RUN NODE_OPTIONS=--max-old-space-size=6144 npm run build
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
