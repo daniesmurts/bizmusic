@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { cacheAudioTrack } from '@/lib/services/offline-audio';
+import { stableAudioUrl } from '@/lib/audio-url';
 
 export function OfflineManager() {
   const { queue, currentTrack } = usePlayerStore();
@@ -18,7 +19,8 @@ export function OfflineManager() {
     tracksToCache.forEach(track => {
       if (!currentlyCachingRef.current.has(track.id)) {
         currentlyCachingRef.current.add(track.id);
-        const sourceUrl = track.streamUrl || track.fileUrl;
+        // Prefer the permanent URL: a queued track's streamUrl may already have expired.
+        const sourceUrl = stableAudioUrl(track.fileUrl) ?? track.streamUrl ?? track.fileUrl;
         
         cacheAudioTrack(track.id, sourceUrl)
           .catch(e => console.error("OfflineManager:", e))

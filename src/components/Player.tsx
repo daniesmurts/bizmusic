@@ -21,6 +21,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { OfflineManager } from "./player/OfflineManager";
 import { getCachedAudioUrl } from "@/lib/services/offline-audio";
+import { stableAudioUrl } from "@/lib/audio-url";
 
 export const Player = () => {
   const { 
@@ -46,6 +47,8 @@ export const Player = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
   const [audioSource, setAudioSource] = useState<string | undefined>(undefined);
+  // Track id whose expired streamUrl was already retried via the stable URL.
+  const retriedTrackRef = useRef<string | null>(null);
 
   const lastLoggedTrackKeyRef = useRef<string | null>(null);
   // Track announcement play start time for listenDurationSec calculation
@@ -172,6 +175,13 @@ export const Player = () => {
 
   const handleAudioError = () => {
     if (!currentTrack) return;
+    // A presigned streamUrl expires after an hour; retry once via the permanent URL.
+    const stable = stableAudioUrl(currentTrack.fileUrl);
+    if (stable && audioSource !== stable && retriedTrackRef.current !== currentTrack.id) {
+      retriedTrackRef.current = currentTrack.id;
+      setAudioSource(stable);
+      return;
+    }
     console.error("Audio playback error for track:", currentTrack.id, currentTrack.title);
     toast.error(`Не удалось воспроизвести: ${currentTrack.title}`);
     if (currentTrack.isAnnouncement) {
