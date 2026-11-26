@@ -120,15 +120,29 @@ jobs:
             [ -n "$key" ] && secret_flags+=(--secret "environment-variable=$key,id=$LOCKBOX_SECRET_ID,version-id=$VERSION_ID,key=$key")
           done <<< "$KEYS"
 
-          yc serverless container revision deploy \
-            --container-id "$CONTAINER_ID" \
-            --image "$IMAGE" \
-            --cores 1 \
-            --core-fraction 100 \
-            --memory 1GB \
-            --concurrency 8 \
-            --execution-timeout 120s \
-            --min-instances 1 \
-            --service-account-id "${{ secrets.YC_DEPLOY_SA_ID }}" \
-            --environment "NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }},NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}" \
-            "${secret_flags[@]}"
+          deploy() {
+            yc serverless container revision deploy \
+              --container-id "$CONTAINER_ID" \
+              --image "$IMAGE" \
+              --cores 1 \
+              --core-fraction 100 \
+              --memory 1GB \
+              --concurrency 8 \
+              --execution-timeout 120s \
+              --min-instances 1 \
+              --service-account-id "${{ secrets.YC_DEPLOY_SA_ID }}" \
+              --environment "NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }},NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}" \
+              "${secret_flags[@]}" "$@"
+          }
+
+          if deploy; then exit 0; fi
+
+          echo "::group::yc trace (credentials stripped)"
+          trace=$(ls -t "$HOME/.config/yandex-cloud/logs/"*revision_deploy* 2>/dev/null | head -1 || true)
+          [ -n "$trace" ] && grep -viE 'authorization|bearer|token|private|password|secret' "$trace" \
+            | grep -iE 'permission|denied|error|resource|method|service' | head -40 || true
+          echo "::endgroup::"
+
+          # Cloud Logging is unavailable in this cloud ("limited mode"); retry without it.
+          echo "::warning::Deploy failed; retrying with --no-logging"
+          deploy --no-logging
