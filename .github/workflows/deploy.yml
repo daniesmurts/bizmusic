@@ -123,6 +123,7 @@ jobs:
             [ -n "$key" ] && secret_flags+=(--secret "environment-variable=$key,id=$LOCKBOX_SECRET_ID,version-id=$VERSION_ID,key=$key")
           done <<< "$KEYS"
 
+          public_env="NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }},NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}"
           base=(
             --container-id "$CONTAINER_ID"
             --image "$IMAGE"
@@ -131,10 +132,30 @@ jobs:
             --memory 1GB
             --concurrency 8
             --execution-timeout 120s
-            --environment "NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }},NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}"
+            --min-instances 1
+            --service-account-id "${{ secrets.YC_DEPLOY_SA_ID }}"
           )
-          sa=(--service-account-id "${{ secrets.YC_DEPLOY_SA_ID }}")
 
-          # Yandex requires the deploying account (bizmuzik-deployer) to have
-          # lockbox.payloadViewer on the secret, not only the runtime account.
-          yc serverless container revision deploy "${base[@]}" "${sa[@]}" "${secret_flags[@]}" --min-instances 1
+          if yc serverless container revision deploy "${base[@]}" --environment "$public_env" "${secret_flags[@]}"; then
+            exit 0
+          fi
+
+          # Yandex refuses Lockbox mounts for this cloud (PermissionDenied) even though
+          # both accounts can read the secret. Until resolved with YC support, read the
+          # values here and pass them as plain env vars (visible to folder viewers).
+          echo "::warning::Lockbox mount refused; passing secret values as environment variables"
+          env_list="$public_env"
+          while IFS= read -r line; do
+            key="${line%%=*}"; b64="${line#*=}"
+            [ -z "$key" ] && continue
+            value=$(printf '%s' "$b64" | base64 -d)
+            echo "::add-mask::$value"
+            if [[ "$value" == *,* ]]; then
+              echo "::error::Lockbox value for $key contains a comma, which yc --environment cannot pass"
+              exit 1
+            fi
+            env_list="$env_list,$key=$value"
+          done < <(yc lockbox payload get --id "$LOCKBOX_SECRET_ID" --version-id "$VERSION_ID" --format json \
+                    | jq -r '.entries[] | "\(.key)=\(.text_value // "" | @base64)"')
+
+          yc serverless container revision deploy "${base[@]}" --environment "$env_list"
