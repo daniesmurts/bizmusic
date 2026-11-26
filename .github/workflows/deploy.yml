@@ -99,7 +99,7 @@ jobs:
           done <<< "$KEYS"
 
           yc serverless container revision deploy \
-            --container-name bizmusic \
+            --container-name bizmuzik \
             --image "$IMAGE" \
             --cores 1 \
             --core-fraction 100 \
