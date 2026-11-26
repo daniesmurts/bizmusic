@@ -120,29 +120,33 @@ jobs:
             [ -n "$key" ] && secret_flags+=(--secret "environment-variable=$key,id=$LOCKBOX_SECRET_ID,version-id=$VERSION_ID,key=$key")
           done <<< "$KEYS"
 
-          deploy() {
-            yc serverless container revision deploy \
-              --container-id "$CONTAINER_ID" \
-              --image "$IMAGE" \
-              --cores 1 \
-              --core-fraction 100 \
-              --memory 1GB \
-              --concurrency 8 \
-              --execution-timeout 120s \
-              --min-instances 1 \
-              --service-account-id "${{ secrets.YC_DEPLOY_SA_ID }}" \
-              --environment "NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }},NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}" \
-              "${secret_flags[@]}" "$@"
+          base=(
+            --container-id "$CONTAINER_ID"
+            --image "$IMAGE"
+            --cores 1
+            --core-fraction 100
+            --memory 1GB
+            --concurrency 8
+            --execution-timeout 120s
+            --environment "NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }},NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}"
+          )
+          sa=(--service-account-id "${{ secrets.YC_DEPLOY_SA_ID }}")
+
+          attempt() {
+            local name="$1"; shift
+            if yc serverless container revision deploy "${base[@]}" "$@" > "$RUNNER_TEMP/out.txt" 2>&1; then
+              echo "RESULT  OK      $name"; return 0
+            fi
+            echo "RESULT  DENIED  $name: $(grep -m1 -oE 'code = [A-Za-z]+' "$RUNNER_TEMP/out.txt" || tail -1 "$RUNNER_TEMP/out.txt")"
+            return 1
           }
 
-          if deploy; then exit 0; fi
+          if attempt "full (sa + secrets + min-instances)" "${sa[@]}" "${secret_flags[@]}" --min-instances 1; then exit 0; fi
 
-          echo "::group::yc trace (credentials stripped)"
-          trace=$(ls -t "$HOME/.config/yandex-cloud/logs/"*revision_deploy* 2>/dev/null | head -1 || true)
-          [ -n "$trace" ] && grep -viE 'authorization|bearer|token|private|password|secret' "$trace" \
-            | grep -iE 'permission|denied|error|resource|method|service' | head -40 || true
-          echo "::endgroup::"
-
-          # Cloud Logging is unavailable in this cloud ("limited mode"); retry without it.
-          echo "::warning::Deploy failed; retrying with --no-logging"
-          deploy --no-logging
+          # Diagnosis: find which part DeployRevision refuses. A variant that
+          # succeeds here is incomplete and must be redeployed after the fix.
+          attempt "without min-instances" "${sa[@]}" "${secret_flags[@]}" \
+            || attempt "without secrets" "${sa[@]}" --min-instances 1 \
+            || attempt "without service account and secrets" \
+            || true
+          exit 1
