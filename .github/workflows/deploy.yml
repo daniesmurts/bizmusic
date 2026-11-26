@@ -95,6 +95,7 @@ jobs:
           check "container (by id)" bash -c 'yc serverless container get --id "$CONTAINER_ID" --format json | jq -r "\"name=\(.name) in_YC_FOLDER_ID=\(.folder_id == env.FOLDER)\""'
           check "runtime service account" bash -c 'yc iam service-account get --id "$RUNTIME_SA" --format json | jq -r "\"name=\(.name) in_YC_FOLDER_ID=\(.folder_id == env.FOLDER)\""'
           check "registry" bash -c 'yc container registry get --id "$REGISTRY" --format json | jq -r "\"name=\(.name) in_YC_FOLDER_ID=\(.folder_id == env.FOLDER)\""'
+          check "Lockbox secret" bash -c 'yc lockbox secret get --id "$LOCKBOX_SECRET_ID" --format json | jq -r "\"name=\(.name) in_YC_FOLDER_ID=\(.folder_id == env.FOLDER) kms=\(.kms_key_id // \"none\" | if . == \"none\" then \"none\" else \"set\" end)\""'
           check "deployer can read Lockbox payload" bash -c 'yc lockbox payload get --id "$LOCKBOX_SECRET_ID" --format json | jq -r "\"entries=\(.entries | length)\""'
           check "containers in YC_FOLDER_ID" bash -c 'yc serverless container list --format json | jq -r "map(.name) | join(\",\")"'
 
