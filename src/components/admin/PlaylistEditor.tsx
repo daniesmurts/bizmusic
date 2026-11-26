@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -40,8 +40,8 @@ interface Playlist {
   id: string;
   name: string;
   businessId?: string | null;
-  /** List view returns only IDs; full track objects are resolved from the tracks prop. */
-  tracks?: { id: string }[];
+  /** Playlist entries from the list view; full Track objects are resolved from the tracks prop by trackId. */
+  tracks?: { id: string; trackId: string; position?: number }[];
   _count?: { tracks: number };
 }
 
@@ -168,21 +168,30 @@ export const PlaylistEditor = ({
     return tracks.filter((t) => !playlistTrackIds.has(t.id));
   }, [tracks, playlistTracks]);
 
-  // Load playlist tracks when selected playlist changes.
-  // The list view only returns track IDs; resolve full Track objects from the tracks prop.
+  // Which playlist's tracks are currently in the editor (avoids reloading over unsaved edits).
+  const loadedPlaylistRef = useRef<string | null>(null);
+
+  // Entries carry the playlist_tracks row id; resolve tracks by trackId, in saved order.
   const loadPlaylist = (playlistId: string) => {
     const playlist = playlists.find((p) => p.id === playlistId);
-    if (playlist?.tracks && playlist.tracks.length > 0) {
-      const trackMap = new Map(tracks.map((t) => [t.id, t]));
-      const resolved = playlist.tracks
-        .map((pt) => trackMap.get(pt.id))
-        .filter((t): t is Track => t !== undefined);
-      setPlaylistTracks(resolved);
-    } else {
-      setPlaylistTracks([]);
-    }
+    const trackMap = new Map(tracks.map((t) => [t.id, t]));
+    const resolved = [...(playlist?.tracks ?? [])]
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .map((pt) => trackMap.get(pt.trackId))
+      .filter((t): t is Track => t !== undefined);
+    setPlaylistTracks(resolved);
     setSelectedPlaylistId(playlistId);
+    loadedPlaylistRef.current = playlistId;
   };
+
+  // Load the selected (or first) playlist once data arrives; previously the first
+  // playlist was highlighted but its tracks were never loaded.
+  useEffect(() => {
+    const id = selectedPlaylistId ?? playlists[0]?.id;
+    if (!id || loadedPlaylistRef.current === id || tracks.length === 0) return;
+    loadPlaylist(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlaylistId, playlists, tracks]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

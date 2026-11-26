@@ -25,6 +25,7 @@ import {
 } from "@/lib/actions/tracks";
 import {
   getPlaylistsAction,
+  getTracksForPlaylistAction,
   createPlaylistAction,
   deletePlaylistAction,
   updatePlaylistTracksAction,
@@ -109,6 +110,16 @@ export default function AdminContentPage() {
       const result = await getPlaylistsAction();
       if (!result.success) throw new Error(result.error);
       return result.data as AdminPlaylist[];
+    },
+  });
+
+  // Full catalog for the playlist editor (the tracks table above is paginated).
+  const { data: playlistCatalog = [] } = useQuery({
+    queryKey: ["admin-playlist-catalog"],
+    queryFn: async () => {
+      const result = await getTracksForPlaylistAction();
+      if (!result.success) throw new Error(result.error);
+      return result.data ?? [];
     },
   });
 
@@ -850,7 +861,7 @@ export default function AdminContentPage() {
         </div>
       ) : (
         <PlaylistEditor
-          tracks={tracks}
+          tracks={playlistCatalog}
           playlists={playlists}
           onCreatePlaylist={handleCreatePlaylist}
           onUpdatePlaylist={handleUpdatePlaylist}

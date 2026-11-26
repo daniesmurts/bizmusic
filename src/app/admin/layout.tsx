@@ -37,7 +37,8 @@ export default async function AdminLayout({
           <div className="absolute bottom-0 left-0 p-32 bg-blue-500/5 blur-[120px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
           <AdminProviders>
-            <div className="flex-1 overflow-y-auto p-6 lg:p-10 relative z-10">
+            {/* Bottom padding keeps content clear of the fixed player bar. */}
+            <div className="flex-1 overflow-y-auto p-6 lg:p-10 pb-40 lg:pb-44 relative z-10">
               {children}
             </div>
             <Footer variant="admin" />

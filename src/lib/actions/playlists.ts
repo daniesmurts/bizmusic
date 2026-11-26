@@ -79,9 +79,9 @@ export async function getPlaylistsAction(businessId?: string) {
             legalName: true,
           },
         },
-        // Only load minimal track data needed for the count badge
+        // Minimal entry data: count badge + track ids/order for the admin editor.
         tracks: {
-          columns: { id: true },
+          columns: { id: true, trackId: true, position: true },
         },
       },
       orderBy: [desc(playlists.createdAt)],

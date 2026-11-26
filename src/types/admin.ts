@@ -50,8 +50,8 @@ export interface AdminPlaylist {
   id: string;
   name: string;
   businessId?: string | null;
-  /** List view: only IDs are loaded for performance. Use getPlaylistByIdAction for full track objects. */
-  tracks?: { id: string }[];
+  /** List view: playlist entries only (row id, trackId, position). Use getPlaylistByIdAction for full track objects. */
+  tracks?: { id: string; trackId: string; position?: number }[];
   _count?: { tracks: number };
 }
 
