@@ -13,7 +13,7 @@ concurrency:
 # GitHub configuration
 #   Secrets:   YC_SA_KEY (bizmuzik-deployer JSON key), YC_REGISTRY_ID, YC_FOLDER_ID,
 #              YC_DEPLOY_SA_ID (bizmuzik-runtime id), YC_LOCKBOX_SECRET_ID
-#   Variables: NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_BASE_URL,
+#   Variables: YC_NETWORK_ID, NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_BASE_URL,
 #              NEXT_PUBLIC_ENABLE_PHONE_VERIFICATION, NEXT_PUBLIC_YANDEX_MAPS_API_KEY,
 #              NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY
 # Runtime config lives in Lockbox: every key of the secret's current version is
@@ -135,6 +135,13 @@ jobs:
             --min-instances 1
             --service-account-id "${{ secrets.YC_DEPLOY_SA_ID }}"
           )
+          # Attach to the VPC so the container reaches Managed PostgreSQL privately
+          # (security group allows 6432 from 10.0.0.0/8). Deployer needs vpc.user.
+          if [ -n "${{ vars.YC_NETWORK_ID }}" ]; then
+            base+=(--network-id "${{ vars.YC_NETWORK_ID }}")
+          else
+            echo "::warning::YC_NETWORK_ID is not set; the container cannot reach the database privately"
+          fi
 
           if yc serverless container revision deploy "${base[@]}" --environment "$public_env" "${secret_flags[@]}"; then
             exit 0
