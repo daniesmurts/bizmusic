@@ -132,21 +132,6 @@ jobs:
           )
           sa=(--service-account-id "${{ secrets.YC_DEPLOY_SA_ID }}")
 
-          attempt() {
-            local name="$1"; shift
-            if yc serverless container revision deploy "${base[@]}" "$@" > "$RUNNER_TEMP/out.txt" 2>&1; then
-              echo "RESULT  OK      $name"; return 0
-            fi
-            echo "RESULT  DENIED  $name: $(grep -m1 -oE 'code = [A-Za-z]+' "$RUNNER_TEMP/out.txt" || tail -1 "$RUNNER_TEMP/out.txt")"
-            return 1
-          }
-
-          if attempt "full (sa + secrets + min-instances)" "${sa[@]}" "${secret_flags[@]}" --min-instances 1; then exit 0; fi
-
-          # Diagnosis: find which part DeployRevision refuses. A variant that
-          # succeeds here is incomplete and must be redeployed after the fix.
-          attempt "without min-instances" "${sa[@]}" "${secret_flags[@]}" \
-            || attempt "without secrets" "${sa[@]}" --min-instances 1 \
-            || attempt "without service account and secrets" \
-            || true
-          exit 1
+          # Yandex requires the deploying account (bizmuzik-deployer) to have
+          # lockbox.payloadViewer on the secret, not only the runtime account.
+          yc serverless container revision deploy "${base[@]}" "${sa[@]}" "${secret_flags[@]}" --min-instances 1
